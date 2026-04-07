@@ -1,4 +1,4 @@
-package com.application.gfm.form_manager
+package com.application.gfm
 
 import io.flutter.embedding.android.FlutterActivity
 
