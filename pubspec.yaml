@@ -52,6 +52,9 @@ dependencies:
   # Web view
   webview_flutter: ^4.10.0
 
+  # HTTP
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
