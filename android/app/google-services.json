@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "751857864758",
+    "project_id": "gfmapp",
+    "storage_bucket": "gfmapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751857864758:android:1b6e3d9819ffd71815c897",
+        "android_client_info": {
+          "package_name": "com.application.gfm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDI1d8rVZcT7VF6hTKcTHo6B3Mh7CA4gtM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
