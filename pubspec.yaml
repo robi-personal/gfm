@@ -23,7 +23,7 @@ dependencies:
   json_annotation: ^4.9.0
 
   # Google APIs & Auth
-  googleapis: ^13.2.0
+  googleapis: ^16.0.0
   googleapis_auth: ^1.6.0
   google_sign_in: ^6.2.2
 

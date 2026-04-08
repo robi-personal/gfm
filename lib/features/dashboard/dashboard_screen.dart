@@ -14,7 +14,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => DashboardCubit(getIt())..loadForms(),
+      create: (_) => DashboardCubit(getIt(), getIt())..loadForms(),
       child: const _DashboardView(),
     );
   }
@@ -39,21 +39,98 @@ class _DashboardViewState extends State<_DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listenWhen: (prev, curr) {
+        // Only listen when createNav is newly set.
+        final prevNav = prev is DashboardLoaded ? prev.createNav : null;
+        final currNav = curr is DashboardLoaded ? curr.createNav : null;
+        return currNav != null && currNav != prevNav;
+      },
+      listener: (context, state) {
+        if (state case DashboardLoaded(:final createNav?)) {
+          _handleCreateNavigation(context, createNav);
+        }
+      },
       builder: (context, state) {
+        final isCreating = switch (state) {
+          DashboardLoaded(:final isCreating) => isCreating,
+          DashboardError(:final isCreating) => isCreating,
+          _ => false,
+        };
+
         return Scaffold(
           appBar: _buildAppBar(context, state),
           body: _buildBody(context, state),
           floatingActionButton: FloatingActionButton.extended(
-            // TODO(step-4): wire to create-form flow
-            onPressed: null,
-            icon: const Icon(Icons.add),
-            label: const Text('New form'),
+            onPressed: isCreating ? null : () => _onNewForm(context),
+            icon: isCreating
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.add),
+            label: Text(isCreating ? 'Creating…' : 'New form'),
           ),
         );
       },
     );
   }
+
+  void _onNewForm(BuildContext context) async {
+    final cubit = context.read<DashboardCubit>();
+    try {
+      await cubit.createForm();
+    } catch (_) {
+      if (!context.mounted) return;
+      ErrorModal.show(
+        context,
+        title: "Couldn't create form.",
+        body: 'Check your connection and try again.',
+        secondaryLabel: 'Cancel',
+        onSecondary: () {},
+        primaryLabel: 'Retry',
+        onPrimary: () => _onNewForm(context),
+      );
+    }
+  }
+
+  void _handleCreateNavigation(
+      BuildContext context, CreateNavigation nav) async {
+    final cubit = context.read<DashboardCubit>();
+    cubit.clearNavigation();
+
+    if (nav.publishFailed && context.mounted) {
+      // Show the modal first; navigate either way on button tap.
+      ErrorModal.show(
+        context,
+        title: 'Form created but not published.',
+        body: "Responders can't submit until it's published. Publish now?",
+        secondaryLabel: 'Later',
+        onSecondary: () => _navigateToForm(context, nav),
+        primaryLabel: 'Publish',
+        onPrimary: () {
+          _navigateToForm(context, nav);
+          // TODO(step-6): trigger publish from editor save-pill
+        },
+      );
+      return;
+    }
+
+    _navigateToForm(context, nav);
+  }
+
+  void _navigateToForm(BuildContext context, CreateNavigation nav) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => FormDetailScreen(
+        formId: nav.formId,
+        formName: nav.formName,
+      ),
+    ));
+  }
+
+  // ── AppBar ─────────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar(
       BuildContext context, DashboardState state) {
@@ -111,33 +188,35 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
+  // ── Body ───────────────────────────────────────────────────────────────────
+
   Widget _buildBody(BuildContext context, DashboardState state) {
     return switch (state) {
-      DashboardInitial() || DashboardLoading() => const Center(
-          child: CircularProgressIndicator(),
-        ),
+      DashboardInitial() || DashboardLoading() =>
+        const Center(child: CircularProgressIndicator()),
       DashboardLoaded(:final forms, :final isShowingCache) => Column(
           children: [
             if (isShowingCache) const _CacheBanner(),
             Expanded(child: _FormList(forms: forms)),
           ],
         ),
-      DashboardError(:final message, :final cachedForms) => cachedForms != null
-          ? Column(
-              children: [
-                _InlineBanner(message: message),
-                Expanded(child: _FormList(forms: cachedForms)),
-              ],
-            )
-          : _FullScreenError(
-              message: message,
-              onRetry: () => context.read<DashboardCubit>().refresh(),
-            ),
+      DashboardError(:final message, :final cachedForms) =>
+        cachedForms != null
+            ? Column(
+                children: [
+                  _InlineBanner(message: message),
+                  Expanded(child: _FormList(forms: cachedForms)),
+                ],
+              )
+            : _FullScreenError(
+                message: message,
+                onRetry: () => context.read<DashboardCubit>().refresh(),
+              ),
     };
   }
 }
 
-// ── List ──────────────────────────────────────────────────────────────────────
+// ── Form list ─────────────────────────────────────────────────────────────────
 
 class _FormList extends StatelessWidget {
   final List<DriveFormEntry> forms;
@@ -184,17 +263,11 @@ class _FormRow extends StatelessWidget {
           ? Text(_formatDate(form.modifiedTime!))
           : null,
       onTap: () => _openForm(context),
-      trailing: PopupMenuButton<_RowAction>(  // ignore: unnecessary_underscores
+      trailing: PopupMenuButton<_RowAction>(
         onSelected: (action) => _handleAction(context, action),
         itemBuilder: (_) => const [
-          PopupMenuItem(
-            value: _RowAction.open,
-            child: Text('Open'),
-          ),
-          PopupMenuItem(
-            value: _RowAction.delete,
-            child: Text('Delete'),
-          ),
+          PopupMenuItem(value: _RowAction.open, child: Text('Open')),
+          PopupMenuItem(value: _RowAction.delete, child: Text('Delete')),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
@@ -16,7 +17,12 @@ class FormDetailCubit extends Cubit<FormDetailState> {
     emit(const FormDetailLoading());
     try {
       final apiForm = await _formsClient.api.forms.get(formId);
-      final doc = FormDoc.fromJson(apiForm.toJson());
+      // googleapis toJson() puts nested objects as Dart instances rather than
+      // plain Maps. Round-tripping through jsonEncode/jsonDecode forces every
+      // nested object to call its own toJson(), giving us a pure Map tree.
+      final jsonMap = jsonDecode(jsonEncode(apiForm.toJson()))
+          as Map<String, dynamic>;
+      final doc = FormDoc.fromJson(jsonMap);
       emit(FormDetailLoaded(doc));
     } on SocketException {
       emit(const FormDetailError(

@@ -2,21 +2,26 @@ import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:googleapis/drive/v3.dart' show File;
+import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../core/api/drive_client.dart';
+import '../../core/api/forms_client.dart';
 import '../../core/models/drive_form_entry.dart';
 
 part 'dashboard_state.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
   final DriveClient _driveClient;
+  final FormsClient _formsClient;
 
-  DashboardCubit(this._driveClient) : super(const DashboardInitial());
+  DashboardCubit(this._driveClient, this._formsClient)
+      : super(const DashboardInitial());
+
+  // ── List ──────────────────────────────────────────────────────────────────
 
   Future<void> loadForms({String query = ''}) async {
     final current = state;
 
-    // Keep existing data visible while refreshing.
     final cached = switch (current) {
       DashboardLoaded(:final forms) => forms,
       DashboardError(:final cachedForms) => cachedForms,
@@ -38,7 +43,6 @@ class DashboardCubit extends Cubit<DashboardState> {
       final q = StringBuffer(
           "mimeType='application/vnd.google-apps.form' and trashed=false");
       if (query.isNotEmpty) {
-        // Escape single quotes inside the query string per Drive API rules.
         final escaped = query.replaceAll("'", "\\'");
         q.write(" and name contains '$escaped'");
       }
@@ -49,26 +53,21 @@ class DashboardCubit extends Cubit<DashboardState> {
         $fields: 'files(id,name,modifiedTime,createdTime,webViewLink)',
       );
 
-      final forms = (result.files ?? [])
-          .map(DriveFormEntry.fromDriveFile)
-          .toList();
+      final loadedForms =
+          (result.files ?? []).map(DriveFormEntry.fromDriveFile).toList();
 
       emit(DashboardLoaded(
-        forms: forms,
+        forms: loadedForms,
         query: query,
         sortOrder: currentSort,
       ));
     } on SocketException {
       _emitError(
-        "Can't load your forms. Check your connection.",
-        cached,
-        currentSort,
-      );
+          "Can't load your forms. Check your connection.", cached, currentSort);
     } catch (e) {
       final status = _tryGetStatus(e);
       final message = switch (status) {
-        500 || 503 =>
-          "Google Forms is having trouble. Try again in a moment.",
+        500 || 503 => "Google Forms is having trouble. Try again in a moment.",
         _ => "Can't load your forms. Check your connection.",
       };
       _emitError(message, cached, currentSort);
@@ -88,32 +87,106 @@ class DashboardCubit extends Cubit<DashboardState> {
   Future<void> search(String query) => loadForms(query: query);
 
   Future<void> refresh() async {
-    final query = switch (state) {
-      DashboardLoaded(:final query) => query,
-      _ => '',
-    };
+    final query =
+        state is DashboardLoaded ? (state as DashboardLoaded).query : '';
     await loadForms(query: query);
   }
 
-  /// Soft-trashes a form. Rolls back on failure.
+  // ── Create ─────────────────────────────────────────────────────────────────
+
+  /// Two-step create: forms.create → setPublishSettings.
+  /// On success emits [DashboardLoaded] with [CreateNavigation] set.
+  /// Returns normally on publish failure (publishFailed=true in nav) so the
+  /// screen can show the error modal before navigating.
+  /// Throws on create failure so the screen can show the retry modal.
+  Future<void> createForm() async {
+    _setCreating(true);
+
+    final forms_api.Form created;
+    try {
+      created = await _formsClient.api.forms.create(
+        forms_api.Form(
+          info: forms_api.Info(
+            title: 'Untitled form',
+            documentTitle: 'Untitled form',
+          ),
+        ),
+      );
+    } catch (e) {
+      _setCreating(false);
+      rethrow; // screen shows "Couldn't create form." modal
+    }
+
+    final formId = created.formId!;
+    final formName = created.info?.title ?? 'Untitled form';
+
+    // Step 2: publish so responderUri works.
+    bool publishFailed = false;
+    try {
+      await _formsClient.api.forms.setPublishSettings(
+        forms_api.SetPublishSettingsRequest(
+          publishSettings: forms_api.PublishSettings(
+            publishState: forms_api.PublishState(
+              isPublished: true,
+              isAcceptingResponses: true,
+            ),
+          ),
+        ),
+        formId,
+      );
+    } catch (_) {
+      publishFailed = true; // screen shows "not published" modal, still navigates
+    }
+
+    _setCreating(false, nav: CreateNavigation(
+      formId: formId,
+      formName: formName,
+      publishFailed: publishFailed,
+    ));
+  }
+
+  /// Called by the screen immediately after consuming [CreateNavigation].
+  void clearNavigation() {
+    if (state case DashboardLoaded()) {
+      emit((state as DashboardLoaded).copyWith(clearNav: true));
+    }
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+
   Future<void> deleteForm(String fileId) async {
     if (state is! DashboardLoaded) return;
     final loaded = state as DashboardLoaded;
 
-    // Optimistic remove.
     emit(loaded.copyWith(
       forms: loaded.forms.where((f) => f.id != fileId).toList(),
     ));
 
     try {
-      await _driveClient.api.files.update(
-        File()..trashed = true,
-        fileId,
-      );
+      await _driveClient.api.files.update(File()..trashed = true, fileId);
     } catch (_) {
-      // Roll back — re-insert the form by reloading.
       emit(loaded);
       rethrow;
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  void _setCreating(bool creating, {CreateNavigation? nav}) {
+    switch (state) {
+      case DashboardLoaded():
+        emit((state as DashboardLoaded)
+            .copyWith(isCreating: creating, createNav: nav));
+      case DashboardError():
+        final err = state as DashboardError;
+        emit(DashboardError(
+          message: err.message,
+          cachedForms: err.cachedForms,
+          sortOrder: err.sortOrder,
+          isCreating: creating,
+        ));
+      default:
+        break;
     }
   }
 
@@ -133,4 +206,3 @@ int? _tryGetStatus(Object e) {
     return null;
   }
 }
-
