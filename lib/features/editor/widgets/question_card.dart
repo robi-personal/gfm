@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/models/choice_option.dart';
 import '../../../core/models/enums.dart';
 import '../../../core/models/item.dart';
 import '../../../core/models/item_content.dart';
 import '../../../core/models/question_kind.dart';
+import '../editor_cubit.dart';
 import 'type_chip.dart';
+import 'type_picker_sheet.dart';
 
 /// Tappable, expandable card for a question item.
 /// Collapsed: title + type chip.
-/// Expanded: full preview + required toggle (read-only in step 5, editable in step 6+).
+/// Expanded: editable title, options, required toggle, type picker, delete.
 class QuestionCard extends StatefulWidget {
   final Item item;
 
@@ -20,6 +24,34 @@ class QuestionCard extends StatefulWidget {
 
 class _QuestionCardState extends State<QuestionCard> {
   bool _expanded = false;
+  late TextEditingController _titleCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl =
+        TextEditingController(text: widget.item.title ?? '');
+  }
+
+  @override
+  void didUpdateWidget(QuestionCard old) {
+    super.didUpdateWidget(old);
+    // Sync controller only when not focused (user isn't typing).
+    final newTitle = widget.item.title ?? '';
+    if (_titleCtrl.text != newTitle &&
+        !(_titleFocusNode?.hasFocus ?? false)) {
+      _titleCtrl.text = newTitle;
+    }
+  }
+
+  FocusNode? _titleFocusNode;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _titleFocusNode?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +66,7 @@ class _QuestionCardState extends State<QuestionCard> {
   Widget _buildSingle(BuildContext context, dynamic question) {
     final theme = Theme.of(context);
     final kind = question.kind as QuestionKind;
-    final required = question.required as bool;
+    final isRequired = question.required as bool;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -47,26 +79,32 @@ class _QuestionCardState extends State<QuestionCard> {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
+        onTap: _expanded ? null : () => setState(() => _expanded = true),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ───────────────────────────────────────────────────
+              // ── Header ────────────────────────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(
-                      widget.item.title?.isNotEmpty == true
-                          ? widget.item.title!
-                          : 'Question',
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w500),
-                    ),
+                    child: _expanded
+                        ? _TitleField(
+                            controller: _titleCtrl,
+                            itemId: widget.item.itemId,
+                            onFocusNode: (fn) => _titleFocusNode = fn,
+                          )
+                        : Text(
+                            widget.item.title?.isNotEmpty == true
+                                ? widget.item.title!
+                                : 'Question',
+                            style: theme.textTheme.bodyLarge
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
                   ),
-                  if (required)
+                  if (!_expanded && isRequired)
                     Padding(
                       padding: const EdgeInsets.only(left: 4, top: 2),
                       child: Text('*',
@@ -74,35 +112,47 @@ class _QuestionCardState extends State<QuestionCard> {
                               color: theme.colorScheme.error, fontSize: 16)),
                     ),
                   const SizedBox(width: 4),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  GestureDetector(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: 20,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
 
-              // ── Type chip (always visible) ────────────────────────────────
+              // ── Type chip ─────────────────────────────────────────────────
               const SizedBox(height: 8),
-              TypeChip(kind: kind),
+              _expanded
+                  ? GestureDetector(
+                      onTap: () => _pickType(context, kind),
+                      child: TypeChip(kind: kind, showCaret: true),
+                    )
+                  : TypeChip(kind: kind),
 
               // ── Expanded content ──────────────────────────────────────────
-              if (_expanded) ...[
-                if (widget.item.description?.isNotEmpty == true) ...[
+              if (_expanded) ...{
+                if (widget.item.description?.isNotEmpty == true) ...{
                   const SizedBox(height: 8),
                   Text(
                     widget.item.description!,
                     style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant),
                   ),
-                ],
+                },
                 const SizedBox(height: 12),
-                _buildPreview(context, kind),
+                _buildEditableContent(context, kind),
                 const SizedBox(height: 16),
-                _RequiredRow(required: required),
-              ],
+                _ActionRow(
+                  itemId: widget.item.itemId,
+                  isRequired: isRequired,
+                  onCollapse: () => setState(() => _expanded = false),
+                ),
+              },
             ],
           ),
         ),
@@ -158,9 +208,8 @@ class _QuestionCardState extends State<QuestionCard> {
               const TypeChip(
                   kind: ChoiceQuestion(
                       type: ChoiceType.radio, options: [])),
-              if (_expanded && columns.isNotEmpty) ...[
+              if (_expanded && columns.isNotEmpty) ...{
                 const SizedBox(height: 12),
-                // Column headers
                 Row(
                   children: [
                     const SizedBox(width: 120),
@@ -198,7 +247,7 @@ class _QuestionCardState extends State<QuestionCard> {
                     ),
                   );
                 }),
-              ],
+              },
             ],
           ),
         ),
@@ -206,11 +255,14 @@ class _QuestionCardState extends State<QuestionCard> {
     );
   }
 
-  Widget _buildPreview(BuildContext context, QuestionKind kind) {
+  Widget _buildEditableContent(BuildContext context, QuestionKind kind) {
     return switch (kind) {
+      ChoiceQuestion(:final type, :final options) => _EditableOptions(
+          itemId: widget.item.itemId,
+          type: type,
+          options: options.cast<ChoiceOption>(),
+        ),
       TextQuestion(:final paragraph) => _TextPreview(paragraph: paragraph),
-      ChoiceQuestion(:final type, :final options) =>
-        _ChoicePreview(type: type, options: options, showAll: true),
       ScaleQuestion(:final low, :final high, :final lowLabel, :final highLabel) =>
         _ScalePreview(
             low: low, high: high, lowLabel: lowLabel, highLabel: highLabel),
@@ -224,34 +276,261 @@ class _QuestionCardState extends State<QuestionCard> {
       RowQuestion() => const SizedBox.shrink(),
     };
   }
+
+  Future<void> _pickType(BuildContext context, QuestionKind current) async {
+    final picked = await TypePickerSheet.show(context, current);
+    if (picked == null || !context.mounted) return;
+
+    // Preserve options when switching between choice types.
+    final kind = _mergeOptions(current, picked);
+    context.read<EditorCubit>().updateQuestionType(widget.item.itemId, kind);
+  }
+
+  /// When switching between choice-type questions, carry options over.
+  QuestionKind _mergeOptions(QuestionKind old, QuestionKind next) {
+    if (old is ChoiceQuestion && next is ChoiceQuestion) {
+      return next.copyWith(options: old.options);
+    }
+    return next;
+  }
 }
 
-// ── Required row ──────────────────────────────────────────────────────────────
+// ── Title field ───────────────────────────────────────────────────────────────
 
-class _RequiredRow extends StatelessWidget {
-  final bool required;
+class _TitleField extends StatefulWidget {
+  final TextEditingController controller;
+  final String itemId;
+  final void Function(FocusNode) onFocusNode;
 
-  const _RequiredRow({required this.required});
+  const _TitleField({
+    required this.controller,
+    required this.itemId,
+    required this.onFocusNode,
+  });
+
+  @override
+  State<_TitleField> createState() => _TitleFieldState();
+}
+
+class _TitleFieldState extends State<_TitleField> {
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode();
+    widget.onFocusNode(_focus);
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    final theme = Theme.of(context);
+    return TextField(
+      controller: widget.controller,
+      focusNode: _focus,
+      style:
+          theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        hintText: 'Question',
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: theme.colorScheme.primary),
+        ),
+        contentPadding: EdgeInsets.zero,
+        isDense: true,
+      ),
+      onChanged: (v) =>
+          context.read<EditorCubit>().updateItemTitle(widget.itemId, v),
+      minLines: 1,
+      maxLines: 4,
+    );
+  }
+}
+
+// ── Editable options ──────────────────────────────────────────────────────────
+
+class _EditableOptions extends StatelessWidget {
+  final String itemId;
+  final ChoiceType type;
+  final List<ChoiceOption> options;
+
+  const _EditableOptions({
+    required this.itemId,
+    required this.type,
+    required this.options,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Required',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        const SizedBox(width: 8),
-        Switch(
-          value: required,
-          onChanged: null, // read-only in step 5; wired in step 8
+        ...List.generate(options.length, (i) {
+          final opt = options[i];
+          return _OptionEditRow(
+            itemId: itemId,
+            optionIndex: i,
+            value: opt.value,
+            type: type,
+            canRemove: options.length > 1,
+          );
+        }),
+        const SizedBox(height: 4),
+        TextButton.icon(
+          onPressed: () =>
+              context.read<EditorCubit>().addOption(itemId),
+          icon: Icon(Icons.add, size: 18,
+              color: theme.colorScheme.primary),
+          label: Text('Add option',
+              style: TextStyle(color: theme.colorScheme.primary)),
+          style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 0)),
         ),
       ],
     );
   }
 }
 
-// ── Question previews ─────────────────────────────────────────────────────────
+class _OptionEditRow extends StatefulWidget {
+  final String itemId;
+  final int optionIndex;
+  final String value;
+  final ChoiceType type;
+  final bool canRemove;
+
+  const _OptionEditRow({
+    required this.itemId,
+    required this.optionIndex,
+    required this.value,
+    required this.type,
+    required this.canRemove,
+  });
+
+  @override
+  State<_OptionEditRow> createState() => _OptionEditRowState();
+}
+
+class _OptionEditRowState extends State<_OptionEditRow> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_OptionEditRow old) {
+    super.didUpdateWidget(old);
+    if (widget.value != _ctrl.text) {
+      _ctrl.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final icon = switch (widget.type) {
+      ChoiceType.radio => Icons.radio_button_unchecked,
+      ChoiceType.checkbox => Icons.check_box_outline_blank,
+      ChoiceType.dropDown => Icons.arrow_drop_down_circle_outlined,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _ctrl,
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: UnderlineInputBorder(
+                  borderSide:
+                      BorderSide(color: theme.colorScheme.primary),
+                ),
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
+              ),
+              onChanged: (v) => context
+                  .read<EditorCubit>()
+                  .updateOptionText(widget.itemId, widget.optionIndex, v),
+            ),
+          ),
+          if (widget.canRemove)
+            GestureDetector(
+              onTap: () => context
+                  .read<EditorCubit>()
+                  .removeOption(widget.itemId, widget.optionIndex),
+              child: Icon(Icons.close,
+                  size: 18, color: theme.colorScheme.onSurfaceVariant),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Action row (required toggle + delete) ────────────────────────────────────
+
+class _ActionRow extends StatelessWidget {
+  final String itemId;
+  final bool isRequired;
+  final VoidCallback onCollapse;
+
+  const _ActionRow({
+    required this.itemId,
+    required this.isRequired,
+    required this.onCollapse,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          iconSize: 20,
+          color: theme.colorScheme.onSurfaceVariant,
+          tooltip: 'Delete',
+          onPressed: () {
+            onCollapse();
+            context.read<EditorCubit>().deleteItem(itemId);
+          },
+        ),
+        const Spacer(),
+        Text('Required',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Switch(
+          value: isRequired,
+          onChanged: (v) =>
+              context.read<EditorCubit>().updateRequired(itemId, v),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Read-only previews (collapsed and non-choice expanded) ───────────────────
 
 class _TextPreview extends StatelessWidget {
   final bool paragraph;
@@ -264,8 +543,8 @@ class _TextPreview extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: Theme.of(context).dividerColor)),
+        border:
+            Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Text(
         paragraph ? 'Long answer text' : 'Short answer text',
@@ -273,65 +552,6 @@ class _TextPreview extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
             ),
-      ),
-    );
-  }
-}
-
-class _ChoicePreview extends StatelessWidget {
-  final ChoiceType type;
-  final List<dynamic> options;
-  final bool showAll;
-
-  const _ChoicePreview(
-      {required this.type, required this.options, this.showAll = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final visible = showAll ? options : options.take(4).toList();
-    final overflow = showAll ? 0 : options.length - visible.length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...visible.map((o) =>
-            _OptionRow(type: type, label: o.value as String)),
-        if (overflow > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text('+ $overflow more',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ),
-      ],
-    );
-  }
-}
-
-class _OptionRow extends StatelessWidget {
-  final ChoiceType type;
-  final String label;
-
-  const _OptionRow({required this.type, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = switch (type) {
-      ChoiceType.radio => Icons.radio_button_unchecked,
-      ChoiceType.checkbox => Icons.check_box_outline_blank,
-      ChoiceType.dropDown => Icons.arrow_drop_down_circle_outlined,
-    };
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 18,
-              color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Text(label,
-                  style: Theme.of(context).textTheme.bodyMedium)),
-        ],
       ),
     );
   }
@@ -400,8 +620,7 @@ class _RatingPreview extends StatelessWidget {
         ratingScaleLevel.clamp(1, 10),
         (_) => Padding(
           padding: const EdgeInsets.only(right: 4),
-          child: Icon(icon, size: 22,
-              color: Theme.of(context).colorScheme.primary),
+          child: Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
         ),
       ),
     );
@@ -418,8 +637,8 @@ class _IconPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18,
-            color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(icon,
+            size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Text(label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

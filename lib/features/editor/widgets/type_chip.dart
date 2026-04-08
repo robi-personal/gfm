@@ -4,10 +4,12 @@ import '../../../core/models/enums.dart';
 import '../../../core/models/question_kind.dart';
 
 /// Small pill showing the question type label.
+/// Set [showCaret] to true to add a dropdown arrow (tap to change type).
 class TypeChip extends StatelessWidget {
   final QuestionKind kind;
+  final bool showCaret;
 
-  const TypeChip({super.key, required this.kind});
+  const TypeChip({super.key, required this.kind, this.showCaret = false});
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +22,22 @@ class TypeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withAlpha(80)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+          if (showCaret) ...{
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down, size: 14, color: color),
+          },
+        ],
       ),
     );
   }

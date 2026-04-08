@@ -6,6 +6,7 @@ import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/widgets/error_modal.dart';
 import 'editor_cubit.dart';
+import 'widgets/form_header_card.dart';
 import 'widgets/question_card.dart';
 import 'widgets/section_card.dart';
 
@@ -38,6 +39,22 @@ class _EditorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<EditorCubit, EditorState>(
       listener: (context, state) {
+        // Conflict modal — shown exactly once per conflict event.
+        if (state case EditorLoaded(conflictPending: true)) {
+          context.read<EditorCubit>().clearConflict();
+          ErrorModal.show(
+            context,
+            title: 'This form was edited somewhere else.',
+            body: 'Keep your version or load the latest?',
+            primaryLabel: 'Keep mine',
+            onPrimary: () =>
+                context.read<EditorCubit>().resolveConflictKeepMine(),
+            secondaryLabel: 'Load latest',
+            onSecondary: () =>
+                context.read<EditorCubit>().resolveConflictLoadLatest(),
+          );
+        }
+
         if (state case EditorError(:final kind)) {
           switch (kind) {
             case EditorErrorKind.notFound:
@@ -57,7 +74,7 @@ class _EditorView extends StatelessWidget {
                 onPrimary: () => Navigator.of(context).pop(),
               );
             case EditorErrorKind.network:
-              break; // shown inline
+              break; // shown as full-screen error in body
           }
         }
       },
@@ -108,9 +125,11 @@ class _EditorView extends StatelessWidget {
                     context.read<EditorCubit>().loadForm(formId),
               ),
             EditorError() => const SizedBox.shrink(),
-            EditorLoaded(:final form) => _ItemList(items: form.items),
+            EditorLoaded(:final form) => _ItemList(form: form),
           },
-          bottomNavigationBar: _BottomBar(),
+          bottomNavigationBar: state is EditorLoaded
+              ? _BottomBar(form: state.form)
+              : const _BottomBar(form: null),
         );
       },
     );
@@ -118,6 +137,7 @@ class _EditorView extends StatelessWidget {
 
   String _saveLabel(String status) => switch (status) {
         'saving' => 'Saving…',
+        'retrying' => 'Retrying…',
         'offline' => 'Offline',
         'unpublished' => 'Unpublished',
         _ => 'Saved',
@@ -126,7 +146,7 @@ class _EditorView extends StatelessWidget {
   Color _saveLabelColor(BuildContext context, String status) {
     final cs = Theme.of(context).colorScheme;
     return switch (status) {
-      'saving' => cs.onSurfaceVariant,
+      'saving' || 'retrying' => cs.onSurfaceVariant,
       'offline' => cs.error,
       'unpublished' => cs.tertiary,
       _ => cs.primary,
@@ -137,12 +157,14 @@ class _EditorView extends StatelessWidget {
 // ── Item list ─────────────────────────────────────────────────────────────────
 
 class _ItemList extends StatelessWidget {
-  final List<Item> items;
+  final dynamic form;
 
-  const _ItemList({required this.items});
+  const _ItemList({required this.form});
 
   @override
   Widget build(BuildContext context) {
+    final items = form.items as List<Item>;
+
     if (items.isEmpty) {
       return Center(
         child: Text(
@@ -155,10 +177,31 @@ class _ItemList extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 100),
-      itemCount: items.length,
-      itemBuilder: (context, i) => _buildItem(items[i]),
+    return ReorderableListView.builder(
+      padding: const EdgeInsets.only(top: 4, bottom: 100),
+      onReorder: (oldIndex, newIndex) {
+        // ReorderableListView passes newIndex after removal; adjust by -1 when
+        // moving down (standard Flutter behavior).
+        final to = newIndex > oldIndex ? newIndex - 1 : newIndex;
+        context.read<EditorCubit>().moveItem(oldIndex, to);
+      },
+      buildDefaultDragHandles: false,
+      itemCount: items.length + 1, // +1 for header
+      itemBuilder: (context, i) {
+        if (i == 0) {
+          return FormHeaderCard(
+            key: const ValueKey('__header__'),
+            initialTitle: form.info.title as String,
+            initialDescription: form.info.description as String?,
+          );
+        }
+        final item = items[i - 1];
+        return ReorderableDragStartListener(
+          key: ValueKey(item.itemId),
+          index: i,
+          child: _buildItem(item),
+        );
+      },
     );
   }
 
@@ -174,6 +217,62 @@ class _ItemList extends StatelessWidget {
         VideoItemContent() =>
           _VideoCard(key: ValueKey(item.itemId), item: item),
       };
+}
+
+// ── Bottom bar ────────────────────────────────────────────────────────────────
+
+class _BottomBar extends StatelessWidget {
+  final dynamic form;
+
+  const _BottomBar({required this.form});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final enabled = form != null;
+    return SafeArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border(
+              top: BorderSide(color: theme.colorScheme.outlineVariant)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: enabled
+                    ? () {
+                        final items = form.items as List<Item>;
+                        context.read<EditorCubit>().addQuestion(
+                              afterIndex: items.isEmpty ? null : items.length - 1,
+                            );
+                      }
+                    : null,
+                icon: const Icon(Icons.add),
+                label: const Text('Add question'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.outlined(
+              // Section support — step 10
+              onPressed: null,
+              icon: const Icon(Icons.view_agenda_outlined),
+              tooltip: 'Add section',
+            ),
+            const SizedBox(width: 4),
+            IconButton.outlined(
+              // Media — step 10
+              onPressed: null,
+              icon: const Icon(Icons.perm_media_outlined),
+              tooltip: 'Add media',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Media placeholders ────────────────────────────────────────────────────────
@@ -243,53 +342,6 @@ class _VideoCard extends StatelessWidget {
             if (content.caption?.isNotEmpty == true)
               Text(content.caption!,
                   style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Bottom bar ────────────────────────────────────────────────────────────────
-
-class _BottomBar extends StatelessWidget {
-  const _BottomBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border(
-              top: BorderSide(color: theme.colorScheme.outlineVariant)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: FilledButton.tonalIcon(
-                // TODO(step-7): wire add question
-                onPressed: null,
-                icon: const Icon(Icons.add),
-                label: const Text('Add question'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              // TODO(step-10): add section
-              onPressed: null,
-              icon: const Icon(Icons.view_agenda_outlined),
-              tooltip: 'Add section',
-            ),
-            const SizedBox(width: 4),
-            IconButton.outlined(
-              // TODO(step-10): add media
-              onPressed: null,
-              icon: const Icon(Icons.perm_media_outlined),
-              tooltip: 'Add media',
-            ),
           ],
         ),
       ),
