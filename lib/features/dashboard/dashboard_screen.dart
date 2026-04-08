@@ -5,7 +5,7 @@ import '../../core/auth/auth_cubit.dart';
 import '../../core/di/injection.dart';
 import '../../core/models/drive_form_entry.dart';
 import '../../core/widgets/error_modal.dart';
-import '../form_detail/form_detail_screen.dart';
+import '../editor/editor_screen.dart';
 import 'dashboard_cubit.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -123,7 +123,7 @@ class _DashboardViewState extends State<_DashboardView> {
 
   void _navigateToForm(BuildContext context, CreateNavigation nav) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => FormDetailScreen(
+      builder: (_) => EditorScreen(
         formId: nav.formId,
         formName: nav.formName,
       ),
@@ -276,7 +276,7 @@ class _FormRow extends StatelessWidget {
   void _openForm(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) =>
-          FormDetailScreen(formId: form.id, formName: form.name),
+          EditorScreen(formId: form.id, formName: form.name),
     ));
   }
 
