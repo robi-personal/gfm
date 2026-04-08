@@ -120,7 +120,35 @@ class DashboardCubit extends Cubit<DashboardState> {
     final formId = created.formId!;
     final formName = created.info?.title ?? 'Untitled form';
 
-    // Step 2: publish so responderUri works.
+    // Step 2: add default short-answer question (spec §9 — no empty state).
+    try {
+      await _formsClient.api.forms.batchUpdate(
+        forms_api.BatchUpdateFormRequest(
+          requests: [
+            forms_api.Request(
+              createItem: forms_api.CreateItemRequest(
+                item: forms_api.Item(
+                  title: 'Question 1',
+                  questionItem: forms_api.QuestionItem(
+                    question: forms_api.Question(
+                      required: false,
+                      textQuestion: forms_api.TextQuestion(paragraph: false),
+                    ),
+                  ),
+                ),
+                location: forms_api.Location(index: 0),
+              ),
+            ),
+          ],
+        ),
+        formId,
+      );
+    } catch (_) {
+      // Non-fatal — the form exists, just has no questions yet.
+      // The editor will show "No questions yet" which is still usable.
+    }
+
+    // Step 3: publish so responderUri works.
     bool publishFailed = false;
     try {
       await _formsClient.api.forms.setPublishSettings(
