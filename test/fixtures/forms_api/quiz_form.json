@@ -1,0 +1,121 @@
+{
+  "formId": "1FAIpQLSquiz456",
+  "info": {
+    "title": "Geography Quiz",
+    "documentTitle": "Geography Quiz",
+    "description": "Test your knowledge of world capitals"
+  },
+  "settings": {
+    "quizSettings": {
+      "isQuiz": true
+    },
+    "emailCollectionType": "VERIFIED"
+  },
+  "revisionId": "00000003",
+  "responderUri": "https://docs.google.com/forms/d/e/1FAIpQLSquiz456/viewform",
+  "publishSettings": {
+    "publishState": {
+      "isPublished": true,
+      "isAcceptingResponses": true
+    }
+  },
+  "items": [
+    {
+      "itemId": "qi001",
+      "title": "What is the capital of France?",
+      "questionItem": {
+        "question": {
+          "questionId": "qq001",
+          "required": true,
+          "choiceQuestion": {
+            "type": "RADIO",
+            "options": [
+              {"value": "London"},
+              {"value": "Berlin"},
+              {"value": "Paris"},
+              {"value": "Madrid"}
+            ],
+            "shuffle": true
+          },
+          "grading": {
+            "pointValue": 2,
+            "correctAnswers": {
+              "answers": [{"value": "Paris"}]
+            },
+            "whenRight": {"text": "Correct! Paris is the capital of France."},
+            "whenWrong": {"text": "Incorrect. The capital of France is Paris."}
+          }
+        }
+      }
+    },
+    {
+      "itemId": "qi002",
+      "title": "Name the capital of Japan",
+      "questionItem": {
+        "question": {
+          "questionId": "qq002",
+          "required": true,
+          "textQuestion": {
+            "paragraph": false
+          },
+          "grading": {
+            "pointValue": 3,
+            "correctAnswers": {
+              "answers": [{"value": "Tokyo"}]
+            },
+            "generalFeedback": {"text": "The capital of Japan is Tokyo."}
+          }
+        }
+      }
+    },
+    {
+      "itemId": "qi003",
+      "title": "Star rating for difficulty",
+      "questionItem": {
+        "question": {
+          "questionId": "qq003",
+          "required": false,
+          "ratingQuestion": {
+            "ratingScaleLevel": 5,
+            "iconType": "STAR"
+          }
+        }
+      }
+    },
+    {
+      "itemId": "qi004",
+      "title": "Match countries to continents",
+      "questionGroupItem": {
+        "questions": [
+          {
+            "questionId": "qq004a",
+            "required": false,
+            "rowQuestion": {"title": "Brazil"}
+          },
+          {
+            "questionId": "qq004b",
+            "required": false,
+            "rowQuestion": {"title": "Japan"}
+          },
+          {
+            "questionId": "qq004c",
+            "required": false,
+            "rowQuestion": {"title": "Nigeria"}
+          }
+        ],
+        "grid": {
+          "columns": {
+            "type": "RADIO",
+            "options": [
+              {"value": "Africa"},
+              {"value": "Americas"},
+              {"value": "Asia"},
+              {"value": "Europe"}
+            ]
+          },
+          "shuffleQuestions": false
+        }
+      }
+    }
+  ]
+}

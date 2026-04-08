@@ -1,0 +1,165 @@
+{
+  "formId": "1FAIpQLSabc123",
+  "info": {
+    "title": "Simple Survey",
+    "documentTitle": "Simple Survey",
+    "description": "A short survey for testing"
+  },
+  "settings": {
+    "quizSettings": {
+      "isQuiz": false
+    },
+    "emailCollectionType": "DO_NOT_COLLECT"
+  },
+  "revisionId": "00000001",
+  "responderUri": "https://docs.google.com/forms/d/e/1FAIpQLSabc123/viewform",
+  "publishSettings": {
+    "publishState": {
+      "isPublished": true,
+      "isAcceptingResponses": true
+    }
+  },
+  "items": [
+    {
+      "itemId": "item001",
+      "title": "What is your name?",
+      "questionItem": {
+        "question": {
+          "questionId": "q001",
+          "required": true,
+          "textQuestion": {
+            "paragraph": false
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item002",
+      "title": "Tell us about yourself",
+      "description": "At least 2 sentences",
+      "questionItem": {
+        "question": {
+          "questionId": "q002",
+          "required": false,
+          "textQuestion": {
+            "paragraph": true
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item003",
+      "title": "Favourite colour",
+      "questionItem": {
+        "question": {
+          "questionId": "q003",
+          "required": false,
+          "choiceQuestion": {
+            "type": "RADIO",
+            "options": [
+              {"value": "Red"},
+              {"value": "Green"},
+              {"value": "Blue"},
+              {"value": "Other", "isOther": true}
+            ],
+            "shuffle": false
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item004",
+      "title": "Which languages do you know?",
+      "questionItem": {
+        "question": {
+          "questionId": "q004",
+          "required": false,
+          "choiceQuestion": {
+            "type": "CHECKBOX",
+            "options": [
+              {"value": "Dart"},
+              {"value": "Kotlin"},
+              {"value": "Swift"},
+              {"value": "Python"}
+            ],
+            "shuffle": true
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item005",
+      "title": "Section 2",
+      "description": "More questions",
+      "pageBreakItem": {}
+    },
+    {
+      "itemId": "item006",
+      "title": "Choose a country",
+      "questionItem": {
+        "question": {
+          "questionId": "q005",
+          "required": false,
+          "choiceQuestion": {
+            "type": "DROP_DOWN",
+            "options": [
+              {"value": "Australia"},
+              {"value": "Canada"},
+              {"value": "United Kingdom"},
+              {"value": "United States"}
+            ],
+            "shuffle": false
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item007",
+      "title": "Rate our service",
+      "questionItem": {
+        "question": {
+          "questionId": "q006",
+          "required": false,
+          "scaleQuestion": {
+            "low": 1,
+            "high": 5,
+            "lowLabel": "Very poor",
+            "highLabel": "Excellent"
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item008",
+      "title": "When is your birthday?",
+      "questionItem": {
+        "question": {
+          "questionId": "q007",
+          "required": false,
+          "dateQuestion": {
+            "includeTime": false,
+            "includeYear": true
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item009",
+      "title": "Preferred meeting time",
+      "questionItem": {
+        "question": {
+          "questionId": "q008",
+          "required": false,
+          "timeQuestion": {
+            "duration": false
+          }
+        }
+      }
+    },
+    {
+      "itemId": "item010",
+      "title": "Note",
+      "textItem": {}
+    }
+  ]
+}
