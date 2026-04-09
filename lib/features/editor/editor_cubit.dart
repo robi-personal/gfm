@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -22,19 +21,7 @@ class EditorCubit extends Cubit<EditorState> {
 
   EditorCubit(this._formsClient) : super(const EditorLoading());
 
-  // ── Revision / retry tracking ──────────────────────────────────────────────
   String _revisionId = '';
-  int _mismatchCount = 0;
-
-  // ── Info debounce ──────────────────────────────────────────────────────────
-  Timer? _infoDebounce;
-  String? _pendingTitle;
-  String? _pendingDescription;
-
-  // ── Per-item text debounce ─────────────────────────────────────────────────
-  final Map<String, Timer> _itemDebounce = {};
-  final Map<String, String> _pendingItemTitle = {};
-  final Map<String, String> _pendingOptionText = {}; // key: '$itemId:$optIdx'
 
   // ── Load ───────────────────────────────────────────────────────────────────
 
@@ -46,7 +33,6 @@ class EditorCubit extends Cubit<EditorState> {
           jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
       final doc = FormDoc.fromJson(json);
       _revisionId = doc.revisionId;
-      _mismatchCount = 0;
       emit(EditorLoaded(doc));
     } on SocketException {
       emit(const EditorError("Couldn't load this form.",
@@ -63,160 +49,281 @@ class EditorCubit extends Cubit<EditorState> {
     }
   }
 
-  // ── Form info (step 6) ─────────────────────────────────────────────────────
+  // ── Form info ──────────────────────────────────────────────────────────────
 
   void updateTitle(String title) {
     if (state is! EditorLoaded) return;
-    _pendingTitle = title;
-    _emitOptimisticInfo(title: title);
-    _scheduleInfoFlush();
+    final l = state as EditorLoaded;
+    emit(l.copyWith(
+      form: l.form.copyWith(info: l.form.info.copyWith(title: title)),
+      pending: l.pending.copyWith(
+        titleDesc: (title: title, description: l.form.info.description),
+      ),
+    ));
   }
 
   void updateDescription(String description) {
     if (state is! EditorLoaded) return;
-    _pendingDescription = description;
-    _emitOptimisticInfo(description: description);
-    _scheduleInfoFlush();
-  }
-
-  void _emitOptimisticInfo({String? title, String? description}) {
-    if (state is! EditorLoaded) return;
     final l = state as EditorLoaded;
     emit(l.copyWith(
       form: l.form.copyWith(
-        info: l.form.info.copyWith(
-          title: title ?? l.form.info.title,
-          description: description ?? l.form.info.description,
+          info: l.form.info.copyWith(description: description)),
+      pending: l.pending.copyWith(
+        titleDesc: (
+          title: l.form.info.title,
+          description: description,
         ),
       ),
-      saveStatus: 'saving',
     ));
   }
 
-  void _scheduleInfoFlush() {
-    _infoDebounce?.cancel();
-    _infoDebounce =
-        Timer(const Duration(milliseconds: 600), _flushInfo);
-  }
+  // ── Add question ───────────────────────────────────────────────────────────
 
-  Future<void> _flushInfo() async {
-    final title = _pendingTitle;
-    final desc = _pendingDescription;
-    _pendingTitle = null;
-    _pendingDescription = null;
-    if (title == null && desc == null) return;
+  void addQuestion({int? afterIndex}) {
     if (state is! EditorLoaded) return;
-
-    final fields = [
-      if (title != null) 'title',
-      if (desc != null) 'description',
-    ];
-    final snapshot = state as EditorLoaded;
-    await _executeBatch(
-      formId: snapshot.form.formId,
-      snapshot: snapshot,
-      requests: [
-        forms_api.Request(
-          updateFormInfo: forms_api.UpdateFormInfoRequest(
-            info: forms_api.Info(title: title, description: desc),
-            updateMask: fields.join(','),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Add section (step 10) ────────────────────────────────────────────────
-
-  Future<void> addSection() async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final insertAt = loaded.form.items.length;
+    final l = state as EditorLoaded;
+    final insertAt =
+        afterIndex != null ? afterIndex + 1 : l.form.items.length;
     final ts = DateTime.now().millisecondsSinceEpoch;
+    final tempId = '_pending_$ts';
     final placeholder = Item(
-      itemId: '_pending_$ts',
+      itemId: tempId,
+      title: 'Question',
+      content: QuestionItemContent(
+        question: Question(
+          questionId: '_pending_q_$ts',
+          kind: const TextQuestion(),
+        ),
+      ),
+    );
+    final newItems = [...l.form.items]..insert(insertAt, placeholder);
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(
+        creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
+      ),
+    ));
+  }
+
+  // ── Add section ────────────────────────────────────────────────────────────
+
+  void addSection() {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
+    final placeholder = Item(
+      itemId: tempId,
       title: 'Section',
       content: const PageBreakItemContent(),
     );
-    final newItems = [...loaded.form.items, placeholder];
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          createItem: forms_api.CreateItemRequest(
-            item: forms_api.Item(
-              title: 'Section',
-              pageBreakItem: forms_api.PageBreakItem(),
-            ),
-            location: forms_api.Location(index: insertAt),
-          ),
-        ),
-      ],
-      afterSuccess: () => _silentRefresh(loaded.form.formId),
-    );
+    final newItems = [...l.form.items, placeholder];
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(
+        creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
+      ),
+    ));
   }
 
-  // ── Update item description (step 10) ─────────────────────────────────────
+  // ── Delete item ────────────────────────────────────────────────────────────
 
-  final Map<String, String> _pendingItemDescription = {};
+  void deleteItem(String itemId) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final newItems = l.form.items.where((i) => i.itemId != itemId).toList();
+    final newEdits = {...l.pending.edits}..remove(itemId);
+
+    if (itemId.startsWith('_pending_')) {
+      // Temp item — never sent to server, just remove from creates list
+      final newCreates =
+          l.pending.creates.where((c) => c.tempId != itemId).toList();
+      emit(l.copyWith(
+        form: l.form.copyWith(items: newItems),
+        pending: l.pending.copyWith(creates: newCreates, edits: newEdits),
+      ));
+    } else {
+      // Real item — queue for server deletion at save time
+      emit(l.copyWith(
+        form: l.form.copyWith(items: newItems),
+        pending: l.pending.copyWith(
+          deletes: {...l.pending.deletes, itemId},
+          edits: newEdits,
+        ),
+      ));
+    }
+  }
+
+  // ── Move item ──────────────────────────────────────────────────────────────
+
+  void moveItem(int fromIndex, int toIndex) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    if (l.isSaving || fromIndex == toIndex) return;
+    final items = [...l.form.items];
+    final item = items.removeAt(fromIndex);
+    items.insert(toIndex, item);
+    // Reorder is NOT tracked in pending — derived at save time from final order.
+    emit(l.copyWith(form: l.form.copyWith(items: items)));
+  }
+
+  // ── Edit item title ────────────────────────────────────────────────────────
+
+  void updateItemTitle(String itemId, String title) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final newItems = [...l.form.items];
+    newItems[idx] = newItems[idx].copyWith(title: title);
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
+
+  // ── Edit item description ──────────────────────────────────────────────────
 
   void updateItemDescription(String itemId, String description) {
     if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    _pendingItemDescription[itemId] = description;
-    final newItems = [...loaded.form.items];
-    newItems[index] = newItems[index].copyWith(description: description);
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    final key = '${itemId}_desc';
-    _itemDebounce[key]?.cancel();
-    _itemDebounce[key] = Timer(const Duration(milliseconds: 600), () {
-      _flushItemDescription(itemId);
-    });
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final newItems = [...l.form.items];
+    newItems[idx] = newItems[idx].copyWith(description: description);
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
   }
 
-  Future<void> _flushItemDescription(String itemId) async {
-    final description = _pendingItemDescription.remove(itemId);
-    if (description == null || state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
+  // ── Toggle required ────────────────────────────────────────────────────────
 
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(loaded.form.items[index]),
-            location: forms_api.Location(index: index),
-            updateMask: 'description',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Update option go-to (step 10) ─────────────────────────────────────────
-
-  /// [goTo] is either a [GoToAction] wire string ('NEXT_SECTION' etc.)
-  /// or a section itemId — or null to clear branching.
-  Future<void> updateOptionGoTo(
-      String itemId, int optionIndex, String? goTo) async {
+  void updateRequired(String itemId, bool required) {
     if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
+      content:
+          content.copyWith(question: content.question.copyWith(required: required)),
+    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
 
-    final item = loaded.form.items[index];
+  // ── Change question type ───────────────────────────────────────────────────
+
+  void updateQuestionType(String itemId, QuestionKind newKind) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
+      content: content.copyWith(
+          question: content.question.copyWith(kind: newKind)),
+    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
+
+  // ── Edit options ───────────────────────────────────────────────────────────
+
+  void addOption(String itemId) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    if (content.question.kind is! ChoiceQuestion) return;
+    final cq = content.question.kind as ChoiceQuestion;
+    final newOptions = [
+      ...cq.options,
+      ChoiceOption(value: 'Option ${cq.options.length + 1}'),
+    ];
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
+      content: content.copyWith(
+        question:
+            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
+      ),
+    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
+
+  void removeOption(String itemId, int optionIndex) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    if (content.question.kind is! ChoiceQuestion) return;
+    final cq = content.question.kind as ChoiceQuestion;
+    final newOptions = [...cq.options]..removeAt(optionIndex);
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
+      content: content.copyWith(
+        question:
+            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
+      ),
+    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
+
+  void updateOptionText(String itemId, int optionIndex, String value) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    if (content.question.kind is! ChoiceQuestion) return;
+    final cq = content.question.kind as ChoiceQuestion;
+    final newOptions = [...cq.options];
+    newOptions[optionIndex] = newOptions[optionIndex].copyWith(value: value);
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
+      content: content.copyWith(
+        question:
+            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
+      ),
+    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
+  }
+
+  // ── Update option go-to ────────────────────────────────────────────────────
+
+  void updateOptionGoTo(String itemId, int optionIndex, String? goTo) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
+    if (idx == -1) return;
+    final item = l.form.items[idx];
     if (item.content is! QuestionItemContent) return;
     final content = item.content as QuestionItemContent;
     if (content.question.kind is! ChoiceQuestion) return;
@@ -237,375 +344,153 @@ class EditorCubit extends Cubit<EditorState> {
     final newOptions = [...cq.options];
     newOptions[optionIndex] = newOptions[optionIndex]
         .copyWith(goToAction: goToAction, goToSectionId: goToSectionId);
-    final updated = item.copyWith(
+    final newItems = [...l.form.items];
+    newItems[idx] = item.copyWith(
       content: content.copyWith(
         question: content.question.copyWith(
           kind: cq.copyWith(options: newOptions),
         ),
       ),
     );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(updated),
-            location: forms_api.Location(index: index),
-            updateMask: 'questionItem.question.choiceQuestion',
-          ),
-        ),
-      ],
-    );
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+    ));
   }
 
-  // ── Add question (step 7) ─────────────────────────────────────────────────
+  // ── Save ───────────────────────────────────────────────────────────────────
 
-  Future<void> addQuestion({int? afterIndex}) async {
+  Future<void> save() async {
     if (state is! EditorLoaded) return;
     final loaded = state as EditorLoaded;
-    final insertAt =
-        afterIndex != null ? afterIndex + 1 : loaded.form.items.length;
+    if (!loaded.isDirty || loaded.isSaving) return;
 
-    // Optimistic placeholder — replaced by reload after API success.
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    final placeholder = Item(
-      itemId: '_pending_$ts',
-      title: 'Question',
-      content: QuestionItemContent(
-        question: Question(
-          questionId: '_pending_q_$ts',
-          kind: const TextQuestion(),
-        ),
-      ),
-    );
-    final newItems = [...loaded.form.items]..insert(insertAt, placeholder);
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
+    final formId = loaded.form.formId;
+    final localForm = loaded.form;
+    final pending = loaded.pending;
+    final snapshot = loaded;
 
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          createItem: forms_api.CreateItemRequest(
-            item: forms_api.Item(
-              title: 'Question',
-              questionItem: forms_api.QuestionItem(
-                question: forms_api.Question(
-                  required: false,
-                  textQuestion: forms_api.TextQuestion(paragraph: false),
-                ),
-              ),
-            ),
-            location: forms_api.Location(index: insertAt),
-          ),
-        ),
-      ],
-      afterSuccess: () => _silentRefresh(loaded.form.formId),
-    );
-  }
+    emit(loaded.copyWith(isSaving: true));
 
-  // ── Delete item (step 7) ──────────────────────────────────────────────────
-
-  Future<void> deleteItem(String itemId) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final newItems = [...loaded.form.items]..removeAt(index);
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          deleteItem: forms_api.DeleteItemRequest(
-              location: forms_api.Location(index: index)),
-        ),
-      ],
-    );
-  }
-
-  // ── Move item (step 7) ────────────────────────────────────────────────────
-
-  Future<void> moveItem(int fromIndex, int toIndex) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    if (fromIndex == toIndex) return;
-
-    final items = [...loaded.form.items];
-    final item = items.removeAt(fromIndex);
-    items.insert(toIndex, item);
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: items), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          moveItem: forms_api.MoveItemRequest(
-            originalLocation: forms_api.Location(index: fromIndex),
-            newLocation: forms_api.Location(index: toIndex),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Edit item title (step 8) ──────────────────────────────────────────────
-
-  void updateItemTitle(String itemId, String title) {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    _pendingItemTitle[itemId] = title;
-    final newItems = [...loaded.form.items];
-    newItems[index] = newItems[index].copyWith(title: title);
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    _itemDebounce[itemId]?.cancel();
-    _itemDebounce[itemId] = Timer(const Duration(milliseconds: 600), () {
-      _flushItemTitle(itemId);
-    });
-  }
-
-  Future<void> _flushItemTitle(String itemId) async {
-    final title = _pendingItemTitle.remove(itemId);
-    if (title == null || state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(loaded.form.items[index]),
-            location: forms_api.Location(index: index),
-            updateMask: 'title',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Toggle required (step 8) ──────────────────────────────────────────────
-
-  Future<void> updateRequired(String itemId, bool required) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final item = loaded.form.items[index];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    final updated = item.copyWith(
-      content: content.copyWith(
-          question: content.question.copyWith(required: required)),
-    );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(updated),
-            location: forms_api.Location(index: index),
-            updateMask: 'questionItem.question.required',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Change question type (step 9) ─────────────────────────────────────────
-
-  Future<void> updateQuestionType(String itemId, QuestionKind newKind) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final item = loaded.form.items[index];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    final updated = item.copyWith(
-      content: content.copyWith(
-          question: content.question.copyWith(kind: newKind)),
-    );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(updated),
-            location: forms_api.Location(index: index),
-            updateMask: 'questionItem.question',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Edit options (step 8) ─────────────────────────────────────────────────
-
-  Future<void> addOption(String itemId) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final item = loaded.form.items[index];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-
-    final newOptions = [
-      ...cq.options,
-      ChoiceOption(value: 'Option ${cq.options.length + 1}'),
-    ];
-    final updated = item.copyWith(
-      content: content.copyWith(
-        question: content.question.copyWith(
-          kind: cq.copyWith(options: newOptions),
-        ),
-      ),
-    );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(updated),
-            location: forms_api.Location(index: index),
-            updateMask: 'questionItem.question.choiceQuestion',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> removeOption(String itemId, int optionIndex) async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final item = loaded.form.items[index];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-
-    final newOptions = [...cq.options]..removeAt(optionIndex);
-    final updated = item.copyWith(
-      content: content.copyWith(
-        question: content.question.copyWith(
-          kind: cq.copyWith(options: newOptions),
-        ),
-      ),
-    );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    await _executeBatch(
-      formId: loaded.form.formId,
-      snapshot: loaded,
-      requests: [
-        forms_api.Request(
-          updateItem: forms_api.UpdateItemRequest(
-            item: _toApiItem(updated),
-            location: forms_api.Location(index: index),
-            updateMask: 'questionItem.question.choiceQuestion',
-          ),
-        ),
-      ],
-    );
-  }
-
-  void updateOptionText(String itemId, int optionIndex, String value) {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
-    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
-    if (index == -1) return;
-
-    final item = loaded.form.items[index];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-
-    final newOptions = [...cq.options];
-    newOptions[optionIndex] = newOptions[optionIndex].copyWith(value: value);
-    final updated = item.copyWith(
-      content: content.copyWith(
-        question: content.question.copyWith(
-          kind: cq.copyWith(options: newOptions),
-        ),
-      ),
-    );
-    final newItems = [...loaded.form.items]..[index] = updated;
-    emit(loaded.copyWith(
-        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
-
-    final debounceKey = '$itemId:$optionIndex';
-    _pendingOptionText[debounceKey] = value;
-    _itemDebounce[debounceKey]?.cancel();
-    _itemDebounce[debounceKey] =
-        Timer(const Duration(milliseconds: 600), () async {
-      _pendingOptionText.remove(debounceKey);
-      if (state is! EditorLoaded) return;
-      final current = state as EditorLoaded;
-      final i = current.form.items.indexWhere((it) => it.itemId == itemId);
-      if (i == -1) return;
-      await _executeBatch(
-        formId: current.form.formId,
-        snapshot: current,
-        requests: [
+    try {
+      // 1. Title / description
+      if (pending.titleDesc case final td?) {
+        await _sendBatch(formId, [
           forms_api.Request(
-            updateItem: forms_api.UpdateItemRequest(
-              item: _toApiItem(current.form.items[i]),
-              location: forms_api.Location(index: i),
-              updateMask: 'questionItem.question.choiceQuestion',
+            updateFormInfo: forms_api.UpdateFormInfoRequest(
+              info:
+                  forms_api.Info(title: td.title, description: td.description),
+              updateMask: 'title,description',
             ),
           ),
-        ],
+        ]);
+      }
+
+      // 2. Creates — sequential so we can collect tempId → realId
+      final tempIdMap = <String, String>{};
+      final serverCount = loaded.serverItemOrder.length;
+      for (var i = 0; i < pending.creates.length; i++) {
+        final create = pending.creates[i];
+        final item =
+            localForm.items.firstWhere((it) => it.itemId == create.tempId);
+        final resp = await _sendBatch(formId, [
+          forms_api.Request(
+            createItem: forms_api.CreateItemRequest(
+              // Strip output-only IDs — the API rejects them in createItem.
+              item: _toApiItemForCreate(item),
+              location: forms_api.Location(index: serverCount + i),
+            ),
+          ),
+        ]);
+        final realId = resp.replies?.first.createItem?.itemId;
+        if (realId != null) tempIdMap[create.tempId] = realId;
+      }
+
+      // 3. Refresh revision + serverItemOrder (preserves local FormDoc & pending)
+      await _refreshRevisionAndOrder(formId);
+      final simulatedOrder = List<String>.from(
+        (state as EditorLoaded).serverItemOrder,
       );
-    });
+
+      // 4. Deletes — batch in descending index order (avoids index shift)
+      if (pending.deletes.isNotEmpty) {
+        final indices = pending.deletes
+            .map((id) => simulatedOrder.indexOf(id))
+            .where((i) => i != -1)
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
+        if (indices.isNotEmpty) {
+          await _sendBatch(formId, [
+            for (final idx in indices)
+              forms_api.Request(
+                deleteItem: forms_api.DeleteItemRequest(
+                    location: forms_api.Location(index: idx)),
+              ),
+          ]);
+          for (final id in pending.deletes) {
+            simulatedOrder.remove(id);
+          }
+        }
+      }
+
+      // 5. Edits — batch all in one call
+      final editRequests = <forms_api.Request>[];
+      for (final editedId in pending.edits) {
+        final realId = tempIdMap[editedId] ?? editedId;
+        if (pending.deletes.contains(realId)) continue;
+        final idx = simulatedOrder.indexOf(realId);
+        if (idx == -1) continue;
+        final item = localForm.items.firstWhere(
+          (it) => it.itemId == editedId,
+          orElse: () =>
+              throw StateError('edited item not found in local form: $editedId'),
+        );
+        // If this was a temp item, swap in the real server-assigned itemId.
+        final apiItem = tempIdMap.containsKey(editedId)
+            ? _toApiItem(item.copyWith(itemId: tempIdMap[editedId]))
+            : _toApiItem(item);
+        editRequests.add(forms_api.Request(
+          updateItem: forms_api.UpdateItemRequest(
+            item: apiItem,
+            location: forms_api.Location(index: idx),
+            updateMask: _updateMaskForItem(item),
+          ),
+        ));
+      }
+      if (editRequests.isNotEmpty) {
+        await _sendBatch(formId, editRequests);
+      }
+
+      // 6. Moves — compute minimal move sequence from desired vs simulated order
+      final desiredOrder = localForm.items
+          .map((i) => tempIdMap[i.itemId] ?? i.itemId)
+          .where((id) => !pending.deletes.contains(id))
+          .toList();
+      for (final (from, to) in _computeMoves(simulatedOrder, desiredOrder)) {
+        await _sendBatch(formId, [
+          forms_api.Request(
+            moveItem: forms_api.MoveItemRequest(
+              originalLocation: forms_api.Location(index: from),
+              newLocation: forms_api.Location(index: to),
+            ),
+          ),
+        ]);
+        final moved = simulatedOrder.removeAt(from);
+        simulatedOrder.insert(to, moved);
+      }
+
+      // 7. Final sync — replaces FormDoc with clean server state
+      await _silentRefresh(formId);
+    } catch (e) {
+      if (isRevisionMismatch(e)) {
+        emit(snapshot.copyWith(isSaving: false, conflictPending: true));
+      } else {
+        emit(snapshot.copyWith(isSaving: false, saveFailed: true));
+      }
+    }
   }
 
-  // ── Conflict resolution (step 6) ──────────────────────────────────────────
+  // ── Conflict resolution ────────────────────────────────────────────────────
 
   void clearConflict() {
     if (state is EditorLoaded) {
@@ -613,21 +498,20 @@ class EditorCubit extends Cubit<EditorState> {
     }
   }
 
+  void clearSaveFailed() {
+    if (state is EditorLoaded) {
+      emit((state as EditorLoaded).copyWith(saveFailed: false));
+    }
+  }
+
   Future<void> resolveConflictKeepMine() async {
     if (state is! EditorLoaded) return;
     clearConflict();
     try {
-      final fresh =
-          await _formsClient.api.forms.get((state as EditorLoaded).form.formId);
-      _revisionId = fresh.revisionId ?? _revisionId;
-      _mismatchCount = 0;
-      if (_pendingTitle != null || _pendingDescription != null) {
-        _scheduleInfoFlush();
-      }
+      // Refresh revision so next Save attempt uses the latest server revision.
+      await _refreshRevisionId((state as EditorLoaded).form.formId);
     } catch (_) {
-      if (state is EditorLoaded) {
-        emit((state as EditorLoaded).copyWith(saveStatus: 'saved'));
-      }
+      // If this fails, the next Save will get a mismatch and retry.
     }
   }
 
@@ -635,121 +519,57 @@ class EditorCubit extends Cubit<EditorState> {
     if (state is! EditorLoaded) return;
     final formId = (state as EditorLoaded).form.formId;
     clearConflict();
-    _pendingTitle = null;
-    _pendingDescription = null;
-    _infoDebounce?.cancel();
-    for (final t in _itemDebounce.values) {
-      t.cancel();
-    }
-    _itemDebounce.clear();
     await loadForm(formId);
   }
 
-  // ── Core batch engine ──────────────────────────────────────────────────────
+  // ── Core send engine ───────────────────────────────────────────────────────
 
-  Future<void> _executeBatch({
-    required String formId,
-    required EditorLoaded snapshot,
-    required List<forms_api.Request> requests,
-    Future<void> Function()? afterSuccess,
-  }) async {
-    // First attempt
-    try {
-      _revisionId = await runBatchUpdate(
-        api: _formsClient.api.forms,
-        formId: formId,
-        revisionId: _revisionId,
-        requests: requests,
-      );
-      _mismatchCount = 0;
-      if (afterSuccess != null) {
-        await afterSuccess();
-      } else {
-        _emitSaved();
-      }
-      return;
-    } catch (e) {
-      if (isRevisionMismatch(e)) {
-        if (_mismatchCount == 0) {
-          _mismatchCount++;
-          _emitStatus('retrying');
-          try {
-            await _refreshRevisionId(formId);
-          } catch (_) {
-            _rollback(snapshot);
-            return;
-          }
-          // fall through to retry below
-        } else {
-          _mismatchCount = 0;
-          if (state is EditorLoaded) {
-            emit((state as EditorLoaded).copyWith(conflictPending: true));
-          }
-          return;
-        }
-      } else {
-        final status = _tryStatus(e);
-        if (status == 403) {
-          _rollback(snapshot);
-          emit(const EditorError("You no longer have access to this form.",
-              kind: EditorErrorKind.permissionDenied));
-          return;
-        }
-        if (status == 400) {
-          // Bug in request — roll back, no retry.
-          _rollback(snapshot);
-          return;
-        }
-        // Network / 5xx — fall through to backoff retries.
-      }
-    }
-
-    // Backoff retries: 1s → 3s → 8s
-    for (final delay in [
-      const Duration(seconds: 1),
-      const Duration(seconds: 3),
-      const Duration(seconds: 8),
-    ]) {
-      await Future<void>.delayed(delay);
-      _emitStatus('retrying');
-      try {
-        _revisionId = await runBatchUpdate(
-          api: _formsClient.api.forms,
-          formId: formId,
-          revisionId: _revisionId,
+  /// Sends a batchUpdate and returns the full response.
+  /// Handles one revision-mismatch retry and network backoff (1s → 3s → 8s).
+  /// Throws on unrecoverable failure — caller (save) handles rollback.
+  Future<forms_api.BatchUpdateFormResponse> _sendBatch(
+    String formId,
+    List<forms_api.Request> requests,
+  ) async {
+    Future<forms_api.BatchUpdateFormResponse> call() async {
+      final resp = await _formsClient.api.forms.batchUpdate(
+        forms_api.BatchUpdateFormRequest(
           requests: requests,
-        );
-        _mismatchCount = 0;
-        if (afterSuccess != null) {
-          await afterSuccess();
-        } else {
-          _emitSaved();
-        }
-        return;
-      } catch (_) {
-        continue;
+          writeControl: forms_api.WriteControl(
+            requiredRevisionId: _revisionId.isEmpty ? null : _revisionId,
+          ),
+          includeFormInResponse: true,
+        ),
+        formId,
+      );
+      _revisionId = resp.form?.revisionId ?? _revisionId;
+      return resp;
+    }
+
+    try {
+      return await call();
+    } catch (firstErr) {
+      if (isRevisionMismatch(firstErr)) {
+        // Refresh revision and retry once.
+        // If still mismatches, throws → save() catches as conflict.
+        await _refreshRevisionId(formId);
+        return await call();
       }
+      // Non-revision 400 = bad request (bug in payload), won't fix with retries.
+      if (_tryStatus(firstErr) == 400) rethrow;
+      // Network / 5xx — backoff retries
+      for (final delay in [
+        const Duration(seconds: 1),
+        const Duration(seconds: 3),
+        const Duration(seconds: 8),
+      ]) {
+        await Future<void>.delayed(delay);
+        try {
+          return await call();
+        } catch (_) {}
+      }
+      rethrow;
     }
-
-    // All retries exhausted.
-    _rollback(snapshot);
-  }
-
-  void _emitSaved() {
-    if (state is EditorLoaded) {
-      final l = state as EditorLoaded;
-      emit(l.copyWith(lastKnownGood: l.form, saveStatus: 'saved'));
-    }
-  }
-
-  void _emitStatus(String status) {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded).copyWith(saveStatus: status));
-    }
-  }
-
-  void _rollback(EditorLoaded snapshot) {
-    emit(snapshot.copyWith(saveStatus: 'saved'));
   }
 
   Future<void> _refreshRevisionId(String formId) async {
@@ -757,9 +577,27 @@ class EditorCubit extends Cubit<EditorState> {
     _revisionId = fresh.revisionId ?? _revisionId;
   }
 
-  /// Re-fetches the form without flashing [EditorLoading].
-  /// Used after structural changes (add item) to sync real item IDs
-  /// while preserving scroll position, expanded state, and focus.
+  /// Refreshes revision + serverItemOrder without touching the local FormDoc.
+  /// Called mid-save after creates complete.
+  Future<void> _refreshRevisionAndOrder(String formId) async {
+    try {
+      final apiForm = await _formsClient.api.forms.get(formId);
+      final json =
+          jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
+      final doc = FormDoc.fromJson(json);
+      _revisionId = doc.revisionId;
+      if (state is EditorLoaded) {
+        emit((state as EditorLoaded).copyWith(
+          serverItemOrder: doc.items.map((i) => i.itemId).toList(),
+        ));
+      }
+    } catch (_) {
+      // Silent — proceed with stale server order; deletes/moves may still work.
+    }
+  }
+
+  /// Replaces local FormDoc with the authoritative server state.
+  /// Called at the end of save() to sync real IDs and clean up pending state.
   Future<void> _silentRefresh(String formId) async {
     try {
       final apiForm = await _formsClient.api.forms.get(formId);
@@ -767,24 +605,35 @@ class EditorCubit extends Cubit<EditorState> {
           jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
       final doc = FormDoc.fromJson(json);
       _revisionId = doc.revisionId;
-      _mismatchCount = 0;
       if (state is EditorLoaded) {
-        emit(EditorLoaded(doc, lastKnownGood: doc, saveStatus: 'saved'));
+        // pending defaults to empty, isSaving defaults to false
+        emit(EditorLoaded(doc, lastKnownGood: doc));
       }
     } catch (_) {
-      // Silent — optimistic state is already in place.
-      _emitSaved();
+      // Silent — optimistic state remains; clear saving flag.
+      if (state is EditorLoaded) {
+        emit((state as EditorLoaded)
+            .copyWith(pending: PendingChanges.empty, isSaving: false));
+      }
     }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  /// Converts a domain [Item] to a googleapis [forms_api.Item] for API writes.
-  /// [_removeNulls] is required because freezed's toJson() includes null fields
-  /// (e.g. `"image": null`) and googleapis crashes when it finds the key present
-  /// with a null value rather than the key being absent.
   forms_api.Item _toApiItem(Item item) =>
       forms_api.Item.fromJson(_removeNulls(item.toJson()));
+
+  /// Like [_toApiItem] but strips output-only IDs that the Forms API rejects
+  /// in `createItem` requests (`itemId` on Item, `questionId` on Question).
+  forms_api.Item _toApiItemForCreate(Item item) {
+    final json = _removeNulls(item.toJson());
+    json.remove('itemId');
+    if (json['questionItem'] is Map<String, dynamic>) {
+      final q = (json['questionItem'] as Map<String, dynamic>)['question'];
+      if (q is Map<String, dynamic>) q.remove('questionId');
+    }
+    return forms_api.Item.fromJson(json);
+  }
 
   static Map<String, dynamic> _removeNulls(Map<String, dynamic> map) {
     return Map.fromEntries(
@@ -807,13 +656,28 @@ class EditorCubit extends Cubit<EditorState> {
         .toList();
   }
 
-  @override
-  Future<void> close() {
-    _infoDebounce?.cancel();
-    for (final t in _itemDebounce.values) {
-      t.cancel();
+  /// Broad update mask per item type — covers any field the user might have changed.
+  static String _updateMaskForItem(Item item) => switch (item.content) {
+        QuestionItemContent() => 'title,description,questionItem',
+        _ => 'title,description',
+      };
+
+  /// Minimal insertion-sort move sequence to transform [current] into [desired].
+  /// Returns a list of (fromIndex, toIndex) pairs to execute sequentially.
+  static List<(int, int)> _computeMoves(
+      List<String> current, List<String> desired) {
+    final sim = List<String>.from(current);
+    final moves = <(int, int)>[];
+    for (var target = 0; target < desired.length; target++) {
+      final id = desired[target];
+      final cur = sim.indexOf(id);
+      if (cur == -1 || cur == target) continue;
+      moves.add((cur, target));
+      sim
+        ..removeAt(cur)
+        ..insert(target, id);
     }
-    return super.close();
+    return moves;
   }
 }
 

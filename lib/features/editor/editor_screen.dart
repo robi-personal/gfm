@@ -45,6 +45,32 @@ class _EditorView extends StatelessWidget {
           titleSpacing: 0,
           title: _AppBarTitle(initialName: initialName),
           actions: [
+            BlocSelector<EditorCubit, EditorState,
+                ({bool isDirty, bool isSaving})>(
+              selector: (state) => state is EditorLoaded
+                  ? (isDirty: state.isDirty, isSaving: state.isSaving)
+                  : (isDirty: false, isSaving: false),
+              builder: (context, data) {
+                if (data.isSaving) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                return TextButton(
+                  onPressed: data.isDirty
+                      ? () => context.read<EditorCubit>().save()
+                      : null,
+                  child: const Text('Save'),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () {}, // settings / preview / share — step 12
@@ -76,7 +102,8 @@ class _EditorView extends StatelessWidget {
           },
         ),
         bottomNavigationBar: BlocSelector<EditorCubit, EditorState, bool>(
-          selector: (state) => state is EditorLoaded,
+          selector: (state) =>
+              state is EditorLoaded && !state.isSaving,
           builder: (context, enabled) => _BottomBar(enabled: enabled),
         ),
       ),
@@ -96,6 +123,17 @@ class _EditorView extends StatelessWidget {
         secondaryLabel: 'Load latest',
         onSecondary: () =>
             context.read<EditorCubit>().resolveConflictLoadLatest(),
+      );
+    }
+
+    if (state case EditorLoaded(saveFailed: true)) {
+      context.read<EditorCubit>().clearSaveFailed();
+      ErrorModal.show(
+        context,
+        title: 'Failed to save',
+        body: 'Check your connection and try again.',
+        primaryLabel: 'OK',
+        onPrimary: () {},
       );
     }
 
@@ -124,7 +162,7 @@ class _EditorView extends StatelessWidget {
   }
 }
 
-// ── App bar title with its own selector (rebuilds only on title/status) ──────
+// ── App bar title — rebuilds only when the form title changes ─────────────────
 
 class _AppBarTitle extends StatelessWidget {
   final String initialName;
@@ -133,54 +171,16 @@ class _AppBarTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState,
-        ({String title, String? status})>(
-      selector: (state) {
-        if (state is EditorLoaded) {
-          return (title: state.form.info.title, status: state.saveStatus);
-        }
-        return (title: initialName, status: null);
-      },
-      builder: (context, data) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(data.title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            if (data.status != null)
-              Text(
-                _saveLabel(data.status!),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _saveLabelColor(context, data.status!),
-                ),
-              ),
-          ],
-        );
-      },
+    return BlocSelector<EditorCubit, EditorState, String>(
+      selector: (state) =>
+          state is EditorLoaded ? state.form.info.title : initialName,
+      builder: (context, title) => Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
-  }
-
-  static String _saveLabel(String status) => switch (status) {
-        'saving' => 'Saving…',
-        'retrying' => 'Retrying…',
-        'offline' => 'Offline',
-        'unpublished' => 'Unpublished',
-        _ => 'Saved',
-      };
-
-  static Color _saveLabelColor(BuildContext context, String status) {
-    final cs = Theme.of(context).colorScheme;
-    return switch (status) {
-      'saving' || 'retrying' => cs.onSurfaceVariant,
-      'offline' => cs.error,
-      'unpublished' => cs.tertiary,
-      _ => cs.primary,
-    };
   }
 }
 
