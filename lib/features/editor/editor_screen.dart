@@ -239,7 +239,7 @@ class _EditorBody extends StatelessWidget {
             },
             itemBuilder: (context, i) {
               final item = items[i];
-              return ReorderableDragStartListener(
+              return ReorderableDelayedDragStartListener(
                 key: ValueKey(item.itemId),
                 index: i,
                 child: _buildItem(item),

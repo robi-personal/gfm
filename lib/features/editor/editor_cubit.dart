@@ -642,8 +642,32 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   /// Converts a domain [Item] to a googleapis [forms_api.Item] for API writes.
+  /// [_removeNulls] is required because freezed's toJson() includes null fields
+  /// (e.g. `"image": null`) and googleapis crashes when it finds the key present
+  /// with a null value rather than the key being absent.
   forms_api.Item _toApiItem(Item item) =>
-      forms_api.Item.fromJson(item.toJson());
+      forms_api.Item.fromJson(_removeNulls(item.toJson()));
+
+  static Map<String, dynamic> _removeNulls(Map<String, dynamic> map) {
+    return Map.fromEntries(
+      map.entries
+          .where((e) => e.value != null)
+          .map((e) => MapEntry(
+                e.key,
+                e.value is Map<String, dynamic>
+                    ? _removeNulls(e.value as Map<String, dynamic>)
+                    : e.value is List
+                        ? _removeNullsFromList(e.value as List)
+                        : e.value,
+              )),
+    );
+  }
+
+  static List<dynamic> _removeNullsFromList(List<dynamic> list) {
+    return list
+        .map((e) => e is Map<String, dynamic> ? _removeNulls(e) : e)
+        .toList();
+  }
 
   @override
   Future<void> close() {

@@ -10,9 +10,7 @@ import '../editor_cubit.dart';
 import 'type_chip.dart';
 import 'type_picker_sheet.dart';
 
-/// Tappable, expandable card for a question item.
-/// Collapsed: title + type chip.
-/// Expanded: editable title, options, required toggle, type picker, delete.
+/// Always-expanded card for a question item.
 class QuestionCard extends StatefulWidget {
   final Item item;
 
@@ -23,33 +21,28 @@ class QuestionCard extends StatefulWidget {
 }
 
 class _QuestionCardState extends State<QuestionCard> {
-  bool _expanded = false;
   late TextEditingController _titleCtrl;
+  FocusNode? _titleFocusNode;
 
   @override
   void initState() {
     super.initState();
-    _titleCtrl =
-        TextEditingController(text: widget.item.title ?? '');
+    _titleCtrl = TextEditingController(text: widget.item.title ?? '');
   }
 
   @override
   void didUpdateWidget(QuestionCard old) {
     super.didUpdateWidget(old);
-    // Sync controller only when not focused (user isn't typing).
     final newTitle = widget.item.title ?? '';
-    if (_titleCtrl.text != newTitle &&
-        !(_titleFocusNode?.hasFocus ?? false)) {
+    if (_titleCtrl.text != newTitle && !(_titleFocusNode?.hasFocus ?? false)) {
       _titleCtrl.text = newTitle;
     }
   }
 
-  FocusNode? _titleFocusNode;
-
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _titleFocusNode?.dispose();
+    // _titleFocusNode is owned and disposed by _TitleFieldState — do NOT dispose here.
     super.dispose();
   }
 
@@ -70,91 +63,44 @@ class _QuestionCardState extends State<QuestionCard> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: _expanded ? 3 : 1,
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: _expanded
-            ? BorderSide(color: theme.colorScheme.primary, width: 1.5)
-            : BorderSide.none,
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _expanded ? null : () => setState(() => _expanded = true),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ────────────────────────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _expanded
-                        ? _TitleField(
-                            controller: _titleCtrl,
-                            itemId: widget.item.itemId,
-                            onFocusNode: (fn) => _titleFocusNode = fn,
-                          )
-                        : Text(
-                            widget.item.title?.isNotEmpty == true
-                                ? widget.item.title!
-                                : 'Question',
-                            style: theme.textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w500),
-                          ),
-                  ),
-                  if (!_expanded && isRequired)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4, top: 2),
-                      child: Text('*',
-                          style: TextStyle(
-                              color: theme.colorScheme.error, fontSize: 16)),
-                    ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => setState(() => _expanded = !_expanded),
-                    child: Icon(
-                      _expanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 20,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-
-              // ── Type chip ─────────────────────────────────────────────────
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Title field ───────────────────────────────────────────────
+            _TitleField(
+              controller: _titleCtrl,
+              itemId: widget.item.itemId,
+              onFocusNode: (fn) => _titleFocusNode = fn,
+            ),
+            // ── Type chip ─────────────────────────────────────────────────
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => _pickType(context, kind),
+              child: TypeChip(kind: kind, showCaret: true),
+            ),
+            // ── Description ───────────────────────────────────────────────
+            if (widget.item.description?.isNotEmpty == true) ...{
               const SizedBox(height: 8),
-              _expanded
-                  ? GestureDetector(
-                      onTap: () => _pickType(context, kind),
-                      child: TypeChip(kind: kind, showCaret: true),
-                    )
-                  : TypeChip(kind: kind),
-
-              // ── Expanded content ──────────────────────────────────────────
-              if (_expanded) ...{
-                if (widget.item.description?.isNotEmpty == true) ...{
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.item.description!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                },
-                const SizedBox(height: 12),
-                _buildEditableContent(context, kind),
-                const SizedBox(height: 16),
-                _ActionRow(
-                  itemId: widget.item.itemId,
-                  isRequired: isRequired,
-                  onCollapse: () => setState(() => _expanded = false),
-                ),
-              },
-            ],
-          ),
+              Text(
+                widget.item.description!,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            },
+            // ── Editable content ──────────────────────────────────────────
+            const SizedBox(height: 12),
+            _buildEditableContent(context, kind),
+            const SizedBox(height: 16),
+            _ActionRow(itemId: widget.item.itemId, isRequired: isRequired),
+          ],
         ),
       ),
     );
@@ -169,87 +115,68 @@ class _QuestionCardState extends State<QuestionCard> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: _expanded ? 3 : 1,
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: _expanded
-            ? BorderSide(color: theme.colorScheme.primary, width: 1.5)
-            : BorderSide.none,
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.item.title?.isNotEmpty == true
+                  ? widget.item.title!
+                  : 'Question group',
+              style:
+                  theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            const TypeChip(
+                kind: ChoiceQuestion(type: ChoiceType.radio, options: [])),
+            if (columns.isNotEmpty) ...{
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      widget.item.title?.isNotEmpty == true
-                          ? widget.item.title!
-                          : 'Question group',
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  const SizedBox(width: 120),
+                  ...columns.map((c) => Expanded(
+                        child: Text(c,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w600)),
+                      )),
                 ],
               ),
-              const SizedBox(height: 8),
-              const TypeChip(
-                  kind: ChoiceQuestion(
-                      type: ChoiceType.radio, options: [])),
-              if (_expanded && columns.isNotEmpty) ...{
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const SizedBox(width: 120),
-                    ...columns.map((c) => Expanded(
-                          child: Text(c,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w600)),
-                        )),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                ...questions.map((q) {
-                  final title =
-                      q.kind is RowQuestion ? (q.kind as RowQuestion).title : '';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 120,
-                          child: Text(title,
-                              style: theme.textTheme.bodySmall,
-                              overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              ...questions.map((q) {
+                final title =
+                    q.kind is RowQuestion ? (q.kind as RowQuestion).title : '';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: Text(title,
+                            style: theme.textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      ...List.generate(
+                        columns.length,
+                        (_) => Expanded(
+                          child: Icon(Icons.radio_button_unchecked,
+                              size: 18,
+                              color: theme.colorScheme.onSurfaceVariant),
                         ),
-                        ...List.generate(
-                          columns.length,
-                          (_) => Expanded(
-                            child: Icon(Icons.radio_button_unchecked,
-                                size: 18,
-                                color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              },
-            ],
-          ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            },
+          ],
         ),
       ),
     );
@@ -502,13 +429,8 @@ class _OptionEditRowState extends State<_OptionEditRow> {
 class _ActionRow extends StatelessWidget {
   final String itemId;
   final bool isRequired;
-  final VoidCallback onCollapse;
 
-  const _ActionRow({
-    required this.itemId,
-    required this.isRequired,
-    required this.onCollapse,
-  });
+  const _ActionRow({required this.itemId, required this.isRequired});
 
   @override
   Widget build(BuildContext context) {
@@ -520,10 +442,7 @@ class _ActionRow extends StatelessWidget {
           iconSize: 20,
           color: theme.colorScheme.onSurfaceVariant,
           tooltip: 'Delete',
-          onPressed: () {
-            onCollapse();
-            context.read<EditorCubit>().deleteItem(itemId);
-          },
+          onPressed: () => context.read<EditorCubit>().deleteItem(itemId),
         ),
         const Spacer(),
         Text('Required',
