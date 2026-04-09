@@ -293,10 +293,16 @@ class _EditorBody extends StatelessWidget {
                   context.read<EditorCubit>().moveItem(oldIndex, newIndex);
                 },
                 itemBuilder: (context, i) {
+                  // BlocProvider.value re-provides the cubit inside each item
+                  // so the drag proxy (lifted into an Overlay above the
+                  // BlocProvider) can still find EditorCubit.
                   return ReorderableDelayedDragStartListener(
                     key: ValueKey(data.itemIds[i]),
                     index: i,
-                    child: _ItemRow(itemId: data.itemIds[i]),
+                    child: BlocProvider.value(
+                      value: context.read<EditorCubit>(),
+                      child: _ItemRow(itemId: data.itemIds[i]),
+                    ),
                   );
                 },
               ),
