@@ -254,8 +254,13 @@ class _EditorBody extends StatelessWidget {
           initialDescription: data.description,
         );
 
+        const physics = BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        );
+
         if (data.itemIds.isEmpty) {
           return CustomScrollView(
+            physics: physics,
             slivers: [
               SliverToBoxAdapter(child: header),
               SliverFillRemaining(
@@ -274,6 +279,8 @@ class _EditorBody extends StatelessWidget {
         }
 
         return CustomScrollView(
+          physics: physics,
+          cacheExtent: 600,
           slivers: [
             SliverToBoxAdapter(child: header),
             SliverPadding(
