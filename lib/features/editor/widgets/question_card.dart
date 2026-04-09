@@ -10,11 +10,18 @@ import '../editor_cubit.dart';
 import 'type_chip.dart';
 import 'type_picker_sheet.dart';
 
+/// Represents one entry in the "Go to…" dropdown.
+/// [value] is either a GoToAction wire string or a section itemId.
+typedef _GoToEntry = ({String value, String label});
+
 /// Always-expanded card for a question item.
 class QuestionCard extends StatefulWidget {
   final Item item;
 
-  const QuestionCard({super.key, required this.item});
+  /// Page-break items in the form — needed to render the branching dropdown.
+  final List<Item> sections;
+
+  const QuestionCard({super.key, required this.item, this.sections = const []});
 
   @override
   State<QuestionCard> createState() => _QuestionCardState();
@@ -97,7 +104,7 @@ class _QuestionCardState extends State<QuestionCard> {
             },
             // ── Editable content ──────────────────────────────────────────
             const SizedBox(height: 12),
-            _buildEditableContent(context, kind),
+            _buildEditableContent(context, kind, widget.sections),
             const SizedBox(height: 16),
             _ActionRow(itemId: widget.item.itemId, isRequired: isRequired),
           ],
@@ -182,12 +189,16 @@ class _QuestionCardState extends State<QuestionCard> {
     );
   }
 
-  Widget _buildEditableContent(BuildContext context, QuestionKind kind) {
+  Widget _buildEditableContent(
+      BuildContext context, QuestionKind kind, List<Item> sections) {
     return switch (kind) {
       ChoiceQuestion(:final type, :final options) => _EditableOptions(
           itemId: widget.item.itemId,
           type: type,
           options: options.cast<ChoiceOption>(),
+          sections: type == ChoiceType.radio || type == ChoiceType.dropDown
+              ? sections
+              : const [],
         ),
       TextQuestion(:final paragraph) => _TextPreview(paragraph: paragraph),
       ScaleQuestion(:final low, :final high, :final lowLabel, :final highLabel) =>
@@ -292,15 +303,20 @@ class _EditableOptions extends StatelessWidget {
   final ChoiceType type;
   final List<ChoiceOption> options;
 
+  /// Non-empty only when type is RADIO or DROP_DOWN and the form has sections.
+  final List<Item> sections;
+
   const _EditableOptions({
     required this.itemId,
     required this.type,
     required this.options,
+    this.sections = const [],
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showGoTo = sections.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -312,6 +328,8 @@ class _EditableOptions extends StatelessWidget {
             value: opt.value,
             type: type,
             canRemove: options.length > 1,
+            goToSections: showGoTo ? sections : const [],
+            currentGoTo: _encodeGoTo(opt),
           );
         }),
         const SizedBox(height: 4),
@@ -328,6 +346,15 @@ class _EditableOptions extends StatelessWidget {
       ],
     );
   }
+
+  /// Encodes the option's current branching state as a single string:
+  /// null = no branching, 'NEXT_SECTION'/'RESTART_FORM'/'SUBMIT_FORM' = action,
+  /// or a section itemId string.
+  static String? _encodeGoTo(ChoiceOption opt) {
+    if (opt.goToSectionId != null) return opt.goToSectionId;
+    if (opt.goToAction != null) return opt.goToAction!.toJson();
+    return null;
+  }
 }
 
 class _OptionEditRow extends StatefulWidget {
@@ -336,6 +363,8 @@ class _OptionEditRow extends StatefulWidget {
   final String value;
   final ChoiceType type;
   final bool canRemove;
+  final List<Item> goToSections;
+  final String? currentGoTo;
 
   const _OptionEditRow({
     required this.itemId,
@@ -343,6 +372,8 @@ class _OptionEditRow extends StatefulWidget {
     required this.value,
     required this.type,
     required this.canRemove,
+    this.goToSections = const [],
+    this.currentGoTo,
   });
 
   @override
@@ -379,48 +410,98 @@ class _OptionEditRowState extends State<_OptionEditRow> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final icon = switch (widget.type) {
       ChoiceType.radio => Icons.radio_button_unchecked,
       ChoiceType.checkbox => Icons.check_box_outline_blank,
       ChoiceType.dropDown => Icons.arrow_drop_down_circle_outlined,
     };
+
+    final goToEntries = _buildGoToEntries(widget.goToSections);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _ctrl,
-              focusNode: _focus,
-              style: theme.textTheme.bodyMedium,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: theme.colorScheme.primary),
+          Row(
+            children: [
+              Icon(icon, size: 18, color: cs.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _ctrl,
+                  focusNode: _focus,
+                  style: theme.textTheme.bodyMedium,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: cs.primary),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                  onChanged: (v) => context
+                      .read<EditorCubit>()
+                      .updateOptionText(widget.itemId, widget.optionIndex, v),
                 ),
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
               ),
-              onChanged: (v) => context
-                  .read<EditorCubit>()
-                  .updateOptionText(widget.itemId, widget.optionIndex, v),
-            ),
+              if (widget.canRemove)
+                GestureDetector(
+                  onTap: () => context
+                      .read<EditorCubit>()
+                      .removeOption(widget.itemId, widget.optionIndex),
+                  child: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                ),
+            ],
           ),
-          if (widget.canRemove)
-            GestureDetector(
-              onTap: () => context
-                  .read<EditorCubit>()
-                  .removeOption(widget.itemId, widget.optionIndex),
-              child: Icon(Icons.close,
-                  size: 18, color: theme.colorScheme.onSurfaceVariant),
+          // ── Go to… dropdown (RADIO/DROP_DOWN with sections only) ────────
+          if (goToEntries.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 26, top: 2, bottom: 2),
+              child: DropdownButton<String?>(
+                value: widget.currentGoTo,
+                isDense: true,
+                underline: const SizedBox.shrink(),
+                style: theme.textTheme.bodySmall?.copyWith(color: cs.primary),
+                icon: Icon(Icons.arrow_drop_down, size: 16, color: cs.primary),
+                hint: Text('Go to next section',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant)),
+                items: [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Go to next section',
+                        style: theme.textTheme.bodySmall),
+                  ),
+                  ...goToEntries.map((e) => DropdownMenuItem<String?>(
+                        value: e.value,
+                        child: Text(e.label,
+                            style: theme.textTheme.bodySmall),
+                      )),
+                ],
+                onChanged: (v) => context
+                    .read<EditorCubit>()
+                    .updateOptionGoTo(widget.itemId, widget.optionIndex, v),
+              ),
             ),
         ],
       ),
     );
+  }
+
+  /// Builds the "Go to…" entries for this option row.
+  static List<_GoToEntry> _buildGoToEntries(List<Item> sections) {
+    if (sections.isEmpty) return const [];
+    return [
+      ...sections.map((s) => (
+            value: s.itemId,
+            label: 'Go to: ${s.title?.isNotEmpty == true ? s.title! : 'Section'}',
+          )),
+      (value: 'RESTART_FORM', label: 'Restart form'),
+      (value: 'SUBMIT_FORM', label: 'Submit form'),
+    ];
   }
 }
 

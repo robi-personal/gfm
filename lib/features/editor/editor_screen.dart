@@ -194,6 +194,9 @@ class _EditorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = form.items;
+    final sections = items
+        .where((i) => i.content is PageBreakItemContent)
+        .toList(growable: false);
 
     if (items.isEmpty) {
       return CustomScrollView(
@@ -242,7 +245,7 @@ class _EditorBody extends StatelessWidget {
               return ReorderableDelayedDragStartListener(
                 key: ValueKey(item.itemId),
                 index: i,
-                child: _buildItem(item),
+                child: _buildItem(item, sections),
               );
             },
           ),
@@ -251,9 +254,10 @@ class _EditorBody extends StatelessWidget {
     );
   }
 
-  static Widget _buildItem(Item item) => switch (item.content) {
+  static Widget _buildItem(Item item, List<Item> sections) =>
+      switch (item.content) {
         QuestionItemContent() || QuestionGroupItemContent() =>
-          QuestionCard(item: item),
+          QuestionCard(item: item, sections: sections),
         PageBreakItemContent() => SectionCard(item: item),
         TextItemContent() => TextBlockCard(item: item),
         ImageItemContent() => _ImageCard(item: item),
@@ -292,7 +296,9 @@ class _BottomBar extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton.outlined(
-              onPressed: null, // step 10
+              onPressed: enabled
+                  ? () => context.read<EditorCubit>().addSection()
+                  : null,
               icon: const Icon(Icons.view_agenda_outlined),
               tooltip: 'Add section',
             ),

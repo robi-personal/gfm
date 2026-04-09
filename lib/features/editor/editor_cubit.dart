@@ -8,6 +8,7 @@ import 'package:googleapis/forms/v1.dart' as forms_api;
 import '../../core/api/concurrency.dart';
 import '../../core/api/forms_client.dart';
 import '../../core/models/choice_option.dart';
+import '../../core/models/enums.dart';
 import '../../core/models/form_doc.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
@@ -119,6 +120,143 @@ class EditorCubit extends Cubit<EditorState> {
           updateFormInfo: forms_api.UpdateFormInfoRequest(
             info: forms_api.Info(title: title, description: desc),
             updateMask: fields.join(','),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Add section (step 10) ────────────────────────────────────────────────
+
+  Future<void> addSection() async {
+    if (state is! EditorLoaded) return;
+    final loaded = state as EditorLoaded;
+    final insertAt = loaded.form.items.length;
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final placeholder = Item(
+      itemId: '_pending_$ts',
+      title: 'Section',
+      content: const PageBreakItemContent(),
+    );
+    final newItems = [...loaded.form.items, placeholder];
+    emit(loaded.copyWith(
+        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
+
+    await _executeBatch(
+      formId: loaded.form.formId,
+      snapshot: loaded,
+      requests: [
+        forms_api.Request(
+          createItem: forms_api.CreateItemRequest(
+            item: forms_api.Item(
+              title: 'Section',
+              pageBreakItem: forms_api.PageBreakItem(),
+            ),
+            location: forms_api.Location(index: insertAt),
+          ),
+        ),
+      ],
+      afterSuccess: () => _silentRefresh(loaded.form.formId),
+    );
+  }
+
+  // ── Update item description (step 10) ─────────────────────────────────────
+
+  final Map<String, String> _pendingItemDescription = {};
+
+  void updateItemDescription(String itemId, String description) {
+    if (state is! EditorLoaded) return;
+    final loaded = state as EditorLoaded;
+    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
+    if (index == -1) return;
+
+    _pendingItemDescription[itemId] = description;
+    final newItems = [...loaded.form.items];
+    newItems[index] = newItems[index].copyWith(description: description);
+    emit(loaded.copyWith(
+        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
+
+    final key = '${itemId}_desc';
+    _itemDebounce[key]?.cancel();
+    _itemDebounce[key] = Timer(const Duration(milliseconds: 600), () {
+      _flushItemDescription(itemId);
+    });
+  }
+
+  Future<void> _flushItemDescription(String itemId) async {
+    final description = _pendingItemDescription.remove(itemId);
+    if (description == null || state is! EditorLoaded) return;
+    final loaded = state as EditorLoaded;
+    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
+    if (index == -1) return;
+
+    await _executeBatch(
+      formId: loaded.form.formId,
+      snapshot: loaded,
+      requests: [
+        forms_api.Request(
+          updateItem: forms_api.UpdateItemRequest(
+            item: _toApiItem(loaded.form.items[index]),
+            location: forms_api.Location(index: index),
+            updateMask: 'description',
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Update option go-to (step 10) ─────────────────────────────────────────
+
+  /// [goTo] is either a [GoToAction] wire string ('NEXT_SECTION' etc.)
+  /// or a section itemId — or null to clear branching.
+  Future<void> updateOptionGoTo(
+      String itemId, int optionIndex, String? goTo) async {
+    if (state is! EditorLoaded) return;
+    final loaded = state as EditorLoaded;
+    final index = loaded.form.items.indexWhere((i) => i.itemId == itemId);
+    if (index == -1) return;
+
+    final item = loaded.form.items[index];
+    if (item.content is! QuestionItemContent) return;
+    final content = item.content as QuestionItemContent;
+    if (content.question.kind is! ChoiceQuestion) return;
+    final cq = content.question.kind as ChoiceQuestion;
+
+    GoToAction? goToAction;
+    String? goToSectionId;
+    if (goTo == 'NEXT_SECTION') {
+      goToAction = GoToAction.nextSection;
+    } else if (goTo == 'RESTART_FORM') {
+      goToAction = GoToAction.restartForm;
+    } else if (goTo == 'SUBMIT_FORM') {
+      goToAction = GoToAction.submitForm;
+    } else if (goTo != null) {
+      goToSectionId = goTo;
+    }
+
+    final newOptions = [...cq.options];
+    newOptions[optionIndex] = newOptions[optionIndex]
+        .copyWith(goToAction: goToAction, goToSectionId: goToSectionId);
+    final updated = item.copyWith(
+      content: content.copyWith(
+        question: content.question.copyWith(
+          kind: cq.copyWith(options: newOptions),
+        ),
+      ),
+    );
+    final newItems = [...loaded.form.items]..[index] = updated;
+    emit(loaded.copyWith(
+        form: loaded.form.copyWith(items: newItems), saveStatus: 'saving'));
+
+    await _executeBatch(
+      formId: loaded.form.formId,
+      snapshot: loaded,
+      requests: [
+        forms_api.Request(
+          updateItem: forms_api.UpdateItemRequest(
+            item: _toApiItem(updated),
+            location: forms_api.Location(index: index),
+            updateMask: 'questionItem.question.choiceQuestion',
           ),
         ),
       ],
