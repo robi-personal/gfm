@@ -168,7 +168,7 @@ class EditorCubit extends Cubit<EditorState> {
           ),
         ),
       ],
-      afterSuccess: () => loadForm(loaded.form.formId),
+      afterSuccess: () => _silentRefresh(loaded.form.formId),
     );
   }
 
@@ -617,6 +617,26 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> _refreshRevisionId(String formId) async {
     final fresh = await _formsClient.api.forms.get(formId);
     _revisionId = fresh.revisionId ?? _revisionId;
+  }
+
+  /// Re-fetches the form without flashing [EditorLoading].
+  /// Used after structural changes (add item) to sync real item IDs
+  /// while preserving scroll position, expanded state, and focus.
+  Future<void> _silentRefresh(String formId) async {
+    try {
+      final apiForm = await _formsClient.api.forms.get(formId);
+      final json =
+          jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
+      final doc = FormDoc.fromJson(json);
+      _revisionId = doc.revisionId;
+      _mismatchCount = 0;
+      if (state is EditorLoaded) {
+        emit(EditorLoaded(doc, lastKnownGood: doc, saveStatus: 'saved'));
+      }
+    } catch (_) {
+      // Silent — optimistic state is already in place.
+      _emitSaved();
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

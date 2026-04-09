@@ -286,10 +286,14 @@ class _QuestionCardState extends State<QuestionCard> {
     context.read<EditorCubit>().updateQuestionType(widget.item.itemId, kind);
   }
 
-  /// When switching between choice-type questions, carry options over.
+  /// Ensure choice questions always have at least one option, and carry
+  /// existing options over when switching between choice types.
   QuestionKind _mergeOptions(QuestionKind old, QuestionKind next) {
-    if (old is ChoiceQuestion && next is ChoiceQuestion) {
-      return next.copyWith(options: old.options);
+    if (next is ChoiceQuestion) {
+      final options = old is ChoiceQuestion && old.options.isNotEmpty
+          ? old.options
+          : [ChoiceOption(value: 'Option 1')];
+      return next.copyWith(options: options);
     }
     return next;
   }
@@ -420,17 +424,20 @@ class _OptionEditRow extends StatefulWidget {
 
 class _OptionEditRowState extends State<_OptionEditRow> {
   late TextEditingController _ctrl;
+  late FocusNode _focus;
 
   @override
   void initState() {
     super.initState();
     _ctrl = TextEditingController(text: widget.value);
+    _focus = FocusNode();
   }
 
   @override
   void didUpdateWidget(_OptionEditRow old) {
     super.didUpdateWidget(old);
-    if (widget.value != _ctrl.text) {
+    // Only sync from external state when the user isn't actively typing.
+    if (widget.value != _ctrl.text && !_focus.hasFocus) {
       _ctrl.text = widget.value;
     }
   }
@@ -438,6 +445,7 @@ class _OptionEditRowState extends State<_OptionEditRow> {
   @override
   void dispose() {
     _ctrl.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -458,6 +466,7 @@ class _OptionEditRowState extends State<_OptionEditRow> {
           Expanded(
             child: TextField(
               controller: _ctrl,
+              focusNode: _focus,
               style: theme.textTheme.bodyMedium,
               decoration: InputDecoration(
                 border: InputBorder.none,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/di/injection.dart';
+import '../../core/models/form_doc.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/widgets/error_modal.dart';
@@ -37,84 +38,30 @@ class _EditorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<EditorCubit, EditorState>(
-      listener: (context, state) {
-        // Conflict modal — shown exactly once per conflict event.
-        if (state case EditorLoaded(conflictPending: true)) {
-          context.read<EditorCubit>().clearConflict();
-          ErrorModal.show(
-            context,
-            title: 'This form was edited somewhere else.',
-            body: 'Keep your version or load the latest?',
-            primaryLabel: 'Keep mine',
-            onPrimary: () =>
-                context.read<EditorCubit>().resolveConflictKeepMine(),
-            secondaryLabel: 'Load latest',
-            onSecondary: () =>
-                context.read<EditorCubit>().resolveConflictLoadLatest(),
-          );
-        }
-
-        if (state case EditorError(:final kind)) {
-          switch (kind) {
-            case EditorErrorKind.notFound:
-              ErrorModal.show(
-                context,
-                title: 'This form was deleted.',
-                body: "It's no longer available in your Drive.",
-                primaryLabel: 'OK',
-                onPrimary: () => Navigator.of(context).pop(),
-              );
-            case EditorErrorKind.permissionDenied:
-              ErrorModal.show(
-                context,
-                title: "You don't have access to this form.",
-                body: 'The owner may have revoked your access.',
-                primaryLabel: 'OK',
-                onPrimary: () => Navigator.of(context).pop(),
-              );
-            case EditorErrorKind.network:
-              break; // shown as full-screen error in body
-          }
-        }
-      },
-      builder: (context, state) {
-        final title = state is EditorLoaded
-            ? state.form.info.title
-            : initialName;
-        final saveStatus =
-            state is EditorLoaded ? state.saveStatus : null;
-
-        return Scaffold(
-          appBar: AppBar(
-            titleSpacing: 0,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                if (saveStatus != null)
-                  Text(
-                    _saveLabel(saveStatus),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _saveLabelColor(context, saveStatus),
-                    ),
-                  ),
-              ],
+    return BlocListener<EditorCubit, EditorState>(
+      listener: _onStateChange,
+      child: Scaffold(
+        appBar: AppBar(
+          titleSpacing: 0,
+          title: _AppBarTitle(initialName: initialName),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () {}, // settings / preview / share — step 12
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.more_vert),
-                onPressed: () {}, // settings / preview / share — step 12
-              ),
-            ],
-          ),
-          body: switch (state) {
+          ],
+        ),
+        body: BlocBuilder<EditorCubit, EditorState>(
+          buildWhen: (prev, curr) {
+            // Only rebuild the body when the form data or state class changes.
+            // Skip rebuilds for save-status-only changes (those only affect
+            // the app bar pill, handled by its own BlocSelector).
+            if (prev is EditorLoaded && curr is EditorLoaded) {
+              return !identical(prev.form, curr.form);
+            }
+            return true;
+          },
+          builder: (context, state) => switch (state) {
             EditorLoading() =>
               const Center(child: CircularProgressIndicator()),
             EditorError(:final kind, :final message)
@@ -125,17 +72,100 @@ class _EditorView extends StatelessWidget {
                     context.read<EditorCubit>().loadForm(formId),
               ),
             EditorError() => const SizedBox.shrink(),
-            EditorLoaded(:final form) => _ItemList(form: form),
+            EditorLoaded(:final form) => _EditorBody(form: form),
           },
-          bottomNavigationBar: state is EditorLoaded
-              ? _BottomBar(form: state.form)
-              : const _BottomBar(form: null),
+        ),
+        bottomNavigationBar: BlocSelector<EditorCubit, EditorState, bool>(
+          selector: (state) => state is EditorLoaded,
+          builder: (context, enabled) => _BottomBar(enabled: enabled),
+        ),
+      ),
+    );
+  }
+
+  void _onStateChange(BuildContext context, EditorState state) {
+    if (state case EditorLoaded(conflictPending: true)) {
+      context.read<EditorCubit>().clearConflict();
+      ErrorModal.show(
+        context,
+        title: 'This form was edited somewhere else.',
+        body: 'Keep your version or load the latest?',
+        primaryLabel: 'Keep mine',
+        onPrimary: () =>
+            context.read<EditorCubit>().resolveConflictKeepMine(),
+        secondaryLabel: 'Load latest',
+        onSecondary: () =>
+            context.read<EditorCubit>().resolveConflictLoadLatest(),
+      );
+    }
+
+    if (state case EditorError(:final kind)) {
+      switch (kind) {
+        case EditorErrorKind.notFound:
+          ErrorModal.show(
+            context,
+            title: 'This form was deleted.',
+            body: "It's no longer available in your Drive.",
+            primaryLabel: 'OK',
+            onPrimary: () => Navigator.of(context).pop(),
+          );
+        case EditorErrorKind.permissionDenied:
+          ErrorModal.show(
+            context,
+            title: "You don't have access to this form.",
+            body: 'The owner may have revoked your access.',
+            primaryLabel: 'OK',
+            onPrimary: () => Navigator.of(context).pop(),
+          );
+        case EditorErrorKind.network:
+          break;
+      }
+    }
+  }
+}
+
+// ── App bar title with its own selector (rebuilds only on title/status) ──────
+
+class _AppBarTitle extends StatelessWidget {
+  final String initialName;
+
+  const _AppBarTitle({required this.initialName});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<EditorCubit, EditorState,
+        ({String title, String? status})>(
+      selector: (state) {
+        if (state is EditorLoaded) {
+          return (title: state.form.info.title, status: state.saveStatus);
+        }
+        return (title: initialName, status: null);
+      },
+      builder: (context, data) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(data.title,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            if (data.status != null)
+              Text(
+                _saveLabel(data.status!),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _saveLabelColor(context, data.status!),
+                ),
+              ),
+          ],
         );
       },
     );
   }
 
-  String _saveLabel(String status) => switch (status) {
+  static String _saveLabel(String status) => switch (status) {
         'saving' => 'Saving…',
         'retrying' => 'Retrying…',
         'offline' => 'Offline',
@@ -143,7 +173,7 @@ class _EditorView extends StatelessWidget {
         _ => 'Saved',
       };
 
-  Color _saveLabelColor(BuildContext context, String status) {
+  static Color _saveLabelColor(BuildContext context, String status) {
     final cs = Theme.of(context).colorScheme;
     return switch (status) {
       'saving' || 'retrying' => cs.onSurfaceVariant,
@@ -154,82 +184,93 @@ class _EditorView extends StatelessWidget {
   }
 }
 
-// ── Item list ─────────────────────────────────────────────────────────────────
+// ── Editor body: header + reorderable items in one scroll view ───────────────
 
-class _ItemList extends StatelessWidget {
-  final dynamic form;
+class _EditorBody extends StatelessWidget {
+  final FormDoc form;
 
-  const _ItemList({required this.form});
+  const _EditorBody({required this.form});
 
   @override
   Widget build(BuildContext context) {
-    final items = form.items as List<Item>;
+    final items = form.items;
 
     if (items.isEmpty) {
-      return Center(
-        child: Text(
-          'No questions yet.',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
+      return CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: FormHeaderCard(
+              key: const ValueKey('__header__'),
+              initialTitle: form.info.title,
+              initialDescription: form.info.description,
+            ),
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Text(
+                'No questions yet.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.only(top: 4, bottom: 100),
-      onReorder: (oldIndex, newIndex) {
-        // ReorderableListView passes newIndex after removal; adjust by -1 when
-        // moving down (standard Flutter behavior).
-        final to = newIndex > oldIndex ? newIndex - 1 : newIndex;
-        context.read<EditorCubit>().moveItem(oldIndex, to);
-      },
-      buildDefaultDragHandles: false,
-      itemCount: items.length + 1, // +1 for header
-      itemBuilder: (context, i) {
-        if (i == 0) {
-          return FormHeaderCard(
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: FormHeaderCard(
             key: const ValueKey('__header__'),
-            initialTitle: form.info.title as String,
-            initialDescription: form.info.description as String?,
-          );
-        }
-        final item = items[i - 1];
-        return ReorderableDragStartListener(
-          key: ValueKey(item.itemId),
-          index: i,
-          child: _buildItem(item),
-        );
-      },
+            initialTitle: form.info.title,
+            initialDescription: form.info.description,
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(top: 4, bottom: 100),
+          sliver: SliverReorderableList(
+            itemCount: items.length,
+            onReorder: (oldIndex, newIndex) {
+              if (newIndex > oldIndex) newIndex--;
+              if (oldIndex == newIndex) return;
+              context.read<EditorCubit>().moveItem(oldIndex, newIndex);
+            },
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return ReorderableDragStartListener(
+                key: ValueKey(item.itemId),
+                index: i,
+                child: _buildItem(item),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildItem(Item item) => switch (item.content) {
+  static Widget _buildItem(Item item) => switch (item.content) {
         QuestionItemContent() || QuestionGroupItemContent() =>
-          QuestionCard(key: ValueKey(item.itemId), item: item),
-        PageBreakItemContent() =>
-          SectionCard(key: ValueKey(item.itemId), item: item),
-        TextItemContent() =>
-          TextBlockCard(key: ValueKey(item.itemId), item: item),
-        ImageItemContent() =>
-          _ImageCard(key: ValueKey(item.itemId), item: item),
-        VideoItemContent() =>
-          _VideoCard(key: ValueKey(item.itemId), item: item),
+          QuestionCard(item: item),
+        PageBreakItemContent() => SectionCard(item: item),
+        TextItemContent() => TextBlockCard(item: item),
+        ImageItemContent() => _ImageCard(item: item),
+        VideoItemContent() => _VideoCard(item: item),
       };
 }
 
 // ── Bottom bar ────────────────────────────────────────────────────────────────
 
 class _BottomBar extends StatelessWidget {
-  final dynamic form;
+  final bool enabled;
 
-  const _BottomBar({required this.form});
+  const _BottomBar({required this.enabled});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final enabled = form != null;
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
@@ -243,12 +284,7 @@ class _BottomBar extends StatelessWidget {
             Expanded(
               child: FilledButton.tonalIcon(
                 onPressed: enabled
-                    ? () {
-                        final items = form.items as List<Item>;
-                        context.read<EditorCubit>().addQuestion(
-                              afterIndex: items.isEmpty ? null : items.length - 1,
-                            );
-                      }
+                    ? () => context.read<EditorCubit>().addQuestion()
                     : null,
                 icon: const Icon(Icons.add),
                 label: const Text('Add question'),
@@ -256,15 +292,13 @@ class _BottomBar extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton.outlined(
-              // Section support — step 10
-              onPressed: null,
+              onPressed: null, // step 10
               icon: const Icon(Icons.view_agenda_outlined),
               tooltip: 'Add section',
             ),
             const SizedBox(width: 4),
             IconButton.outlined(
-              // Media — step 10
-              onPressed: null,
+              onPressed: null, // step 10
               icon: const Icon(Icons.perm_media_outlined),
               tooltip: 'Add media',
             ),
@@ -280,7 +314,7 @@ class _BottomBar extends StatelessWidget {
 class _ImageCard extends StatelessWidget {
   final Item item;
 
-  const _ImageCard({super.key, required this.item});
+  const _ImageCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +351,7 @@ class _ImageCard extends StatelessWidget {
 class _VideoCard extends StatelessWidget {
   final Item item;
 
-  const _VideoCard({super.key, required this.item});
+  const _VideoCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +383,7 @@ class _VideoCard extends StatelessWidget {
   }
 }
 
-// ── Shared error widget ───────────────────────────────────────────────────────
+// ── Full screen error ────────────────────────────────────────────────────────
 
 class _FullScreenError extends StatelessWidget {
   final String message;
