@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/di/injection.dart';
-import '../../core/models/form_doc.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/widgets/error_modal.dart';
@@ -78,15 +78,10 @@ class _EditorView extends StatelessWidget {
           ],
         ),
         body: BlocBuilder<EditorCubit, EditorState>(
-          buildWhen: (prev, curr) {
-            // Only rebuild the body when the form data or state class changes.
-            // Skip rebuilds for save-status-only changes (those only affect
-            // the app bar pill, handled by its own BlocSelector).
-            if (prev is EditorLoaded && curr is EditorLoaded) {
-              return !identical(prev.form, curr.form);
-            }
-            return true;
-          },
+          // Only rebuild when the state class changes (Loading↔Loaded↔Error).
+          // All content updates inside EditorLoaded are handled by the
+          // per-item BlocSelectors inside _EditorBody.
+          buildWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
           builder: (context, state) => switch (state) {
             EditorLoading() =>
               const Center(child: CircularProgressIndicator()),
@@ -98,7 +93,7 @@ class _EditorView extends StatelessWidget {
                     context.read<EditorCubit>().loadForm(formId),
               ),
             EditorError() => const SizedBox.shrink(),
-            EditorLoaded(:final form) => _EditorBody(form: form),
+            EditorLoaded() => const _EditorBody(),
           },
         ),
         bottomNavigationBar: BlocSelector<EditorCubit, EditorState, bool>(
@@ -184,85 +179,166 @@ class _AppBarTitle extends StatelessWidget {
   }
 }
 
-// ── Editor body: header + reorderable items in one scroll view ───────────────
+// ── Value objects for BlocSelectors ──────────────────────────────────────────
 
+/// Structural data for the editor body — item IDs + form header text.
+/// Implements == so BlocSelector only rebuilds on actual changes.
+class _BodyData {
+  final List<String> itemIds;
+  final String title;
+  final String description;
+
+  const _BodyData({
+    required this.itemIds,
+    required this.title,
+    required this.description,
+  });
+
+  static const empty = _BodyData(itemIds: [], title: '', description: '');
+
+  @override
+  bool operator ==(Object other) =>
+      other is _BodyData &&
+      other.title == title &&
+      other.description == description &&
+      listEquals(other.itemIds, itemIds);
+
+  @override
+  int get hashCode =>
+      Object.hash(title, description, Object.hashAll(itemIds));
+}
+
+/// Per-item data — the item itself and the current sections list.
+/// Implements == so BlocSelector only rebuilds when this item or
+/// the section list changes.
+class _ItemData {
+  final Item? item;
+  final List<Item> sections;
+
+  const _ItemData({required this.item, required this.sections});
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ItemData &&
+      other.item == item &&
+      listEquals(other.sections, sections);
+
+  @override
+  int get hashCode => Object.hash(item, Object.hashAll(sections));
+}
+
+// ── Editor body ───────────────────────────────────────────────────────────────
+
+/// Renders the scrollable form editor. Uses its own [BlocSelector] for
+/// structural data (item IDs + header), so it only rebuilds when items are
+/// added, removed, or reordered — not on every keystroke.
 class _EditorBody extends StatelessWidget {
-  final FormDoc form;
-
-  const _EditorBody({required this.form});
+  const _EditorBody();
 
   @override
   Widget build(BuildContext context) {
-    final items = form.items;
-    final sections = items
-        .where((i) => i.content is PageBreakItemContent)
-        .toList(growable: false);
+    return BlocSelector<EditorCubit, EditorState, _BodyData>(
+      selector: (state) {
+        if (state is! EditorLoaded) return _BodyData.empty;
+        final form = state.form;
+        return _BodyData(
+          itemIds: form.items.map((i) => i.itemId).toList(),
+          title: form.info.title,
+          description: form.info.description,
+        );
+      },
+      builder: (context, data) {
+        final header = FormHeaderCard(
+          key: const ValueKey('__header__'),
+          initialTitle: data.title,
+          initialDescription: data.description,
+        );
 
-    if (items.isEmpty) {
-      return CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: FormHeaderCard(
-              key: const ValueKey('__header__'),
-              initialTitle: form.info.title,
-              initialDescription: form.info.description,
-            ),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Text(
-                'No questions yet.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+        if (data.itemIds.isEmpty) {
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: header),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'No questions yet.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: header),
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 4, bottom: 100),
+              sliver: SliverReorderableList(
+                itemCount: data.itemIds.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (newIndex > oldIndex) newIndex--;
+                  if (oldIndex == newIndex) return;
+                  context.read<EditorCubit>().moveItem(oldIndex, newIndex);
+                },
+                itemBuilder: (context, i) {
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(data.itemIds[i]),
+                    index: i,
+                    child: _ItemRow(itemId: data.itemIds[i]),
+                  );
+                },
               ),
             ),
-          ),
-        ],
-      );
-    }
-
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: FormHeaderCard(
-            key: const ValueKey('__header__'),
-            initialTitle: form.info.title,
-            initialDescription: form.info.description,
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.only(top: 4, bottom: 100),
-          sliver: SliverReorderableList(
-            itemCount: items.length,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex--;
-              if (oldIndex == newIndex) return;
-              context.read<EditorCubit>().moveItem(oldIndex, newIndex);
-            },
-            itemBuilder: (context, i) {
-              final item = items[i];
-              return ReorderableDelayedDragStartListener(
-                key: ValueKey(item.itemId),
-                index: i,
-                child: _buildItem(item, sections),
-              );
-            },
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
+}
 
-  static Widget _buildItem(Item item, List<Item> sections) =>
-      switch (item.content) {
-        QuestionItemContent() || QuestionGroupItemContent() =>
-          QuestionCard(item: item, sections: sections),
-        PageBreakItemContent() => SectionCard(item: item),
-        TextItemContent() => TextBlockCard(item: item),
-        ImageItemContent() => _ImageCard(item: item),
-        VideoItemContent() => _VideoCard(item: item),
-      };
+// ── Per-item row ──────────────────────────────────────────────────────────────
+
+/// Wraps a single form item with its own [BlocSelector].
+/// Only rebuilds when THIS item's content or the sections list changes.
+class _ItemRow extends StatelessWidget {
+  final String itemId;
+
+  const _ItemRow({required this.itemId});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<EditorCubit, EditorState, _ItemData>(
+      selector: (state) {
+        if (state is! EditorLoaded) {
+          return const _ItemData(item: null, sections: []);
+        }
+        final items = state.form.items;
+        final idx = items.indexWhere((i) => i.itemId == itemId);
+        final item = idx == -1 ? null : items[idx];
+        final sections = items
+            .where((i) => i.content is PageBreakItemContent)
+            .toList(growable: false);
+        return _ItemData(item: item, sections: sections);
+      },
+      builder: (context, data) {
+        final item = data.item;
+        if (item == null) return const SizedBox.shrink();
+        return switch (item.content) {
+          QuestionItemContent() || QuestionGroupItemContent() =>
+            QuestionCard(item: item, sections: data.sections),
+          PageBreakItemContent() => SectionCard(item: item),
+          TextItemContent() => TextBlockCard(item: item),
+          ImageItemContent() => _ImageCard(item: item),
+          VideoItemContent() => _VideoCard(item: item),
+        };
+      },
+    );
+  }
 }
 
 // ── Bottom bar ────────────────────────────────────────────────────────────────
