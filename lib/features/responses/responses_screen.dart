@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/models/form_response.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
+import '../../core/widgets/skeleton_bone.dart';
 import 'responses_cubit.dart';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -53,8 +55,7 @@ class _ResponsesView extends StatelessWidget {
       appBar: AppBar(title: Text('Responses — $formTitle')),
       body: BlocBuilder<ResponsesCubit, ResponsesState>(
         builder: (context, state) => switch (state) {
-          ResponsesLoading() =>
-            const Center(child: CircularProgressIndicator()),
+          ResponsesLoading() => const _ResponsesSkeleton(),
           ResponsesError(:final message) => _FullScreenError(
               message: message,
               onRetry: () =>
@@ -63,6 +64,32 @@ class _ResponsesView extends StatelessWidget {
           ResponsesLoaded(:final responses) =>
             _ResponseList(responses: responses, items: items),
         },
+      ),
+    );
+  }
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+class _ResponsesSkeleton extends StatelessWidget {
+  const _ResponsesSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final highlight = Theme.of(context).colorScheme.surface;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: ListView.separated(
+        itemCount: 6,
+        separatorBuilder: (context, i) => const Divider(height: 1),
+        itemBuilder: (context, i) => const ListTile(
+          leading: SkeletonBone(width: 24, height: 24, radius: 12),
+          title: SkeletonBone(width: double.infinity, height: 14, radius: 4),
+          subtitle: SkeletonBone(width: 100, height: 11, radius: 4),
+          trailing: SkeletonBone(width: 16, height: 16, radius: 4),
+        ),
       ),
     );
   }

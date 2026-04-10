@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
+import '../../core/widgets/skeleton_bone.dart';
 import 'widgets/question_edit_sheet.dart';
 import '../../core/widgets/error_modal.dart';
 import '../preview/preview_screen.dart';
@@ -102,8 +104,7 @@ class _EditorView extends StatelessWidget {
           // per-item BlocSelectors inside _EditorBody.
           buildWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
           builder: (context, state) => switch (state) {
-            EditorLoading() =>
-              const Center(child: CircularProgressIndicator()),
+            EditorLoading() => const _EditorSkeleton(),
             EditorError(:final kind, :final message)
                 when kind == EditorErrorKind.network =>
               _FullScreenError(
@@ -442,6 +443,88 @@ class _BottomBar extends StatelessWidget {
               icon: const Icon(Icons.perm_media_outlined),
               tooltip: 'Add media',
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+class _EditorSkeleton extends StatelessWidget {
+  const _EditorSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final highlight = Theme.of(context).colorScheme.surface;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: const [
+          _SkeletonHeaderCard(),
+          SizedBox(height: 8),
+          _SkeletonQuestionCard(),
+          _SkeletonQuestionCard(),
+          _SkeletonQuestionCard(),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonHeaderCard extends StatelessWidget {
+  const _SkeletonHeaderCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonBone(width: 200, height: 20, radius: 4),
+            SizedBox(height: 10),
+            SkeletonBone(width: double.infinity, height: 13, radius: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonQuestionCard extends StatelessWidget {
+  const _SkeletonQuestionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonBone(width: 180, height: 14, radius: 4),
+            SizedBox(height: 10),
+            SkeletonBone(width: 72, height: 22, radius: 12),
+            SizedBox(height: 12),
+            SkeletonBone(width: double.infinity, height: 11, radius: 4),
+            SizedBox(height: 6),
+            SkeletonBone(width: 160, height: 11, radius: 4),
           ],
         ),
       ),

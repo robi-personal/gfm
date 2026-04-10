@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../core/auth/auth_cubit.dart';
 import '../../core/di/injection.dart';
 import '../../core/models/drive_form_entry.dart';
 import '../../core/widgets/error_modal.dart';
+import '../../core/widgets/skeleton_bone.dart';
 import '../editor/editor_screen.dart';
 import 'dashboard_cubit.dart';
 
@@ -193,7 +195,7 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget _buildBody(BuildContext context, DashboardState state) {
     return switch (state) {
       DashboardInitial() || DashboardLoading() =>
-        const Center(child: CircularProgressIndicator()),
+        const _DashboardSkeleton(),
       DashboardLoaded(:final forms, :final isShowingCache) => Column(
           children: [
             if (isShowingCache) const _CacheBanner(),
@@ -213,6 +215,41 @@ class _DashboardViewState extends State<_DashboardView> {
                 onRetry: () => context.read<DashboardCubit>().refresh(),
               ),
     };
+  }
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+class _DashboardSkeleton extends StatelessWidget {
+  const _DashboardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final highlight = Theme.of(context).colorScheme.surface;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: ListView.separated(
+        itemCount: 6,
+        separatorBuilder: (context, i) => const Divider(height: 1),
+        itemBuilder: (context, i) => const _SkeletonFormTile(),
+      ),
+    );
+  }
+}
+
+class _SkeletonFormTile extends StatelessWidget {
+  const _SkeletonFormTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ListTile(
+      leading: SkeletonBone(width: 24, height: 24, radius: 4),
+      title: SkeletonBone(width: double.infinity, height: 14, radius: 4),
+      subtitle: SkeletonBone(width: 120, height: 11, radius: 4),
+      trailing: SkeletonBone(width: 24, height: 24, radius: 4),
+    );
   }
 }
 

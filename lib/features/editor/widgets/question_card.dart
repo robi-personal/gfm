@@ -218,6 +218,17 @@ class _OptionsPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+
+    if (options.isEmpty) {
+      return Text(
+        'No options — tap Edit to add some.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: cs.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
     const maxShown = 3;
     final shown = options.take(maxShown).toList();
     final overflow = options.length - maxShown;
