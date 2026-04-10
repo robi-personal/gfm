@@ -1,15 +1,21 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/widgets/error_modal.dart';
+import '../preview/preview_screen.dart';
+import '../responses/responses_screen.dart';
 import 'editor_cubit.dart';
 import 'widgets/form_header_card.dart';
 import 'widgets/question_card.dart';
 import 'widgets/section_card.dart';
+import 'widgets/settings_sheet.dart';
+
+enum _OverflowAction { settings, preview, share, responses }
 
 class EditorScreen extends StatelessWidget {
   final String formId;
@@ -71,10 +77,7 @@ class _EditorView extends StatelessWidget {
                 );
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () {}, // settings / preview / share — step 12
-            ),
+            _OverflowMenu(formId: formId),
           ],
         ),
         body: BlocBuilder<EditorCubit, EditorState>(
@@ -475,6 +478,106 @@ class _VideoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Overflow menu (settings / preview / share) ────────────────────────────────
+
+class _OverflowMenu extends StatelessWidget {
+  final String formId;
+
+  const _OverflowMenu({required this.formId});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<EditorCubit, EditorState,
+        ({String responderUri, String title, List<Item> items, bool isLoaded})>(
+      selector: (state) => state is EditorLoaded
+          ? (
+              responderUri: state.form.responderUri,
+              title: state.form.info.title,
+              items: state.form.items,
+              isLoaded: true,
+            )
+          : (
+              responderUri: '',
+              title: '',
+              items: const <Item>[],
+              isLoaded: false,
+            ),
+      builder: (context, data) {
+        return PopupMenuButton<_OverflowAction>(
+          icon: const Icon(Icons.more_vert),
+          enabled: data.isLoaded,
+          onSelected: (action) => _onAction(
+              context, action, data.responderUri, data.title, data.items),
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: _OverflowAction.settings,
+              child: ListTile(
+                leading: Icon(Icons.settings_outlined),
+                title: Text('Settings'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _OverflowAction.preview,
+              child: ListTile(
+                leading: Icon(Icons.visibility_outlined),
+                title: Text('Preview'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _OverflowAction.share,
+              child: ListTile(
+                leading: Icon(Icons.share_outlined),
+                title: Text('Share'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _OverflowAction.responses,
+              child: ListTile(
+                leading: Icon(Icons.bar_chart_outlined),
+                title: Text('Responses'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onAction(
+    BuildContext context,
+    _OverflowAction action,
+    String responderUri,
+    String title,
+    List<Item> items,
+  ) {
+    switch (action) {
+      case _OverflowAction.settings:
+        SettingsSheet.show(context);
+      case _OverflowAction.preview:
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => PreviewScreen(
+            responderUri: responderUri,
+            formTitle: title,
+          ),
+        ));
+      case _OverflowAction.share:
+        Share.share(responderUri, subject: title);
+      case _OverflowAction.responses:
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => ResponsesScreen(
+            formId: formId,
+            formTitle: title,
+            items: items,
+          ),
+        ));
+    }
   }
 }
 

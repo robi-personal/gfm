@@ -9,6 +9,7 @@ import '../../core/api/forms_client.dart';
 import '../../core/models/choice_option.dart';
 import '../../core/models/enums.dart';
 import '../../core/models/form_doc.dart';
+import '../../core/models/form_settings.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/models/question.dart';
@@ -356,6 +357,35 @@ class EditorCubit extends Cubit<EditorState> {
       form: l.form.copyWith(items: newItems),
       pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
     ));
+  }
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+
+  Future<void> updateSettings(FormSettings settings) async {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final formId = l.form.formId;
+    final snapshot = l;
+
+    // Optimistic update
+    emit(l.copyWith(form: l.form.copyWith(settings: settings)));
+
+    try {
+      await _sendBatch(formId, [
+        forms_api.Request(
+          updateSettings: forms_api.UpdateSettingsRequest(
+            settings: forms_api.FormSettings(
+              quizSettings:
+                  forms_api.QuizSettings(isQuiz: settings.quizSettings.isQuiz),
+              emailCollectionType: settings.emailCollectionType.toJson(),
+            ),
+            updateMask: 'settings',
+          ),
+        ),
+      ]);
+    } catch (_) {
+      emit(snapshot.copyWith(saveFailed: true));
+    }
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────

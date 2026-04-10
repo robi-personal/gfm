@@ -19,7 +19,10 @@ Read this file at the start of every session before touching any code.
 | 9 All question types | ✅ Done | Type picker sheet, 10 types, `_mergeOptions` guarantees options |
 | 10 Sections + branching | ✅ Done | `pageBreakItem`, `goToSectionId` on RADIO/DROP_DOWN options |
 | 11 Deferred Save | ✅ Done | Save button, local pending changes, flush on press |
-| 12–19 | ⬜ Not started | |
+| 12 Form settings sheet | ✅ Done | `updateSettings` (quiz mode + email collection), "Edit in browser" via `url_launcher` |
+| 13 Preview + Share | ✅ Done | Full-screen webview (`PreviewScreen`), `Share.share` via popup menu |
+| 14 Responses list + detail | ✅ Done | `ResponsesScreen` + `ResponseDetailScreen`, paginated load, sorted newest-first |
+| 15–19 | ⬜ Not started | |
 
 ---
 
@@ -71,6 +74,7 @@ lib/
       question_kind.dart        8 variants: Text, Choice, Scale, Date, Time, Rating, Row, FileUpload
       choice_option.dart        freezed, handles goToAction branching
       enums.dart                ChoiceType, RatingIconType, GoToAction, EmailCollectionType
+      form_response.dart        FormResponse — responseId, createTime, respondentEmail, answers map
   features/
     dashboard/
       dashboard_cubit.dart      loadForms, createForm (3-step), deleteForm
@@ -85,6 +89,12 @@ lib/
         type_chip.dart          Color-coded pill, showCaret flag
         type_picker_sheet.dart  Bottom sheet, 10 types grouped free/advanced
         section_card.dart       PageBreakItem + TextBlockCard
+        settings_sheet.dart     Form settings (email collection, quiz mode, open-in-browser)
+    responses/
+      responses_cubit.dart      ResponsesLoading/Loaded/Error; paginated list load
+      responses_screen.dart     ResponsesScreen (list) + ResponseDetailScreen (per-question answers)
+  preview/
+    preview_screen.dart         Full-screen WebViewWidget loading responderUri
 ```
 
 ---
@@ -272,9 +282,9 @@ Insertion-sort style: iterate `desiredOrder` left to right; if item is not alrea
 
 - **Step 10**: Sections (`pageBreakItem`) + branching (`goToSectionId` on RADIO/DROP_DOWN options) ← DONE
 - **Step 11**: Deferred Save ✅ Done
-- **Step 12**: Form settings sheet (`updateSettings` — quiz mode, email collection)
-- **Step 13**: Preview (webview) + Share (`share_plus` with `responderUri`)
-- **Step 14**: Responses list + detail view
+- **Step 12**: Form settings sheet ✅ Done
+- **Step 13**: Preview + Share ✅ Done
+- **Step 14**: Responses list + detail view ✅ Done
 - **Step 15**: Quiz mode — per-question grading editor
 - **Step 16**: Duplicate form + duplicate question
 - **Step 17**: Offline queue (drift-backed pending writes)
