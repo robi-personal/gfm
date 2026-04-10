@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/models/enums.dart';
@@ -661,25 +660,25 @@ class _SettingsContentState extends State<_SettingsContent> {
   late EmailCollectionType _emailType;
   late bool _isQuiz;
   bool _isSaving = false;
-  // Tracks the baseline for dirty detection (updated after successful apply)
-  late EmailCollectionType _savedEmailType;
-  late bool _savedIsQuiz;
-
-  // UI-only notification toggles (no API backing)
-  bool _pushNotifications = false;
-  bool _emailNotifications = false;
 
   @override
   void initState() {
     super.initState();
     _emailType = widget.initialSettings.emailCollectionType;
     _isQuiz = widget.initialSettings.quizSettings.isQuiz;
-    _savedEmailType = _emailType;
-    _savedIsQuiz = _isQuiz;
   }
 
-  bool get _isDirty =>
-      _emailType != _savedEmailType || _isQuiz != _savedIsQuiz;
+  Future<void> _save({required EmailCollectionType emailType, required bool isQuiz}) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    await context.read<EditorCubit>().updateSettings(
+          FormSettings(
+            quizSettings: QuizSettings(isQuiz: isQuiz),
+            emailCollectionType: emailType,
+          ),
+        );
+    if (mounted) setState(() => _isSaving = false);
+  }
 
   Future<void> _onQuizToggle(bool value) async {
     if (!value) {
@@ -705,31 +704,12 @@ class _SettingsContentState extends State<_SettingsContent> {
       if (confirmed != true) return;
     }
     setState(() => _isQuiz = value);
+    await _save(emailType: _emailType, isQuiz: value);
   }
 
-  Future<void> _applySettings() async {
-    if (!_isDirty || _isSaving) return;
-    setState(() => _isSaving = true);
-    await context.read<EditorCubit>().updateSettings(
-          FormSettings(
-            quizSettings: QuizSettings(isQuiz: _isQuiz),
-            emailCollectionType: _emailType,
-          ),
-        );
-    if (mounted) {
-      setState(() {
-        _savedEmailType = _emailType;
-        _savedIsQuiz = _isQuiz;
-        _isSaving = false;
-      });
-    }
-  }
-
-  Future<void> _openInBrowser() async {
-    final url = Uri.parse(
-      'https://docs.google.com/forms/d/${widget.formId}/edit',
-    );
-    await launchUrl(url, mode: LaunchMode.externalApplication);
+  Future<void> _onEmailTypeChange(EmailCollectionType value) async {
+    setState(() => _emailType = value);
+    await _save(emailType: value, isQuiz: _isQuiz);
   }
 
   @override
@@ -754,7 +734,7 @@ class _SettingsContentState extends State<_SettingsContent> {
             groupValue: _emailType,
             onChanged: _isSaving
                 ? (_) {}
-                : (v) => setState(() => _emailType = v as EmailCollectionType),
+                : (v) => _onEmailTypeChange(v as EmailCollectionType),
             child: Column(
               children: [
                 RadioListTile<EmailCollectionType>(
@@ -780,58 +760,6 @@ class _SettingsContentState extends State<_SettingsContent> {
             value: _isQuiz,
             onChanged: _isSaving ? null : _onQuizToggle,
           ),
-          const Divider(height: 24),
-          // More settings
-          ListTile(
-            leading: const Icon(Icons.open_in_browser_outlined),
-            title: const Text('More settings'),
-            subtitle: const Text(
-              'Confirmation message, shuffle, themes — edit in browser',
-            ),
-            onTap: _openInBrowser,
-          ),
-          const Divider(height: 24),
-          // Response notifications (UI only)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            child: Text(
-              'Response notifications',
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(color: theme.colorScheme.primary),
-            ),
-          ),
-          SwitchListTile(
-            title: const Text('Push notification'),
-            value: _pushNotifications,
-            onChanged: (v) => setState(() => _pushNotifications = v),
-          ),
-          SwitchListTile(
-            title: const Text('Email notification'),
-            value: _emailNotifications,
-            onChanged: (v) => setState(() => _emailNotifications = v),
-          ),
-          const SizedBox(height: 16),
-          // Apply button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _isDirty && !_isSaving ? _applySettings : null,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Apply'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
         ],
       ),
     );
