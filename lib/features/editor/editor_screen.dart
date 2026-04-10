@@ -99,12 +99,19 @@ class _EditorView extends StatelessWidget {
           ],
         ),
         body: BlocBuilder<EditorCubit, EditorState>(
-          // Only rebuild when the state class changes (Loading↔Loaded↔Error).
-          // All content updates inside EditorLoaded are handled by the
-          // per-item BlocSelectors inside _EditorBody.
-          buildWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
+          // Rebuild on state class changes AND on isSaving transitions so the
+          // skeleton can be shown while a save is in flight.
+          buildWhen: (prev, curr) {
+            if (prev.runtimeType != curr.runtimeType) return true;
+            if (prev is EditorLoaded && curr is EditorLoaded) {
+              return prev.isSaving != curr.isSaving;
+            }
+            return false;
+          },
           builder: (context, state) => switch (state) {
             EditorLoading() => const _EditorSkeleton(),
+            EditorLoaded(:final isSaving) when isSaving =>
+              const _EditorSkeleton(),
             EditorError(:final kind, :final message)
                 when kind == EditorErrorKind.network =>
               _FullScreenError(
