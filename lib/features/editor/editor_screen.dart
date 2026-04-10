@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/di/injection.dart';
+import '../../core/models/enums.dart';
+import '../../core/models/form_settings.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
 import '../../core/widgets/skeleton_bone.dart';
@@ -16,9 +20,8 @@ import 'editor_cubit.dart';
 import 'widgets/form_header_card.dart';
 import 'widgets/question_card.dart';
 import 'widgets/section_card.dart';
-import 'widgets/settings_sheet.dart';
 
-enum _OverflowAction { settings, preview, share, responses }
+const _purple = Color(0xFF772FC0);
 
 class EditorScreen extends StatelessWidget {
   final String formId;
@@ -39,24 +42,66 @@ class EditorScreen extends StatelessWidget {
   }
 }
 
-class _EditorView extends StatelessWidget {
+// ── Main view (stateful for TabController) ────────────────────────────────────
+
+class _EditorView extends StatefulWidget {
   final String formId;
   final String initialName;
 
   const _EditorView({required this.formId, required this.initialName});
 
   @override
+  State<_EditorView> createState() => _EditorViewState();
+}
+
+class _EditorViewState extends State<_EditorView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChange);
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChange);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChange() {
+    // Intercept Responses tab: navigate instead of switching tabs
+    if (_tabController.index == 1 && !_tabController.indexIsChanging) {
+      _tabController.animateTo(0, duration: Duration.zero);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openResponses());
+    }
+  }
+
+  void _openResponses() {
+    final state = context.read<EditorCubit>().state;
+    if (state is! EditorLoaded) return;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => ResponsesScreen(
+        formId: widget.formId,
+        formTitle: state.form.info.title,
+        items: state.form.items,
+      ),
+    ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<EditorCubit, EditorState>(
       listener: _onStateChange,
       listenWhen: (prev, curr) {
-        // Standard flag changes
         if (prev.runtimeType != curr.runtimeType) return true;
         if (curr is EditorLoaded) {
           final p = prev is EditorLoaded ? prev : null;
           if (curr.conflictPending && !(p?.conflictPending ?? false)) return true;
           if (curr.saveFailed && !(p?.saveFailed ?? false)) return true;
-          // New item waiting for edit sheet
           if (curr.pendingEditItemId != null &&
               curr.pendingEditItemId != (p?.pendingEditItemId)) {
             return true;
@@ -65,70 +110,108 @@ class _EditorView extends StatelessWidget {
         return curr is EditorError;
       },
       child: Scaffold(
-        appBar: AppBar(
-          titleSpacing: 0,
-          title: _AppBarTitle(initialName: initialName),
-          actions: [
-            BlocSelector<EditorCubit, EditorState,
-                ({bool isDirty, bool isSaving})>(
-              selector: (state) => state is EditorLoaded
-                  ? (isDirty: state.isDirty, isSaving: state.isSaving)
-                  : (isDirty: false, isSaving: false),
-              builder: (context, data) {
-                if (data.isSaving) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  );
-                }
-                return TextButton(
-                  onPressed: data.isDirty
-                      ? () => context.read<EditorCubit>().save()
-                      : null,
-                  child: const Text('Save'),
-                );
-              },
+        appBar: _buildAppBar(context),
+        body: Column(
+          children: [
+            // Action strip: Preview | Share | Save
+            _ActionStrip(formId: widget.formId),
+            // Tab bar
+            TabBar(
+              controller: _tabController,
+              labelColor: _purple,
+              indicatorColor: _purple,
+              unselectedLabelColor: Colors.grey,
+              tabs: const [
+                Tab(text: 'Questions'),
+                Tab(text: 'Responses'),
+                Tab(text: 'Settings'),
+              ],
             ),
-            _OverflowMenu(formId: formId),
+            // Tab content area
+            Expanded(
+              child: BlocBuilder<EditorCubit, EditorState>(
+                buildWhen: (prev, curr) {
+                  if (prev.runtimeType != curr.runtimeType) return true;
+                  if (prev is EditorLoaded && curr is EditorLoaded) {
+                    return prev.isSaving != curr.isSaving;
+                  }
+                  return false;
+                },
+                builder: (context, state) => switch (state) {
+                  EditorLoading() => const _EditorSkeleton(),
+                  EditorLoaded(:final isSaving) when isSaving =>
+                    const _EditorSkeleton(),
+                  EditorError(:final kind, :final message)
+                      when kind == EditorErrorKind.network =>
+                    _FullScreenError(
+                      message: message,
+                      onRetry: () =>
+                          context.read<EditorCubit>().loadForm(widget.formId),
+                    ),
+                  EditorError() => const SizedBox.shrink(),
+                  EditorLoaded() => TabBarView(
+                      controller: _tabController,
+                      children: [
+                        const _EditorBody(),
+                        // Responses: intercepted by tab listener — never actually shown
+                        const SizedBox.shrink(),
+                        _SettingsTabPage(formId: widget.formId),
+                      ],
+                    ),
+                },
+              ),
+            ),
           ],
         ),
-        body: BlocBuilder<EditorCubit, EditorState>(
-          // Rebuild on state class changes AND on isSaving transitions so the
-          // skeleton can be shown while a save is in flight.
-          buildWhen: (prev, curr) {
-            if (prev.runtimeType != curr.runtimeType) return true;
-            if (prev is EditorLoaded && curr is EditorLoaded) {
-              return prev.isSaving != curr.isSaving;
-            }
-            return false;
+        bottomNavigationBar: AnimatedBuilder(
+          animation: _tabController,
+          builder: (context, _) {
+            if (_tabController.index != 0) return const SizedBox.shrink();
+            return BlocSelector<EditorCubit, EditorState, bool>(
+              selector: (state) => state is EditorLoaded && !state.isSaving,
+              builder: (context, enabled) =>
+                  _BottomBar(enabled: enabled, formId: widget.formId),
+            );
           },
-          builder: (context, state) => switch (state) {
-            EditorLoading() => const _EditorSkeleton(),
-            EditorLoaded(:final isSaving) when isSaving =>
-              const _EditorSkeleton(),
-            EditorError(:final kind, :final message)
-                when kind == EditorErrorKind.network =>
-              _FullScreenError(
-                message: message,
-                onRetry: () =>
-                    context.read<EditorCubit>().loadForm(formId),
-              ),
-            EditorError() => const SizedBox.shrink(),
-            EditorLoaded() => const _EditorBody(),
-          },
-        ),
-        bottomNavigationBar: BlocSelector<EditorCubit, EditorState, bool>(
-          selector: (state) =>
-              state is EditorLoaded && !state.isSaving,
-          builder: (context, enabled) => _BottomBar(enabled: enabled),
         ),
       ),
+    );
+  }
+
+  AppBar _buildAppBar(BuildContext context) {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      titleSpacing: 0,
+      title: Row(
+        children: [
+          IconButton(
+            icon: SvgPicture.asset(
+              'assets/dashboard_hamburger.svg',
+              width: 22,
+              height: 22,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const Text(
+            'Form list',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: SvgPicture.asset(
+            'assets/dashboard_premium.svg',
+            width: 26,
+            height: 26,
+          ),
+        ),
+      ],
     );
   }
 
@@ -204,23 +287,165 @@ class _EditorView extends StatelessWidget {
   }
 }
 
-// ── App bar title — rebuilds only when the form title changes ─────────────────
+// ── Action strip: Preview | Share | Save ─────────────────────────────────────
 
-class _AppBarTitle extends StatelessWidget {
-  final String initialName;
+class _ActionStrip extends StatelessWidget {
+  final String formId;
 
-  const _AppBarTitle({required this.initialName});
+  const _ActionStrip({required this.formId});
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState, String>(
-      selector: (state) =>
-          state is EditorLoaded ? state.form.info.title : initialName,
-      builder: (context, title) => Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+    return BlocSelector<EditorCubit, EditorState,
+        ({bool isLoaded, bool isDirty, bool isSaving, String responderUri, String title, List<Item> items})>(
+      selector: (state) => state is EditorLoaded
+          ? (
+              isLoaded: true,
+              isDirty: state.isDirty,
+              isSaving: state.isSaving,
+              responderUri: state.form.responderUri,
+              title: state.form.info.title,
+              items: state.form.items,
+            )
+          : (
+              isLoaded: false,
+              isDirty: false,
+              isSaving: false,
+              responderUri: '',
+              title: '',
+              items: const <Item>[],
+            ),
+      builder: (context, data) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _StripButton(
+                icon: Icons.visibility_outlined,
+                label: 'Preview',
+                enabled: data.isLoaded,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PreviewScreen(
+                      responderUri: data.responderUri,
+                      formTitle: data.title,
+                    ),
+                  ),
+                ),
+              ),
+              _StripButton(
+                icon: Icons.share_outlined,
+                label: 'Share',
+                enabled: data.isLoaded,
+                onTap: () => Share.share(data.responderUri, subject: data.title),
+              ),
+              _SaveStripButton(data: data),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StripButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _StripButton({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled
+        ? Theme.of(context).colorScheme.onSurface
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SaveStripButton extends StatelessWidget {
+  final ({bool isLoaded, bool isDirty, bool isSaving, String responderUri, String title, List<Item> items}) data;
+
+  const _SaveStripButton({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.isSaving) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(height: 2),
+            Text('Save', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    final active = data.isLoaded && data.isDirty;
+    final color = active ? _purple : Colors.grey;
+
+    return InkWell(
+      onTap: active
+          ? () => context.read<EditorCubit>().save()
+          : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline, size: 22, color: color),
+            const SizedBox(height: 2),
+            Text(
+              'Save',
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -228,8 +453,6 @@ class _AppBarTitle extends StatelessWidget {
 
 // ── Value objects for BlocSelectors ──────────────────────────────────────────
 
-/// Structural data for the editor body — item IDs + form header text.
-/// Implements == so BlocSelector only rebuilds on actual changes.
 class _BodyData {
   final List<String> itemIds;
   final String title;
@@ -255,9 +478,6 @@ class _BodyData {
       Object.hash(title, description, Object.hashAll(itemIds));
 }
 
-/// Per-item data — the item itself and the current sections list.
-/// Implements == so BlocSelector only rebuilds when this item or
-/// the section list changes.
 class _ItemData {
   final Item? item;
   final List<Item> sections;
@@ -276,11 +496,8 @@ class _ItemData {
   int get hashCode => Object.hash(item, isQuiz, Object.hashAll(sections));
 }
 
-// ── Editor body ───────────────────────────────────────────────────────────────
+// ── Editor body (Questions tab) ───────────────────────────────────────────────
 
-/// Renders the scrollable form editor. Uses its own [BlocSelector] for
-/// structural data (item IDs + header), so it only rebuilds when items are
-/// added, removed, or reordered — not on every keystroke.
 class _EditorBody extends StatelessWidget {
   const _EditorBody();
 
@@ -342,9 +559,6 @@ class _EditorBody extends StatelessWidget {
                   context.read<EditorCubit>().moveItem(oldIndex, newIndex);
                 },
                 itemBuilder: (context, i) {
-                  // BlocProvider.value re-provides the cubit inside each item
-                  // so the drag proxy (lifted into an Overlay above the
-                  // BlocProvider) can still find EditorCubit.
                   return ReorderableDelayedDragStartListener(
                     key: ValueKey(data.itemIds[i]),
                     index: i,
@@ -365,8 +579,6 @@ class _EditorBody extends StatelessWidget {
 
 // ── Per-item row ──────────────────────────────────────────────────────────────
 
-/// Wraps a single form item with its own [BlocSelector].
-/// Only rebuilds when THIS item's content or the sections list changes.
 class _ItemRow extends StatelessWidget {
   final String itemId;
 
@@ -407,50 +619,333 @@ class _ItemRow extends StatelessWidget {
   }
 }
 
-// ── Bottom bar ────────────────────────────────────────────────────────────────
+// ── Settings tab page (inline) ────────────────────────────────────────────────
 
-class _BottomBar extends StatelessWidget {
-  final bool enabled;
+class _SettingsTabPage extends StatelessWidget {
+  final String formId;
 
-  const _BottomBar({required this.enabled});
+  const _SettingsTabPage({required this.formId});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<EditorCubit, EditorState, FormSettings?>(
+      selector: (state) =>
+          state is EditorLoaded ? state.form.settings : null,
+      builder: (context, settings) {
+        if (settings == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return _SettingsContent(
+          initialSettings: settings,
+          formId: formId,
+        );
+      },
+    );
+  }
+}
+
+class _SettingsContent extends StatefulWidget {
+  final FormSettings initialSettings;
+  final String formId;
+
+  const _SettingsContent({
+    required this.initialSettings,
+    required this.formId,
+  });
+
+  @override
+  State<_SettingsContent> createState() => _SettingsContentState();
+}
+
+class _SettingsContentState extends State<_SettingsContent> {
+  late EmailCollectionType _emailType;
+  late bool _isQuiz;
+  bool _isSaving = false;
+  // Tracks the baseline for dirty detection (updated after successful apply)
+  late EmailCollectionType _savedEmailType;
+  late bool _savedIsQuiz;
+
+  // UI-only notification toggles (no API backing)
+  bool _pushNotifications = false;
+  bool _emailNotifications = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailType = widget.initialSettings.emailCollectionType;
+    _isQuiz = widget.initialSettings.quizSettings.isQuiz;
+    _savedEmailType = _emailType;
+    _savedIsQuiz = _isQuiz;
+  }
+
+  bool get _isDirty =>
+      _emailType != _savedEmailType || _isQuiz != _savedIsQuiz;
+
+  Future<void> _onQuizToggle(bool value) async {
+    if (!value) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Turn off quiz mode?'),
+          content: const Text(
+            'All answer keys and point values will be permanently removed.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Turn off'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    setState(() => _isQuiz = value);
+  }
+
+  Future<void> _applySettings() async {
+    if (!_isDirty || _isSaving) return;
+    setState(() => _isSaving = true);
+    await context.read<EditorCubit>().updateSettings(
+          FormSettings(
+            quizSettings: QuizSettings(isQuiz: _isQuiz),
+            emailCollectionType: _emailType,
+          ),
+        );
+    if (mounted) {
+      setState(() {
+        _savedEmailType = _emailType;
+        _savedIsQuiz = _isQuiz;
+        _isSaving = false;
+      });
+    }
+  }
+
+  Future<void> _openInBrowser() async {
+    final url = Uri.parse(
+      'https://docs.google.com/forms/d/${widget.formId}/edit',
+    );
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Email collection
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              'Collect email addresses',
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.primary),
+            ),
+          ),
+          RadioGroup<EmailCollectionType>(
+            groupValue: _emailType,
+            onChanged: _isSaving
+                ? (_) {}
+                : (v) => setState(() => _emailType = v as EmailCollectionType),
+            child: Column(
+              children: [
+                RadioListTile<EmailCollectionType>(
+                  title: const Text("Don't collect"),
+                  value: EmailCollectionType.doNotCollect,
+                ),
+                RadioListTile<EmailCollectionType>(
+                  title: const Text('Verified (Workspace accounts only)'),
+                  value: EmailCollectionType.verified,
+                ),
+                RadioListTile<EmailCollectionType>(
+                  title: const Text('Ask respondents'),
+                  value: EmailCollectionType.responderInput,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 24),
+          // Quiz mode
+          SwitchListTile(
+            title: const Text('Quiz mode'),
+            subtitle: const Text('Assign point values and set correct answers'),
+            value: _isQuiz,
+            onChanged: _isSaving ? null : _onQuizToggle,
+          ),
+          const Divider(height: 24),
+          // More settings
+          ListTile(
+            leading: const Icon(Icons.open_in_browser_outlined),
+            title: const Text('More settings'),
+            subtitle: const Text(
+              'Confirmation message, shuffle, themes — edit in browser',
+            ),
+            onTap: _openInBrowser,
+          ),
+          const Divider(height: 24),
+          // Response notifications (UI only)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Text(
+              'Response notifications',
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.primary),
+            ),
+          ),
+          SwitchListTile(
+            title: const Text('Push notification'),
+            value: _pushNotifications,
+            onChanged: (v) => setState(() => _pushNotifications = v),
+          ),
+          SwitchListTile(
+            title: const Text('Email notification'),
+            value: _emailNotifications,
+            onChanged: (v) => setState(() => _emailNotifications = v),
+          ),
+          const SizedBox(height: 16),
+          // Apply button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _isDirty && !_isSaving ? _applySettings : null,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Apply'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Bottom bar (5 buttons) ────────────────────────────────────────────────────
+
+class _BottomBar extends StatelessWidget {
+  final bool enabled;
+  final String formId;
+
+  const _BottomBar({required this.enabled, required this.formId});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cubit = context.read<EditorCubit>();
+    final state = cubit.state;
+    final responderUri =
+        state is EditorLoaded ? state.form.responderUri : '';
+    final formTitle =
+        state is EditorLoaded ? state.form.info.title : '';
+
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           border: Border(
-              top: BorderSide(color: theme.colorScheme.outlineVariant)),
+            top: BorderSide(color: theme.colorScheme.outlineVariant),
+          ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Expanded(
-              child: FilledButton.tonalIcon(
-                onPressed: enabled
-                    ? () => context.read<EditorCubit>().addQuestion()
-                    : null,
-                icon: const Icon(Icons.add),
-                label: const Text('Add question'),
+            // Add question
+            _BarButton(
+              icon: Icons.add,
+              tooltip: 'Add question',
+              enabled: enabled,
+              onTap: () => cubit.addQuestion(),
+            ),
+            // Add image (placeholder — no API support yet)
+            _BarButton(
+              icon: Icons.image_outlined,
+              tooltip: 'Add image',
+              enabled: false,
+              onTap: null,
+            ),
+            // Add text block
+            _BarButton(
+              icon: Icons.text_fields,
+              tooltip: 'Add text block',
+              enabled: enabled,
+              onTap: () => cubit.addTextBlock(),
+            ),
+            // Preview
+            _BarButton(
+              icon: Icons.play_arrow_outlined,
+              tooltip: 'Preview',
+              enabled: enabled,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PreviewScreen(
+                    responderUri: responderUri,
+                    formTitle: formTitle,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              onPressed: enabled
-                  ? () => context.read<EditorCubit>().addSection()
-                  : null,
-              icon: const Icon(Icons.view_agenda_outlined),
+            // Add section
+            _BarButton(
+              icon: Icons.view_agenda_outlined,
               tooltip: 'Add section',
-            ),
-            const SizedBox(width: 4),
-            IconButton.outlined(
-              onPressed: null, // step 10
-              icon: const Icon(Icons.perm_media_outlined),
-              tooltip: 'Add media',
+              enabled: enabled,
+              onTap: () => cubit.addSection(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BarButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _BarButton({
+    required this.icon,
+    required this.tooltip,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Icon(
+            icon,
+            size: 24,
+            color: enabled
+                ? Theme.of(context).colorScheme.onSurface
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+          ),
         ),
       ),
     );
@@ -610,106 +1105,6 @@ class _VideoCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ── Overflow menu (settings / preview / share) ────────────────────────────────
-
-class _OverflowMenu extends StatelessWidget {
-  final String formId;
-
-  const _OverflowMenu({required this.formId});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState,
-        ({String responderUri, String title, List<Item> items, bool isLoaded})>(
-      selector: (state) => state is EditorLoaded
-          ? (
-              responderUri: state.form.responderUri,
-              title: state.form.info.title,
-              items: state.form.items,
-              isLoaded: true,
-            )
-          : (
-              responderUri: '',
-              title: '',
-              items: const <Item>[],
-              isLoaded: false,
-            ),
-      builder: (context, data) {
-        return PopupMenuButton<_OverflowAction>(
-          icon: const Icon(Icons.more_vert),
-          enabled: data.isLoaded,
-          onSelected: (action) => _onAction(
-              context, action, data.responderUri, data.title, data.items),
-          itemBuilder: (_) => const [
-            PopupMenuItem(
-              value: _OverflowAction.settings,
-              child: ListTile(
-                leading: Icon(Icons.settings_outlined),
-                title: Text('Settings'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            PopupMenuItem(
-              value: _OverflowAction.preview,
-              child: ListTile(
-                leading: Icon(Icons.visibility_outlined),
-                title: Text('Preview'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            PopupMenuItem(
-              value: _OverflowAction.share,
-              child: ListTile(
-                leading: Icon(Icons.share_outlined),
-                title: Text('Share'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            PopupMenuItem(
-              value: _OverflowAction.responses,
-              child: ListTile(
-                leading: Icon(Icons.bar_chart_outlined),
-                title: Text('Responses'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _onAction(
-    BuildContext context,
-    _OverflowAction action,
-    String responderUri,
-    String title,
-    List<Item> items,
-  ) {
-    switch (action) {
-      case _OverflowAction.settings:
-        SettingsSheet.show(context);
-      case _OverflowAction.preview:
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => PreviewScreen(
-            responderUri: responderUri,
-            formTitle: title,
-          ),
-        ));
-      case _OverflowAction.share:
-        Share.share(responderUri, subject: title);
-      case _OverflowAction.responses:
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => ResponsesScreen(
-            formId: formId,
-            formTitle: title,
-            items: items,
-          ),
-        ));
-    }
   }
 }
 

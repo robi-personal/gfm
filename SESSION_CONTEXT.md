@@ -463,8 +463,8 @@ Simple feature — 54-line cubit.
 - **Step 13**: Preview + Share ✅ Done
 - **Step 14**: Responses list + detail view ✅ Done
 - **Step 15**: Quiz mode — per-question grading editor ✅ Done
-- **Step 16**: Editor UI overhaul ← **NEXT** (plan above)
-- **Step 17**: Duplicate form + duplicate question
+- **Step 16**: Editor UI overhaul ✅ Done
+- **Step 17**: Duplicate form + duplicate question ← **NEXT**
 - **Step 18**: Offline queue (drift-backed pending writes)
 - **Step 19**: Paywall + CSV/XLSX export
 - **Step 20**: Polish

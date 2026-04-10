@@ -37,6 +37,10 @@ class QuestionEditSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (_) => BlocProvider.value(
         value: context.read<EditorCubit>(),
         child: QuestionEditSheet(item: item, sections: sections, isQuiz: isQuiz),
@@ -299,11 +303,37 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     Navigator.of(context).pop();
   }
 
+  // Shared input decoration matching dashboard style
+  static InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
+        filled: true,
+        fillColor: const Color(0xFFF3F0FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF772FC0), width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final safeArea = MediaQuery.of(context).padding.bottom;
+    final bottom = viewInsets + safeArea;
+
+    const labelStyle = TextStyle(
+        fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54);
+    const bodyStyle = TextStyle(fontSize: 15, color: Colors.black87);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -313,55 +343,57 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
           // Drag handle
           Center(
             child: Container(
-              width: 32,
+              width: 36,
               height: 4,
-              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
               decoration: BoxDecoration(
-                color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                color: Colors.black12,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                Expanded(
-                  child: Text('Edit question',
-                      style: theme.textTheme.titleMedium),
+                const Expanded(
+                  child: Text(
+                    'Edit question',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-                FilledButton.tonal(
+                FilledButton(
                   onPressed: _commit,
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    visualDensity: VisualDensity.compact,
+                    backgroundColor: const Color(0xFF772FC0),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Done'),
+                  child: const Text('Done',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
           // Scrollable body
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
                   TextField(
                     controller: _titleCtrl,
-                    autofocus: true,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w500),
-                    decoration: const InputDecoration(
-                      labelText: 'Question title',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
+                    style: bodyStyle.copyWith(fontWeight: FontWeight.w500),
+                    decoration: _inputDec('Question title'),
                     minLines: 1,
                     maxLines: 4,
                     textInputAction: TextInputAction.next,
@@ -370,23 +402,16 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   // Description
                   TextField(
                     controller: _descCtrl,
-                    style: theme.textTheme.bodyMedium,
-                    decoration: const InputDecoration(
-                      labelText: 'Description (optional)',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
+                    style: bodyStyle,
+                    decoration: _inputDec('Description (optional)'),
                     minLines: 1,
                     maxLines: 3,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   // Type
                   Row(
                     children: [
-                      Text('Type',
-                          style: theme.textTheme.labelMedium
-                              ?.copyWith(color: cs.onSurfaceVariant)),
+                      const Text('Type', style: labelStyle),
                       const SizedBox(width: 12),
                       GestureDetector(
                         onTap: _pickType,
@@ -394,29 +419,28 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   // Options or type preview
                   if (_kind is ChoiceQuestion) ...[
                     Row(
                       children: [
-                        Text('Options',
-                            style: theme.textTheme.labelMedium
-                                ?.copyWith(color: cs.onSurfaceVariant)),
+                        const Text('Options', style: labelStyle),
                         if (widget.isQuiz) ...[
                           const SizedBox(width: 8),
-                          Text('— tap ✓ to mark correct',
-                              style: theme.textTheme.labelSmall
-                                  ?.copyWith(color: cs.onSurfaceVariant)),
+                          const Text('— tap ✓ to mark correct',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.black38)),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     ..._buildOptionRows(context),
                     TextButton.icon(
                       onPressed: _addOption,
-                      icon: Icon(Icons.add, size: 16, color: cs.primary),
-                      label: Text('Add option',
-                          style: TextStyle(color: cs.primary)),
+                      icon: const Icon(Icons.add,
+                          size: 16, color: Color(0xFF772FC0)),
+                      label: const Text('Add option',
+                          style: TextStyle(color: Color(0xFF772FC0))),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: const Size(0, 32),
@@ -425,15 +449,18 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   ] else ...[
                     _TypePreview(kind: _kind),
                   ],
-                  const Divider(height: 28),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(color: Color(0xFFEEEEEE)),
+                  ),
                   // Required
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Required',
-                          style: theme.textTheme.bodyMedium),
+                      const Text('Required', style: bodyStyle),
                       Switch(
                         value: _required,
+                        activeColor: const Color(0xFF772FC0),
                         onChanged: (v) => setState(() => _required = v),
                       ),
                     ],
@@ -443,20 +470,33 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Text('Points',
-                            style: theme.textTheme.bodyMedium),
+                        const Text('Points', style: bodyStyle),
                         const Spacer(),
                         SizedBox(
-                          width: 72,
+                          width: 80,
                           child: TextField(
                             controller: _pointsCtrl,
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 8),
+                            style: bodyStyle,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF3F0FA),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFF772FC0), width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 10),
                               isDense: true,
                             ),
                           ),
@@ -466,65 +506,42 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                     // Correct answer (TextQuestion only)
                     if (_kind is TextQuestion) ...[
                       const SizedBox(height: 16),
-                      Text('Answer key',
-                          style: theme.textTheme.labelMedium
-                              ?.copyWith(color: cs.onSurfaceVariant)),
+                      const Text('Answer key', style: labelStyle),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _correctTextCtrl,
-                        style: theme.textTheme.bodyMedium,
-                        decoration: const InputDecoration(
-                          labelText: 'Correct answer',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
+                        style: bodyStyle,
+                        decoration: _inputDec('Correct answer'),
                       ),
                     ],
                     // Feedback
                     if (_kind is ChoiceQuestion &&
                         _correctOptionIndices.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      Text('Feedback',
-                          style: theme.textTheme.labelMedium
-                              ?.copyWith(color: cs.onSurfaceVariant)),
+                      const Text('Feedback', style: labelStyle),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _whenRightCtrl,
-                        style: theme.textTheme.bodyMedium,
-                        decoration: const InputDecoration(
-                          labelText: 'When correct (optional)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
+                        style: bodyStyle,
+                        decoration: _inputDec('When correct (optional)'),
                         minLines: 1,
                         maxLines: 3,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _whenWrongCtrl,
-                        style: theme.textTheme.bodyMedium,
-                        decoration: const InputDecoration(
-                          labelText: 'When incorrect (optional)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
+                        style: bodyStyle,
+                        decoration: _inputDec('When incorrect (optional)'),
                         minLines: 1,
                         maxLines: 3,
                       ),
                     ] else if (_kind is TextQuestion) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _generalFeedbackCtrl,
-                        style: theme.textTheme.bodyMedium,
-                        decoration: const InputDecoration(
-                          labelText: 'General feedback (optional)',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
+                        style: bodyStyle,
+                        decoration:
+                            _inputDec('General feedback (optional)'),
                         minLines: 1,
                         maxLines: 3,
                       ),
@@ -550,51 +567,60 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     };
 
     return List.generate(_optionCtrls.length, (i) {
-      final theme = Theme.of(context);
-      final cs = theme.colorScheme;
       final isCorrect = _correctOptionIndices.contains(i);
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                if (widget.isQuiz) ...[
-                  GestureDetector(
-                    onTap: () => _toggleCorrectOption(i),
-                    child: Icon(
-                      isCorrect
-                          ? Icons.check_circle
-                          : Icons.check_circle_outline,
-                      size: 20,
-                      color: isCorrect ? Colors.green : cs.onSurfaceVariant,
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F0FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  if (widget.isQuiz) ...[
+                    GestureDetector(
+                      onTap: () => _toggleCorrectOption(i),
+                      child: Icon(
+                        isCorrect
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                        size: 20,
+                        color: isCorrect
+                            ? Colors.green
+                            : Colors.black38,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Icon(icon, size: 18, color: Colors.black38),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _optionCtrls[i],
+                      style: const TextStyle(
+                          fontSize: 15, color: Colors.black87),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  if (_optionCtrls.length > 1)
+                    GestureDetector(
+                      onTap: () => _removeOption(i),
+                      child: const Icon(Icons.close,
+                          size: 18, color: Colors.black38),
+                    ),
                 ],
-                Icon(icon, size: 18, color: cs.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _optionCtrls[i],
-                    style: theme.textTheme.bodyMedium,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: UnderlineInputBorder(),
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                if (_optionCtrls.length > 1)
-                  GestureDetector(
-                    onTap: () => _removeOption(i),
-                    child: Icon(Icons.close,
-                        size: 18, color: cs.onSurfaceVariant),
-                  ),
-              ],
+              ),
             ),
             if (showGoTo)
               _GoToDropdown(

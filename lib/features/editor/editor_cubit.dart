@@ -108,6 +108,26 @@ class EditorCubit extends Cubit<EditorState> {
     ));
   }
 
+  // ── Add text block ─────────────────────────────────────────────────────────
+
+  void addTextBlock() {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
+    final placeholder = Item(
+      itemId: tempId,
+      title: 'Text',
+      content: const TextItemContent(),
+    );
+    final newItems = [...l.form.items, placeholder];
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(
+        creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
+      ),
+    ));
+  }
+
   // ── Add section ────────────────────────────────────────────────────────────
 
   void addSection() {

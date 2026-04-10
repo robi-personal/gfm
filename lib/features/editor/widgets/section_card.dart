@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/item.dart';
 import '../editor_cubit.dart';
 
-/// Static section divider for a [PageBreakItemContent].
+const _purple = Color(0xFF772FC0);
+
+/// Section break card — same card design as question cards.
 class SectionCard extends StatelessWidget {
   final Item item;
 
@@ -15,64 +17,101 @@ class SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Divider line
-          Row(
-            children: [
-              Expanded(child: Divider(color: cs.primary)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.horizontal_rule, size: 16, color: cs.primary),
-              ),
-              Expanded(child: Divider(color: cs.primary)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          // Title
-          Text(
-            item.title?.isNotEmpty == true ? item.title! : 'Section',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: cs.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          // Description
-          if (item.description?.isNotEmpty == true) ...[
-            const SizedBox(height: 2),
-            Text(
-              item.description!,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: cs.onSurfaceVariant),
-            ),
-          ],
-          // Action row
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                iconSize: 18,
-                color: cs.onSurfaceVariant,
-                visualDensity: VisualDensity.compact,
-                tooltip: 'Delete section',
-                onPressed: () =>
-                    context.read<EditorCubit>().deleteItem(item.itemId),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () => _SectionEditSheet.show(context, item),
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Edit'),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left purple accent border
+            Container(width: 4, color: _purple),
+            // Card content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title + section chip
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title?.isNotEmpty == true
+                                ? item.title!
+                                : 'Section',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: _purple,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _purple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Section',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _purple,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Description
+                    if (item.description?.isNotEmpty == true) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.description!,
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    const Divider(height: 12),
+                    // Action row
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          iconSize: 20,
+                          color: cs.onSurfaceVariant,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Delete section',
+                          onPressed: () =>
+                              context.read<EditorCubit>().deleteItem(item.itemId),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          iconSize: 20,
+                          color: cs.onSurfaceVariant,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Edit section',
+                          onPressed: () =>
+                              _SectionEditSheet.show(context, item),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -90,6 +129,10 @@ class _SectionEditSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (_) => BlocProvider.value(
         value: context.read<EditorCubit>(),
         child: _SectionEditSheet(item: item),
@@ -128,11 +171,32 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
     Navigator.of(context).pop();
   }
 
+  static InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
+        filled: true,
+        fillColor: const Color(0xFFF3F0FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _purple, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final safeArea = MediaQuery.of(context).padding.bottom;
+    final bottom = viewInsets + safeArea;
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -142,64 +206,65 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
           // Drag handle
           Center(
             child: Container(
-              width: 32,
+              width: 36,
               height: 4,
-              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
               decoration: BoxDecoration(
-                color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                color: Colors.black12,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                Expanded(
-                  child: Text('Edit section',
-                      style: theme.textTheme.titleMedium),
+                const Expanded(
+                  child: Text(
+                    'Edit section',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-                FilledButton.tonal(
+                FilledButton(
                   onPressed: _commit,
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    visualDensity: VisualDensity.compact,
+                    backgroundColor: _purple,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Done'),
+                  child: const Text('Done',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
           // Fields
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             child: Column(
               children: [
                 TextField(
                   controller: _titleCtrl,
-                  autofocus: true,
-                  style: theme.textTheme.bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.w600, color: cs.primary),
-                  decoration: const InputDecoration(
-                    labelText: 'Section title',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87),
+                  decoration: _inputDec('Section title'),
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _descCtrl,
-                  style: theme.textTheme.bodyMedium,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
+                  style: const TextStyle(
+                      fontSize: 15, color: Colors.black87),
+                  decoration: _inputDec('Description (optional)'),
                   minLines: 1,
                   maxLines: 3,
                 ),

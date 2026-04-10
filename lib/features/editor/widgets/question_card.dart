@@ -5,10 +5,13 @@ import '../../../core/models/choice_option.dart';
 import '../../../core/models/enums.dart';
 import '../../../core/models/item.dart';
 import '../../../core/models/item_content.dart';
+import '../../../core/models/question.dart';
 import '../../../core/models/question_kind.dart';
 import '../editor_cubit.dart';
 import 'question_edit_sheet.dart';
 import 'type_chip.dart';
+
+const _purple = Color(0xFF772FC0);
 
 /// Static (read-only) card for a question item.
 /// All editing happens via [QuestionEditSheet] opened from the Edit button.
@@ -37,85 +40,134 @@ class QuestionCard extends StatelessWidget {
     };
   }
 
-  Widget _buildSingle(BuildContext context, dynamic question) {
+  Widget _buildSingle(BuildContext context, Question question) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final kind = question.kind as QuestionKind;
-    final isRequired = question.required as bool;
+    final kind = question.kind;
+    final isRequired = question.required;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: cs.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Title + required badge ────────────────────────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    item.title?.isNotEmpty == true ? item.title! : 'Question',
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w500),
-                  ),
-                ),
-                if (isRequired)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8, top: 2),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: cs.errorContainer,
-                      borderRadius: BorderRadius.circular(4),
+            // Left purple accent border
+            Container(width: 4, color: _purple),
+            // Card content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Title + type chip ─────────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title?.isNotEmpty == true
+                                ? item.title!
+                                : 'Question name',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: item.title?.isNotEmpty == true
+                                  ? null
+                                  : cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TypeChip(kind: kind),
+                      ],
                     ),
-                    child: Text(
-                      'Required',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: cs.onErrorContainer),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            // ── Type chip ─────────────────────────────────────────────────
-            TypeChip(kind: kind),
-            const SizedBox(height: 10),
-            // ── Content preview ───────────────────────────────────────────
-            _ContentPreview(kind: kind),
-            // ── Action row ────────────────────────────────────────────────
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  iconSize: 20,
-                  color: cs.onSurfaceVariant,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Delete',
-                  onPressed: () =>
-                      context.read<EditorCubit>().deleteItem(item.itemId),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () =>
-                      QuestionEditSheet.show(
-                        context, item, sections,
-                        isQuiz: isQuiz,
+                    const SizedBox(height: 10),
+                    // ── Content preview ───────────────────────────────────
+                    _ContentPreview(kind: kind),
+                    // ── "Add Option" link (choice questions only) ─────────
+                    if (kind is ChoiceQuestion) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () => QuestionEditSheet.show(
+                          context, item, sections,
+                          isQuiz: isQuiz,
+                        ),
+                        child: Text(
+                          'Add Option  Or  Add "Other"',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _purple,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
+                    ],
+                    const SizedBox(height: 4),
+                    const Divider(height: 12),
+                    // ── Bottom action row ─────────────────────────────────
+                    Row(
+                      children: [
+                        // Delete
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          iconSize: 20,
+                          color: cs.onSurfaceVariant,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Delete',
+                          onPressed: () =>
+                              context.read<EditorCubit>().deleteItem(item.itemId),
+                        ),
+                        // Edit
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          iconSize: 20,
+                          color: cs.onSurfaceVariant,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Edit',
+                          onPressed: () => QuestionEditSheet.show(
+                            context, item, sections,
+                            isQuiz: isQuiz,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Required label + compact switch
+                        Text(
+                          'Required',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                        Transform.scale(
+                          scale: 0.75,
+                          child: Switch(
+                            value: isRequired,
+                            activeColor: _purple,
+                            onChanged: (value) {
+                              final content =
+                                  item.content as QuestionItemContent;
+                              final updatedItem = item.copyWith(
+                                content: content.copyWith(
+                                  question: question.copyWith(
+                                    required: value,
+                                  ),
+                                ),
+                              );
+                              context
+                                  .read<EditorCubit>()
+                                  .updateItemFull(updatedItem);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -131,45 +183,66 @@ class QuestionCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: cs.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              item.title?.isNotEmpty == true ? item.title! : 'Question group',
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 6),
-            const TypeChip(
-                kind: ChoiceQuestion(type: ChoiceType.radio, options: [])),
-            if (colCount > 0) ...[
-              const SizedBox(height: 6),
-              Text(
-                '${content.questions.length} rows · $colCount columns',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ],
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  iconSize: 20,
-                  color: cs.onSurfaceVariant,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Delete',
-                  onPressed: () =>
-                      context.read<EditorCubit>().deleteItem(item.itemId),
+            Container(width: 4, color: _purple),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title?.isNotEmpty == true
+                                ? item.title!
+                                : 'Question group',
+                            style: theme.textTheme.bodyLarge
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const TypeChip(
+                            kind: ChoiceQuestion(
+                                type: ChoiceType.radio, options: [])),
+                      ],
+                    ),
+                    if (colCount > 0) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${content.questions.length} rows · $colCount columns',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                    const Divider(height: 20),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          iconSize: 20,
+                          color: cs.onSurfaceVariant,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Delete',
+                          onPressed: () =>
+                              context.read<EditorCubit>().deleteItem(item.itemId),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -190,7 +263,8 @@ class _ContentPreview extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return switch (kind) {
-      ChoiceQuestion(:final options) => _OptionsPreview(options: options),
+      ChoiceQuestion(:final options, :final type) =>
+        _OptionsPreview(options: options, type: type),
       TextQuestion(:final paragraph) => _PreviewLine(
           paragraph ? 'Long answer text' : 'Short answer text'),
       ScaleQuestion(:final low, :final high) => Text(
@@ -212,7 +286,8 @@ class _ContentPreview extends StatelessWidget {
 
 class _OptionsPreview extends StatelessWidget {
   final List<ChoiceOption> options;
-  const _OptionsPreview({required this.options});
+  final ChoiceType type;
+  const _OptionsPreview({required this.options, required this.type});
 
   @override
   Widget build(BuildContext context) {
@@ -233,15 +308,21 @@ class _OptionsPreview extends StatelessWidget {
     final shown = options.take(maxShown).toList();
     final overflow = options.length - maxShown;
 
+    final leadingIcon = switch (type) {
+      ChoiceType.radio => Icons.radio_button_unchecked,
+      ChoiceType.checkbox => Icons.check_box_outline_blank,
+      ChoiceType.dropDown => Icons.arrow_drop_down_circle_outlined,
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ...shown.map((o) => Padding(
-              padding: const EdgeInsets.only(bottom: 2),
+              padding: const EdgeInsets.only(bottom: 4),
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 5, color: cs.onSurfaceVariant),
-                  const SizedBox(width: 6),
+                  Icon(leadingIcon, size: 16, color: cs.onSurfaceVariant),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       o.value,
@@ -255,7 +336,7 @@ class _OptionsPreview extends StatelessWidget {
             )),
         if (overflow > 0)
           Padding(
-            padding: const EdgeInsets.only(left: 11, top: 2),
+            padding: const EdgeInsets.only(left: 24, top: 2),
             child: Text(
               '+ $overflow more',
               style: theme.textTheme.bodySmall
