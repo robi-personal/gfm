@@ -18,7 +18,7 @@ import '../../../responses/responses_screen.dart';
 import '../cubit/editor_cubit.dart';
 import '../widgets/form_header_card.dart';
 import '../widgets/question_card.dart';
-import '../widgets/section_card.dart';
+import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
 
 const _purple = Color(0xFF772FC0);
 
@@ -210,13 +210,17 @@ class _EditorViewState extends State<_EditorView>
           .where((i) => i.itemId == pendingEditItemId)
           .firstOrNull;
       if (item != null) {
-        final sections = loaded.form.items
-            .where((i) => i.content is PageBreakItemContent)
-            .toList();
-        QuestionEditSheet.show(
-          context, item, sections,
-          isQuiz: loaded.form.settings.quizSettings.isQuiz,
-        );
+        if (item.content is TextItemContent) {
+          TextBlockEditSheet.show(context, item);
+        } else {
+          final sections = loaded.form.items
+              .where((i) => i.content is PageBreakItemContent)
+              .toList();
+          QuestionEditSheet.show(
+            context, item, sections,
+            isQuiz: loaded.form.settings.quizSettings.isQuiz,
+          );
+        }
       }
       return;
     }

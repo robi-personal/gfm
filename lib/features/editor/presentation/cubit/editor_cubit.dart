@@ -138,6 +138,7 @@ class EditorCubit extends Cubit<EditorState> {
       pending: l.pending.copyWith(
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
+      pendingEditItemId: tempId,
     ));
   }
 
