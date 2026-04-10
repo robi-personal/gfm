@@ -83,3 +83,7 @@ flutter:
   assets:
     - assets/login_banner.svg
     - assets/google_icon.svg
+    - assets/dashboard_form_icon.svg
+    - assets/dashboard_hamburger.svg
+    - assets/dashboard_premium.svg
+    - assets/dashboard_no_form_banner.svg

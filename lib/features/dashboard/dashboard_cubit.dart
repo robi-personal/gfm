@@ -102,7 +102,7 @@ class DashboardCubit extends Cubit<DashboardState> {
   /// Returns normally on publish failure (publishFailed=true in nav) so the
   /// screen can show the error modal before navigating.
   /// Throws on create failure so the screen can show the retry modal.
-  Future<void> createForm() async {
+  Future<void> createForm({String title = 'Untitled form'}) async {
     _setCreating(true);
 
     final forms_api.Form created;
@@ -110,8 +110,8 @@ class DashboardCubit extends Cubit<DashboardState> {
       created = await _formsClient.api.forms.create(
         forms_api.Form(
           info: forms_api.Info(
-            title: 'Untitled form',
-            documentTitle: 'Untitled form',
+            title: title,
+            documentTitle: title,
           ),
         ),
       );

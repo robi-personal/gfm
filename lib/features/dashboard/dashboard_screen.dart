@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../sign_in/presentation/cubit/sign_in_cubit.dart';
@@ -9,6 +10,8 @@ import '../../core/widgets/error_modal.dart';
 import '../../core/widgets/skeleton_bone.dart';
 import '../editor/editor_screen.dart';
 import 'dashboard_cubit.dart';
+
+const _purple = Color(0xFF772FC0);
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -43,7 +46,6 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget build(BuildContext context) {
     return BlocConsumer<DashboardCubit, DashboardState>(
       listenWhen: (prev, curr) {
-        // Only listen when createNav is newly set.
         final prevNav = prev is DashboardLoaded ? prev.createNav : null;
         final currNav = curr is DashboardLoaded ? curr.createNav : null;
         return currNav != null && currNav != prevNav;
@@ -61,19 +63,23 @@ class _DashboardViewState extends State<_DashboardView> {
         };
 
         return Scaffold(
+          backgroundColor: Colors.white,
           appBar: _buildAppBar(context, state),
+          drawer: _buildDrawer(context),
           body: _buildBody(context, state),
-          floatingActionButton: FloatingActionButton.extended(
+          floatingActionButton: FloatingActionButton(
             onPressed: isCreating ? null : () => _onNewForm(context),
-            icon: isCreating
+            backgroundColor: _purple,
+            foregroundColor: Colors.white,
+            elevation: 4,
+            child: isCreating
                 ? const SizedBox(
-                    width: 18,
-                    height: 18,
+                    width: 22,
+                    height: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2.5, color: Colors.white),
                   )
-                : const Icon(Icons.add),
-            label: Text(isCreating ? 'Creating…' : 'New form'),
+                : const Icon(Icons.add, size: 28),
           ),
         );
       },
@@ -81,9 +87,11 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   void _onNewForm(BuildContext context) async {
+    final name = await _showCreateDialog(context);
+    if (name == null || !context.mounted) return;
     final cubit = context.read<DashboardCubit>();
     try {
-      await cubit.createForm();
+      await cubit.createForm(title: name.isEmpty ? 'Untitled form' : name);
     } catch (_) {
       if (!context.mounted) return;
       ErrorModal.show(
@@ -98,13 +106,65 @@ class _DashboardViewState extends State<_DashboardView> {
     }
   }
 
+  Future<String?> _showCreateDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Please enter form name',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Enter form name',
+                  filled: true,
+                  fillColor: const Color(0xFFF3F0FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                ),
+                onSubmitted: (v) => Navigator.of(ctx).pop(v),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(ctrl.text),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _purple,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Create',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleCreateNavigation(
       BuildContext context, CreateNavigation nav) async {
     final cubit = context.read<DashboardCubit>();
     cubit.clearNavigation();
 
     if (nav.publishFailed && context.mounted) {
-      // Show the modal first; navigate either way on button tap.
       ErrorModal.show(
         context,
         title: 'Form created but not published.',
@@ -112,10 +172,7 @@ class _DashboardViewState extends State<_DashboardView> {
         secondaryLabel: 'Later',
         onSecondary: () => _navigateToForm(context, nav),
         primaryLabel: 'Publish',
-        onPrimary: () {
-          _navigateToForm(context, nav);
-          // TODO(step-6): trigger publish from editor save-pill
-        },
+        onPrimary: () => _navigateToForm(context, nav),
       );
       return;
     }
@@ -125,25 +182,16 @@ class _DashboardViewState extends State<_DashboardView> {
 
   void _navigateToForm(BuildContext context, CreateNavigation nav) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditorScreen(
-        formId: nav.formId,
-        formName: nav.formName,
-      ),
+      builder: (_) =>
+          EditorScreen(formId: nav.formId, formName: nav.formName),
     ));
   }
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-
   PreferredSizeWidget _buildAppBar(
       BuildContext context, DashboardState state) {
-    final sortOrder = switch (state) {
-      DashboardLoaded(:final sortOrder) => sortOrder,
-      DashboardError(:final sortOrder) => sortOrder,
-      _ => SortOrder.modifiedDesc,
-    };
-
     if (_searchOpen) {
       return AppBar(
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -165,37 +213,61 @@ class _DashboardViewState extends State<_DashboardView> {
     }
 
     return AppBar(
-      title: const Text('My Forms'),
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: Builder(
+        builder: (ctx) => IconButton(
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
+          icon: SvgPicture.asset('assets/dashboard_hamburger.svg',
+              width: 24, height: 24),
+        ),
+      ),
+      title: const Text(
+        'Form list',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+      ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search, color: Colors.black54),
           onPressed: () => setState(() => _searchOpen = true),
         ),
-        IconButton(
-          tooltip: sortOrder == SortOrder.modifiedDesc
-              ? 'Sort by created'
-              : 'Sort by modified',
-          icon: Icon(
-            sortOrder == SortOrder.modifiedDesc
-                ? Icons.schedule
-                : Icons.add_circle_outline,
-          ),
-          onPressed: () => context.read<DashboardCubit>().toggleSort(),
-        ),
-        IconButton(
-          icon: const Icon(Icons.logout),
-          onPressed: () => context.read<SignInCubit>().signOut(),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: SvgPicture.asset('assets/dashboard_premium.svg',
+              width: 28, height: 28),
         ),
       ],
     );
   }
 
-  // ── Body ───────────────────────────────────────────────────────────────────
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Sign out'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.read<SignInCubit>().signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildBody(BuildContext context, DashboardState state) {
     return switch (state) {
-      DashboardInitial() || DashboardLoading() =>
-        const _DashboardSkeleton(),
+      DashboardInitial() || DashboardLoading() => const _DashboardSkeleton(),
       DashboardLoaded(:final forms, :final isShowingCache) => Column(
           children: [
             if (isShowingCache) const _CacheBanner(),
@@ -225,30 +297,48 @@ class _DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlight = Theme.of(context).colorScheme.surface;
     return Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: highlight,
-      child: ListView.separated(
+      baseColor: const Color(0xFFEEEEEE),
+      highlightColor: const Color(0xFFFAFAFA),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: 6,
-        separatorBuilder: (context, i) => const Divider(height: 1),
-        itemBuilder: (context, i) => const _SkeletonFormTile(),
+        itemBuilder: (context, i) => const _SkeletonCard(),
       ),
     );
   }
 }
 
-class _SkeletonFormTile extends StatelessWidget {
-  const _SkeletonFormTile();
+class _SkeletonCard extends StatelessWidget {
+  const _SkeletonCard();
 
   @override
   Widget build(BuildContext context) {
-    return const ListTile(
-      leading: SkeletonBone(width: 24, height: 24, radius: 4),
-      title: SkeletonBone(width: double.infinity, height: 14, radius: 4),
-      subtitle: SkeletonBone(width: 120, height: 11, radius: 4),
-      trailing: SkeletonBone(width: 24, height: 24, radius: 4),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          SkeletonBone(width: 44, height: 56, radius: 6),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBone(width: double.infinity, height: 14, radius: 4),
+                SizedBox(height: 8),
+                SkeletonBone(width: 120, height: 11, radius: 4),
+              ],
+            ),
+          ),
+          SizedBox(width: 14),
+          SkeletonBone(width: 20, height: 20, radius: 4),
+        ],
+      ),
     );
   }
 }
@@ -263,57 +353,128 @@ class _FormList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (forms.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text(
-            'No forms yet.\n\nForms you create here will appear in this list. '
-            'To add an existing form, paste its link.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      return const _EmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: () => context.read<DashboardCubit>().refresh(),
-      child: ListView.separated(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: forms.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, i) => _FormRow(form: forms[i]),
+        itemBuilder: (context, i) => _FormCard(form: forms[i]),
       ),
     );
   }
 }
 
-class _FormRow extends StatelessWidget {
-  final DriveFormEntry form;
-
-  const _FormRow({required this.form});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.description_outlined),
-      title: Text(form.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: form.modifiedTime != null
-          ? Text(_formatDate(form.modifiedTime!))
-          : null,
-      onTap: () => _openForm(context),
-      trailing: PopupMenuButton<_RowAction>(
-        onSelected: (action) => _handleAction(context, action),
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: _RowAction.open, child: Text('Open')),
-          PopupMenuItem(value: _RowAction.delete, child: Text('Delete')),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            'assets/dashboard_no_form_banner.svg',
+            width: 220,
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            "You don't have a form yet",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "You don't have a google form creation at the moment.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.black54),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  final DriveFormEntry form;
+
+  const _FormCard({required this.form});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _openForm(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              SvgPicture.asset('assets/dashboard_form_icon.svg',
+                  width: 44, height: 56),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      form.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      form.modifiedTime != null
+                          ? _formatDate(form.modifiedTime!)
+                          : '',
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black45),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<_RowAction>(
+                onSelected: (action) => _handleAction(context, action),
+                icon: const Icon(Icons.more_vert, color: Colors.black45),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: _RowAction.open, child: Text('Open')),
+                  PopupMenuItem(
+                      value: _RowAction.delete, child: Text('Delete')),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   void _openForm(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) =>
-          EditorScreen(formId: form.id, formName: form.name),
+      builder: (_) => EditorScreen(formId: form.id, formName: form.name),
     ));
   }
 
@@ -385,7 +546,11 @@ class _FullScreenError extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(backgroundColor: _purple),
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
