@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/choice_option.dart';
 import '../../../core/models/enums.dart';
-import '../../../core/models/grading.dart';
+import '../../../core/models/grading.dart' as grading_model;
 import '../../../core/models/item.dart';
 import '../../../core/models/item_content.dart';
 import '../../../core/models/question_kind.dart';
@@ -57,6 +57,13 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
   late List<TextEditingController> _optionCtrls;
   late List<String?> _optionGoTos;
 
+  // Quiz grading state
+  late Set<int> _correctOptionIndices; // ChoiceQuestion: which option indices are correct
+  late final TextEditingController _correctTextCtrl;  // TextQuestion correct answer
+  late final TextEditingController _whenRightCtrl;
+  late final TextEditingController _whenWrongCtrl;
+  late final TextEditingController _generalFeedbackCtrl;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +81,30 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     if (q.kind case ChoiceQuestion(:final options)) {
       _initOptionCtrls(options);
     }
+
+    // Quiz grading
+    final grading = q.grading;
+    final correctValues =
+        grading?.correctAnswers?.answers.map((a) => a.value).toSet() ?? {};
+    _correctOptionIndices = {};
+    if (q.kind case ChoiceQuestion(:final options)) {
+      for (var i = 0; i < options.length; i++) {
+        if (correctValues.contains(options[i].value)) {
+          _correctOptionIndices.add(i);
+        }
+      }
+    }
+    _correctTextCtrl = TextEditingController(
+      text: (q.kind is TextQuestion)
+          ? (grading?.correctAnswers?.answers.firstOrNull?.value ?? '')
+          : '',
+    );
+    _whenRightCtrl =
+        TextEditingController(text: grading?.whenRight?.text ?? '');
+    _whenWrongCtrl =
+        TextEditingController(text: grading?.whenWrong?.text ?? '');
+    _generalFeedbackCtrl =
+        TextEditingController(text: grading?.generalFeedback?.text ?? '');
   }
 
   @override
@@ -81,6 +112,10 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _pointsCtrl.dispose();
+    _correctTextCtrl.dispose();
+    _whenRightCtrl.dispose();
+    _whenWrongCtrl.dispose();
+    _generalFeedbackCtrl.dispose();
     _disposeOptionCtrls();
     super.dispose();
   }
@@ -112,6 +147,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     final merged = _mergeKind(_kind, picked);
     setState(() {
       _kind = merged;
+      _correctOptionIndices = {};
       if (merged is ChoiceQuestion) {
         _initOptionCtrls(merged.options);
       } else {
@@ -142,6 +178,28 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       _optionCtrls[i].dispose();
       _optionCtrls.removeAt(i);
       _optionGoTos.removeAt(i);
+      // Remove and shift correct-answer indices.
+      _correctOptionIndices = _correctOptionIndices
+          .where((idx) => idx != i)
+          .map((idx) => idx > i ? idx - 1 : idx)
+          .toSet();
+    });
+  }
+
+  void _toggleCorrectOption(int i) {
+    final cq = _kind as ChoiceQuestion;
+    setState(() {
+      if (cq.type == ChoiceType.checkbox) {
+        // Multi-select
+        if (_correctOptionIndices.contains(i)) {
+          _correctOptionIndices = {..._correctOptionIndices}..remove(i);
+        } else {
+          _correctOptionIndices = {..._correctOptionIndices, i};
+        }
+      } else {
+        // Single-select (radio / dropdown)
+        _correctOptionIndices = _correctOptionIndices.contains(i) ? {} : {i};
+      }
     });
   }
 
@@ -181,10 +239,45 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       finalKind = _kind;
     }
 
-    Grading? grading = content.question.grading;
+    grading_model.Grading? grading = content.question.grading;
     if (widget.isQuiz) {
       final pts = int.tryParse(_pointsCtrl.text.trim()) ?? 0;
-      grading = (grading ?? const Grading(pointValue: 0)).copyWith(pointValue: pts);
+
+      grading_model.CorrectAnswers? correctAnswers;
+      grading_model.Feedback? whenRight;
+      grading_model.Feedback? whenWrong;
+      grading_model.Feedback? generalFeedback;
+
+      if (finalKind is ChoiceQuestion) {
+        final cqFinal = finalKind;
+        final correctOpts = _correctOptionIndices
+            .where((i) => i < cqFinal.options.length)
+            .map((i) => grading_model.CorrectAnswer(value: cqFinal.options[i].value))
+            .toList();
+        if (correctOpts.isNotEmpty) {
+          correctAnswers = grading_model.CorrectAnswers(answers: correctOpts);
+          final right = _whenRightCtrl.text.trim();
+          final wrong = _whenWrongCtrl.text.trim();
+          if (right.isNotEmpty) whenRight = grading_model.Feedback(text: right);
+          if (wrong.isNotEmpty) whenWrong = grading_model.Feedback(text: wrong);
+        }
+      } else if (finalKind is TextQuestion) {
+        final val = _correctTextCtrl.text.trim();
+        if (val.isNotEmpty) {
+          correctAnswers = grading_model.CorrectAnswers(
+              answers: [grading_model.CorrectAnswer(value: val)]);
+        }
+        final gen = _generalFeedbackCtrl.text.trim();
+        if (gen.isNotEmpty) generalFeedback = grading_model.Feedback(text: gen);
+      }
+
+      grading = grading_model.Grading(
+        pointValue: pts,
+        correctAnswers: correctAnswers,
+        whenRight: whenRight,
+        whenWrong: whenWrong,
+        generalFeedback: generalFeedback,
+      );
     }
 
     final updatedItem = widget.item.copyWith(
@@ -300,9 +393,19 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   const SizedBox(height: 16),
                   // Options or type preview
                   if (_kind is ChoiceQuestion) ...[
-                    Text('Options',
-                        style: theme.textTheme.labelMedium
-                            ?.copyWith(color: cs.onSurfaceVariant)),
+                    Row(
+                      children: [
+                        Text('Options',
+                            style: theme.textTheme.labelMedium
+                                ?.copyWith(color: cs.onSurfaceVariant)),
+                        if (widget.isQuiz) ...[
+                          const SizedBox(width: 8),
+                          Text('— tap ✓ to mark correct',
+                              style: theme.textTheme.labelSmall
+                                  ?.copyWith(color: cs.onSurfaceVariant)),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     ..._buildOptionRows(context),
                     TextButton.icon(
@@ -356,6 +459,72 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                         ),
                       ],
                     ),
+                    // Correct answer (TextQuestion only)
+                    if (_kind is TextQuestion) ...[
+                      const SizedBox(height: 16),
+                      Text('Answer key',
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: cs.onSurfaceVariant)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _correctTextCtrl,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          labelText: 'Correct answer',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                      ),
+                    ],
+                    // Feedback
+                    if (_kind is ChoiceQuestion &&
+                        _correctOptionIndices.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text('Feedback',
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: cs.onSurfaceVariant)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _whenRightCtrl,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          labelText: 'When correct (optional)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        minLines: 1,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _whenWrongCtrl,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          labelText: 'When incorrect (optional)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        minLines: 1,
+                        maxLines: 3,
+                      ),
+                    ] else if (_kind is TextQuestion) ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _generalFeedbackCtrl,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          labelText: 'General feedback (optional)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        minLines: 1,
+                        maxLines: 3,
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -379,6 +548,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     return List.generate(_optionCtrls.length, (i) {
       final theme = Theme.of(context);
       final cs = theme.colorScheme;
+      final isCorrect = _correctOptionIndices.contains(i);
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Column(
@@ -386,6 +556,19 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
           children: [
             Row(
               children: [
+                if (widget.isQuiz) ...[
+                  GestureDetector(
+                    onTap: () => _toggleCorrectOption(i),
+                    child: Icon(
+                      isCorrect
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      size: 20,
+                      color: isCorrect ? Colors.green : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 Icon(icon, size: 18, color: cs.onSurfaceVariant),
                 const SizedBox(width: 8),
                 Expanded(
