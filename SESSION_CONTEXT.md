@@ -297,6 +297,66 @@ Insertion-sort style: iterate `desiredOrder` left to right; if item is not alrea
 
 ---
 
+## Editor UI overhaul — pick up here next session
+
+Reference screens: `reference/editor/editor_view.png`, `reference/editor/settings_view.png`
+SVG assets already in repo: `editor_screen_preview_icon.svg`, `editor_screen_share_icon.svg`, `editor_screen_share_button.svg`
+
+### What changes (all in `editor_screen.dart` + question card widgets)
+
+#### 1. AppBar
+- Replace current back-arrow + form title row with: hamburger SVG (≡, use `dashboard_hamburger.svg`) + "Form list" title + crown SVG (`dashboard_premium.svg`)
+- Hamburger taps `Navigator.pop(context)` (acts as back button, styled to match dashboard)
+- Remove the save-status chip and all existing `AppBar.actions` — they move to the action strip
+
+#### 2. Action strip (new widget, pinned below AppBar above tabs)
+- Horizontal row of three buttons, each with icon above label:
+  - **Preview** — `editor_screen_preview_icon.svg` + "Preview" label → pushes `PreviewScreen`
+  - **Share** — `editor_screen_share_icon.svg` + "Share" label → triggers share sheet
+  - **Save** — checkmark icon (`Icons.check_circle`) + "Save" label → calls `cubit.save()`
+- Save is purple/bold when `isDirty && !isSaving`; grey + disabled when `!isDirty`; shows `CircularProgressIndicator` while `isSaving`
+
+#### 3. Tab bar — Questions | Responses | Settings
+- Already exists conceptually but needs visual update to match reference
+- Purple underline on active tab, grey text on inactive
+- Implement as `DefaultTabController` with `TabBar` + `TabBarView`
+- Questions tab → existing form list
+- Responses tab → pushes `ResponsesScreen` (or inline — keep as push for now)
+- Settings tab → inline settings widget (currently a bottom sheet, convert to tab page)
+
+#### 4. Question card visual updates (in `question_card.dart`)
+- Add **left purple border** (4 px `BorderSide` on `Container.decoration`)
+- **Type chip** moves to top-right corner of card (currently inline row)
+- "Question name" shown as grey hint placeholder when title is empty
+- Options list: radio circle (`Icons.radio_button_unchecked`) + option text
+- Below options: **"Add Option Or Add 'Other'"** link row (purple text, tappable)
+- Bottom action row (already partially exists): trash | duplicate | `"Required"` label + toggle | `⋮` three-dot menu
+
+#### 5. Bottom bar (replaces current FAB / add button)
+- Fixed bottom bar with 5 icon buttons:
+  - `+` — add question (TextQuestion by default, opens type picker)
+  - image icon — add image item
+  - `TT` (`Icons.text_fields`) — add text block item
+  - `▷` (play) — preview
+  - `⊟` — add section/page break
+- Implement as a `BottomAppBar` or plain `Container` in `Scaffold.bottomNavigationBar`
+
+#### 6. Settings tab content (currently `settings_sheet.dart`, convert to inline widget)
+- Keep existing toggles: Collect email addresses, Limit to 1 response, Edit after submit, Send copy
+- Add new **Response Notifications** section at bottom:
+  - Push Notification toggle (UI only for now — no API backing)
+  - Email Notification toggle (UI only)
+
+### Implementation order
+1. AppBar + action strip (pure visual, no logic change)
+2. Tab bar wiring (Questions/Responses/Settings inline)
+3. Settings tab inline (extract from bottom sheet)
+4. Question card left border + bottom action row polish
+5. Bottom bar (replace FAB)
+6. "Add Option Or Add 'Other'" link in choice question options
+
+---
+
 ## Next steps (step 10+)
 
 - **Step 10**: Sections (`pageBreakItem`) + branching (`goToSectionId` on RADIO/DROP_DOWN options) ← DONE
@@ -304,8 +364,9 @@ Insertion-sort style: iterate `desiredOrder` left to right; if item is not alrea
 - **Step 12**: Form settings sheet ✅ Done
 - **Step 13**: Preview + Share ✅ Done
 - **Step 14**: Responses list + detail view ✅ Done
-- **Step 15**: Quiz mode — per-question grading editor
-- **Step 16**: Duplicate form + duplicate question
-- **Step 17**: Offline queue (drift-backed pending writes)
-- **Step 18**: Paywall + CSV/XLSX export
-- **Step 19**: Polish
+- **Step 15**: Quiz mode — per-question grading editor ✅ Done
+- **Step 16**: Editor UI overhaul ← **NEXT** (plan above)
+- **Step 17**: Duplicate form + duplicate question
+- **Step 18**: Offline queue (drift-backed pending writes)
+- **Step 19**: Paywall + CSV/XLSX export
+- **Step 20**: Polish
