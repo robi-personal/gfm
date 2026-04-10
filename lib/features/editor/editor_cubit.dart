@@ -6,8 +6,6 @@ import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../core/api/concurrency.dart';
 import '../../core/api/forms_client.dart';
-import '../../core/models/choice_option.dart';
-import '../../core/models/enums.dart';
 import '../../core/models/form_doc.dart';
 import '../../core/models/form_settings.dart';
 import '../../core/models/item.dart';
@@ -103,6 +101,7 @@ class EditorCubit extends Cubit<EditorState> {
       pending: l.pending.copyWith(
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
+      pendingEditItemId: tempId,
     ));
   }
 
@@ -167,196 +166,32 @@ class EditorCubit extends Cubit<EditorState> {
     emit(l.copyWith(form: l.form.copyWith(items: items)));
   }
 
-  // ── Edit item title ────────────────────────────────────────────────────────
+  // ── Edit item (full replace, called from edit sheet on Done) ─────────────────
 
-  void updateItemTitle(String itemId, String title) {
+  void updateItemFull(Item updatedItem) {
     if (state is! EditorLoaded) return;
     final l = state as EditorLoaded;
+    final itemId = updatedItem.itemId;
     final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
     if (idx == -1) return;
     final newItems = [...l.form.items];
-    newItems[idx] = newItems[idx].copyWith(title: title);
+    newItems[idx] = updatedItem;
+    // Temp items (pending creates) carry their latest content to the server
+    // via the create request itself — no separate edit entry needed.
+    final newPending = itemId.startsWith('_pending_')
+        ? l.pending
+        : l.pending.copyWith(edits: {...l.pending.edits, itemId});
     emit(l.copyWith(
       form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
+      pending: newPending,
     ));
   }
 
-  // ── Edit item description ──────────────────────────────────────────────────
-
-  void updateItemDescription(String itemId, String description) {
+  /// Clears the one-shot [EditorLoaded.pendingEditItemId] signal after the
+  /// edit sheet has been opened.
+  void clearPendingEdit() {
     if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final newItems = [...l.form.items];
-    newItems[idx] = newItems[idx].copyWith(description: description);
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  // ── Toggle required ────────────────────────────────────────────────────────
-
-  void updateRequired(String itemId, bool required) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content:
-          content.copyWith(question: content.question.copyWith(required: required)),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  // ── Change question type ───────────────────────────────────────────────────
-
-  void updateQuestionType(String itemId, QuestionKind newKind) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content: content.copyWith(
-          question: content.question.copyWith(kind: newKind)),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  // ── Edit options ───────────────────────────────────────────────────────────
-
-  void addOption(String itemId) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-    final newOptions = [
-      ...cq.options,
-      ChoiceOption(value: 'Option ${cq.options.length + 1}'),
-    ];
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content: content.copyWith(
-        question:
-            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
-      ),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  void removeOption(String itemId, int optionIndex) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-    final newOptions = [...cq.options]..removeAt(optionIndex);
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content: content.copyWith(
-        question:
-            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
-      ),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  void updateOptionText(String itemId, int optionIndex, String value) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-    final newOptions = [...cq.options];
-    newOptions[optionIndex] = newOptions[optionIndex].copyWith(value: value);
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content: content.copyWith(
-        question:
-            content.question.copyWith(kind: cq.copyWith(options: newOptions)),
-      ),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
-  }
-
-  // ── Update option go-to ────────────────────────────────────────────────────
-
-  void updateOptionGoTo(String itemId, int optionIndex, String? goTo) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
-    final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
-    if (idx == -1) return;
-    final item = l.form.items[idx];
-    if (item.content is! QuestionItemContent) return;
-    final content = item.content as QuestionItemContent;
-    if (content.question.kind is! ChoiceQuestion) return;
-    final cq = content.question.kind as ChoiceQuestion;
-
-    GoToAction? goToAction;
-    String? goToSectionId;
-    if (goTo == 'NEXT_SECTION') {
-      goToAction = GoToAction.nextSection;
-    } else if (goTo == 'RESTART_FORM') {
-      goToAction = GoToAction.restartForm;
-    } else if (goTo == 'SUBMIT_FORM') {
-      goToAction = GoToAction.submitForm;
-    } else if (goTo != null) {
-      goToSectionId = goTo;
-    }
-
-    final newOptions = [...cq.options];
-    newOptions[optionIndex] = newOptions[optionIndex]
-        .copyWith(goToAction: goToAction, goToSectionId: goToSectionId);
-    final newItems = [...l.form.items];
-    newItems[idx] = item.copyWith(
-      content: content.copyWith(
-        question: content.question.copyWith(
-          kind: cq.copyWith(options: newOptions),
-        ),
-      ),
-    );
-    emit(l.copyWith(
-      form: l.form.copyWith(items: newItems),
-      pending: l.pending.copyWith(edits: {...l.pending.edits, itemId}),
-    ));
+    emit((state as EditorLoaded).copyWith(pendingEditItemId: null));
   }
 
   // ── Settings ───────────────────────────────────────────────────────────────
@@ -379,7 +214,7 @@ class EditorCubit extends Cubit<EditorState> {
                   forms_api.QuizSettings(isQuiz: settings.quizSettings.isQuiz),
               emailCollectionType: settings.emailCollectionType.toJson(),
             ),
-            updateMask: 'settings',
+            updateMask: 'quizSettings,emailCollectionType',
           ),
         ),
       ]);

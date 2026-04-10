@@ -57,7 +57,6 @@ class EditorLoaded extends EditorState {
   final FormDoc lastKnownGood;
 
   /// Item IDs in the order last confirmed by the server.
-  /// Used at save time to compute deletes/moves.
   final List<String> serverItemOrder;
 
   final PendingChanges pending;
@@ -69,6 +68,10 @@ class EditorLoaded extends EditorState {
   /// Consumed by BlocListener to show a save-failure modal, then cleared.
   final bool saveFailed;
 
+  /// One-shot: set by addQuestion to auto-open the edit sheet for the new item.
+  /// Cleared by clearPendingEdit() as soon as the sheet is opened.
+  final String? pendingEditItemId;
+
   EditorLoaded(
     this.form, {
     FormDoc? lastKnownGood,
@@ -77,15 +80,13 @@ class EditorLoaded extends EditorState {
     this.isSaving = false,
     this.conflictPending = false,
     this.saveFailed = false,
+    this.pendingEditItemId,
   })  : lastKnownGood = lastKnownGood ?? form,
         serverItemOrder =
             serverItemOrder ?? form.items.map((i) => i.itemId).toList();
 
   bool get isDirty {
     if (pending.isDirty) return true;
-    // Also dirty when item order changed from server order (pure reorder, no
-    // other pending changes). Compares by ID position — temp IDs are fine here
-    // since creates always set pending.isDirty = true via creates list.
     final currentIds = form.items.map((i) => i.itemId).toList();
     if (currentIds.length != serverItemOrder.length) return true;
     for (var i = 0; i < currentIds.length; i++) {
@@ -93,6 +94,9 @@ class EditorLoaded extends EditorState {
     }
     return false;
   }
+
+  // Sentinel that distinguishes "not passed" from "explicitly set to null".
+  static const _unset = Object();
 
   EditorLoaded copyWith({
     FormDoc? form,
@@ -102,6 +106,7 @@ class EditorLoaded extends EditorState {
     bool? isSaving,
     bool? conflictPending,
     bool? saveFailed,
+    Object? pendingEditItemId = _unset,
   }) =>
       EditorLoaded(
         form ?? this.form,
@@ -111,6 +116,9 @@ class EditorLoaded extends EditorState {
         isSaving: isSaving ?? this.isSaving,
         conflictPending: conflictPending ?? this.conflictPending,
         saveFailed: saveFailed ?? this.saveFailed,
+        pendingEditItemId: pendingEditItemId == _unset
+            ? this.pendingEditItemId
+            : pendingEditItemId as String?,
       );
 }
 

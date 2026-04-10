@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/di/injection.dart';
 import '../../core/models/item.dart';
 import '../../core/models/item_content.dart';
+import 'widgets/question_edit_sheet.dart';
 import '../../core/widgets/error_modal.dart';
 import '../preview/preview_screen.dart';
 import '../responses/responses_screen.dart';
@@ -46,6 +47,21 @@ class _EditorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<EditorCubit, EditorState>(
       listener: _onStateChange,
+      listenWhen: (prev, curr) {
+        // Standard flag changes
+        if (prev.runtimeType != curr.runtimeType) return true;
+        if (curr is EditorLoaded) {
+          final p = prev is EditorLoaded ? prev : null;
+          if (curr.conflictPending && !(p?.conflictPending ?? false)) return true;
+          if (curr.saveFailed && !(p?.saveFailed ?? false)) return true;
+          // New item waiting for edit sheet
+          if (curr.pendingEditItemId != null &&
+              curr.pendingEditItemId != (p?.pendingEditItemId)) {
+            return true;
+          }
+        }
+        return curr is EditorError;
+      },
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
@@ -109,6 +125,23 @@ class _EditorView extends StatelessWidget {
   }
 
   void _onStateChange(BuildContext context, EditorState state) {
+    // Auto-open edit sheet for newly added items
+    if (state case EditorLoaded(:final pendingEditItemId?)) {
+      final cubit = context.read<EditorCubit>();
+      cubit.clearPendingEdit();
+      final loaded = state;
+      final item = loaded.form.items
+          .where((i) => i.itemId == pendingEditItemId)
+          .firstOrNull;
+      if (item != null) {
+        final sections = loaded.form.items
+            .where((i) => i.content is PageBreakItemContent)
+            .toList();
+        QuestionEditSheet.show(context, item, sections);
+      }
+      return;
+    }
+
     if (state case EditorLoaded(conflictPending: true)) {
       context.read<EditorCubit>().clearConflict();
       ErrorModal.show(

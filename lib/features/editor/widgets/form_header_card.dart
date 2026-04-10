@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../editor_cubit.dart';
 
 /// Editable form title and description at the top of the editor.
+/// Pushes to the cubit only on focus-lost (not on every keystroke).
 class FormHeaderCard extends StatefulWidget {
   final String initialTitle;
   final String? initialDescription;
@@ -21,19 +22,36 @@ class FormHeaderCard extends StatefulWidget {
 class _FormHeaderCardState extends State<FormHeaderCard> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
+  late final FocusNode _titleFocus;
+  late final FocusNode _descFocus;
 
   @override
   void initState() {
     super.initState();
     _titleCtrl = TextEditingController(text: widget.initialTitle);
-    _descCtrl =
-        TextEditingController(text: widget.initialDescription ?? '');
+    _descCtrl = TextEditingController(text: widget.initialDescription ?? '');
+
+    _titleFocus = FocusNode()
+      ..addListener(() {
+        if (!_titleFocus.hasFocus) {
+          context.read<EditorCubit>().updateTitle(_titleCtrl.text);
+        }
+      });
+
+    _descFocus = FocusNode()
+      ..addListener(() {
+        if (!_descFocus.hasFocus) {
+          context.read<EditorCubit>().updateDescription(_descCtrl.text);
+        }
+      });
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _titleFocus.dispose();
+    _descFocus.dispose();
     super.dispose();
   }
 
@@ -54,23 +72,22 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
           children: [
             TextField(
               controller: _titleCtrl,
+              focusNode: _titleFocus,
               style: theme.textTheme.titleLarge,
               decoration: InputDecoration(
                 hintText: 'Form title',
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: theme.colorScheme.primary),
+                  borderSide: BorderSide(color: theme.colorScheme.primary),
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
-              onChanged: (v) =>
-                  context.read<EditorCubit>().updateTitle(v),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _descCtrl,
+              focusNode: _descFocus,
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               decoration: InputDecoration(
@@ -80,15 +97,13 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: theme.colorScheme.onSurfaceVariant),
+                  borderSide:
+                      BorderSide(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
               minLines: 1,
               maxLines: 4,
-              onChanged: (v) =>
-                  context.read<EditorCubit>().updateDescription(v),
             ),
           ],
         ),
