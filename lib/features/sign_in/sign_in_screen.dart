@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/auth/auth_cubit.dart';
 
@@ -9,6 +10,7 @@ class SignInScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F6FB),
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
@@ -17,71 +19,24 @@ class SignInScreen extends StatelessWidget {
             child: Column(
               children: [
                 if (state case AuthSignInFailed())
-                  _ErrorBanner(
-                    message: _errorMessage(state),
-                  ),
+                  _ErrorBanner(message: _errorMessage(state)),
+
+                // Banner illustration — takes upper portion of screen
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Form Manager',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Create, edit, and share Google Forms\nfrom your phone.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 64),
-                        FilledButton.icon(
-                          onPressed:
-                              isLoading
-                                  ? null
-                                  : () =>
-                                      context.read<AuthCubit>().signIn(),
-                          icon:
-                              isLoading
-                                  ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                  : const Icon(Icons.login),
-                          label: Text(
-                            isLoading ? 'Signing in…' : 'Sign in with Google',
-                          ),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          'By signing in, you agree to Google\'s Terms of Service '
-                          'and Privacy Policy. Your forms are stored in your own '
-                          'Google Drive.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                  child: SvgPicture.asset(
+                    'assets/login_banner.svg',
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                  ),
+                ),
+
+                // Bottom area — sign-in button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                  child: _GoogleSignInButton(
+                    isLoading: isLoading,
+                    onPressed:
+                        isLoading ? null : () => context.read<AuthCubit>().signIn(),
                   ),
                 ),
               ],
@@ -93,7 +48,6 @@ class SignInScreen extends StatelessWidget {
   }
 
   String _errorMessage(AuthSignInFailed state) {
-    // Network-related errors get the user-facing copy from §8.2
     final msg = state.message.toLowerCase();
     if (msg.contains('network') ||
         msg.contains('socket') ||
@@ -102,6 +56,57 @@ class SignInScreen extends StatelessWidget {
       return "Couldn't reach Google. Check your connection.";
     }
     return "Couldn't reach Google. Check your connection.";
+  }
+}
+
+class _GoogleSignInButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  const _GoogleSignInButton({required this.isLoading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 0,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE8E6F0), width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              else
+                SvgPicture.asset('assets/google_icon.svg', width: 22, height: 22),
+              const SizedBox(width: 12),
+              Text(
+                isLoading ? 'Signing in…' : 'Continue with Google',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1A1A2E),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
