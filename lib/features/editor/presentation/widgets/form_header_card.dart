@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../editor_cubit.dart';
+import '../cubit/editor_cubit.dart';
 
 /// Editable form title and description at the top of the editor.
 /// Pushes to the cubit only on focus-lost (not on every keystroke).

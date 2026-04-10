@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/models/item.dart';
-import '../editor_cubit.dart';
+import '../../../../core/models/item.dart';
+import '../cubit/editor_cubit.dart';
 
 const _purple = Color(0xFF772FC0);
 

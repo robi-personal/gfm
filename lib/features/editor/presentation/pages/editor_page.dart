@@ -5,28 +5,28 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../core/di/injection.dart';
-import '../../core/models/enums.dart';
-import '../../core/models/form_settings.dart';
-import '../../core/models/item.dart';
-import '../../core/models/item_content.dart';
-import '../../core/widgets/skeleton_bone.dart';
-import 'widgets/question_edit_sheet.dart';
-import '../../core/widgets/error_modal.dart';
-import '../preview/preview_screen.dart';
-import '../responses/responses_screen.dart';
-import 'editor_cubit.dart';
-import 'widgets/form_header_card.dart';
-import 'widgets/question_card.dart';
-import 'widgets/section_card.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/models/enums.dart';
+import '../../../../core/models/form_settings.dart';
+import '../../../../core/models/item.dart';
+import '../../../../core/models/item_content.dart';
+import '../../../../core/widgets/skeleton_bone.dart';
+import '../widgets/question_edit_sheet.dart';
+import '../../../../core/widgets/error_modal.dart';
+import '../../../preview/preview_screen.dart';
+import '../../../responses/responses_screen.dart';
+import '../cubit/editor_cubit.dart';
+import '../widgets/form_header_card.dart';
+import '../widgets/question_card.dart';
+import '../widgets/section_card.dart';
 
 const _purple = Color(0xFF772FC0);
 
-class EditorScreen extends StatelessWidget {
+class EditorPage extends StatelessWidget {
   final String formId;
   final String formName;
 
-  const EditorScreen({
+  const EditorPage({
     super.key,
     required this.formId,
     required this.formName,
@@ -35,7 +35,7 @@ class EditorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => EditorCubit(getIt())..loadForm(formId),
+      create: (_) => getIt<EditorCubit>()..loadForm(formId),
       child: _EditorView(formId: formId, initialName: formName),
     );
   }
@@ -179,27 +179,13 @@ class _EditorViewState extends State<_EditorView>
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      automaticallyImplyLeading: false,
-      titleSpacing: 0,
-      title: Row(
-        children: [
-          IconButton(
-            icon: SvgPicture.asset(
-              'assets/dashboard_hamburger.svg',
-              width: 22,
-              height: 22,
-              colorFilter: ColorFilter.mode(
-                Theme.of(context).colorScheme.onSurface,
-                BlendMode.srcIn,
-              ),
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          const Text(
-            'Form list',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-        ],
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: const Text(
+        'Form list',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
       actions: [
         Padding(

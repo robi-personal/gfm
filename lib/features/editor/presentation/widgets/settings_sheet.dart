@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/models/enums.dart';
-import '../../../core/models/form_settings.dart';
-import '../editor_cubit.dart';
+import '../../../../core/models/enums.dart';
+import '../../../../core/models/form_settings.dart';
+import '../cubit/editor_cubit.dart';
 
 class SettingsSheet extends StatefulWidget {
   final FormSettings initialSettings;

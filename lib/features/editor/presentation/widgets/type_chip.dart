@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/models/enums.dart';
-import '../../../core/models/question_kind.dart';
+import '../../../../core/models/enums.dart';
+import '../../../../core/models/question_kind.dart';
 
 /// Small pill showing the question type label.
 /// Set [showCaret] to true to add a dropdown arrow (tap to change type).

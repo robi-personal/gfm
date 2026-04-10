@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/models/choice_option.dart';
-import '../../../core/models/enums.dart';
-import '../../../core/models/question_kind.dart';
+import '../../../../core/models/choice_option.dart';
+import '../../../../core/models/enums.dart';
+import '../../../../core/models/question_kind.dart';
 import 'type_chip.dart';
 
 /// Bottom sheet for picking a question type.

@@ -24,3 +24,19 @@ class AuthFailure extends Failure {
 class ServerFailure extends Failure {
   const ServerFailure([super.message = 'Something went wrong. Try again.']);
 }
+
+/// The requested resource was not found (404).
+class NotFoundFailure extends Failure {
+  const NotFoundFailure([super.message = 'Not found.']);
+}
+
+/// Access to the resource was denied (403).
+class PermissionFailure extends Failure {
+  const PermissionFailure([super.message = 'Permission denied.']);
+}
+
+/// The write was rejected because the form revision is out of date.
+class RevisionMismatchFailure extends Failure {
+  const RevisionMismatchFailure(
+      [super.message = 'Form was edited elsewhere.']);
+}

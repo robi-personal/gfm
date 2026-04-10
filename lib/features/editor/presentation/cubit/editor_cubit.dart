@@ -1,25 +1,39 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
-import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:googleapis/forms/v1.dart' as forms_api;
 
-import '../../core/api/concurrency.dart';
-import '../../core/api/forms_client.dart';
-import '../../core/models/form_doc.dart';
-import '../../core/models/form_settings.dart';
-import '../../core/models/item.dart';
-import '../../core/models/item_content.dart';
-import '../../core/models/question.dart';
-import '../../core/models/question_kind.dart';
+import '../../../../core/error/failure.dart';
+import '../../../../core/models/form_doc.dart';
+import '../../../../core/models/form_settings.dart';
+import '../../../../core/models/item.dart';
+import '../../../../core/models/item_content.dart';
+import '../../../../core/models/question.dart';
+import '../../../../core/models/question_kind.dart';
+import '../../domain/repositories/editor_repository.dart';
+import '../../domain/usecases/execute_batch.dart';
+import '../../domain/usecases/load_form.dart';
+import '../../domain/usecases/refresh_revision.dart';
+import '../../domain/usecases/update_editor_settings.dart';
 
 part 'editor_state.dart';
 
 class EditorCubit extends Cubit<EditorState> {
-  final FormsClient _formsClient;
+  final LoadForm _loadForm;
+  final ExecuteBatch _executeBatch;
+  final RefreshRevision _refreshRevision;
+  final UpdateEditorSettings _updateSettings;
 
-  EditorCubit(this._formsClient) : super(const EditorLoading());
+  EditorCubit({
+    required LoadForm loadForm,
+    required ExecuteBatch executeBatch,
+    required RefreshRevision refreshRevision,
+    required UpdateEditorSettings updateSettings,
+  })  : _loadForm = loadForm,
+        _executeBatch = executeBatch,
+        _refreshRevision = refreshRevision,
+        _updateSettings = updateSettings,
+        super(const EditorLoading());
 
   String _revisionId = '';
 
@@ -27,28 +41,27 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> loadForm(String formId) async {
     emit(const EditorLoading());
-    try {
-      final apiForm = await _formsClient.api.forms.get(formId);
-      final json =
-          jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
-      final doc = FormDoc.fromJson(json);
-      _revisionId = doc.revisionId;
-      emit(EditorLoaded(doc));
-    } on SocketException catch (e) {
-      dev.log('[EditorCubit] loadForm network error: $e', name: 'API');
-      emit(const EditorError("Couldn't load this form.",
-          kind: EditorErrorKind.network));
-    } catch (e, st) {
-      dev.log('[EditorCubit] loadForm error: $e', name: 'API', error: e, stackTrace: st);
-      emit(switch (_tryStatus(e)) {
-        404 => const EditorError('This form was deleted.',
-            kind: EditorErrorKind.notFound),
-        403 => const EditorError("You don't have access to this form.",
-            kind: EditorErrorKind.permissionDenied),
-        _ => const EditorError("Couldn't load this form.",
-            kind: EditorErrorKind.network),
-      });
-    }
+    final result = await _loadForm(formId);
+    result.fold(
+      (failure) => emit(switch (failure) {
+        NotFoundFailure() => const EditorError(
+            'This form was deleted.',
+            kind: EditorErrorKind.notFound,
+          ),
+        PermissionFailure() => const EditorError(
+            "You don't have access to this form.",
+            kind: EditorErrorKind.permissionDenied,
+          ),
+        _ => const EditorError(
+            "Couldn't load this form.",
+            kind: EditorErrorKind.network,
+          ),
+      }),
+      (doc) {
+        _revisionId = doc.revisionId;
+        emit(EditorLoaded(doc));
+      },
+    );
   }
 
   // ── Form info ──────────────────────────────────────────────────────────────
@@ -228,23 +241,19 @@ class EditorCubit extends Cubit<EditorState> {
     // Optimistic update
     emit(l.copyWith(form: l.form.copyWith(settings: settings)));
 
-    try {
-      await _sendBatch(formId, [
-        forms_api.Request(
-          updateSettings: forms_api.UpdateSettingsRequest(
-            settings: forms_api.FormSettings(
-              quizSettings:
-                  forms_api.QuizSettings(isQuiz: settings.quizSettings.isQuiz),
-              emailCollectionType: settings.emailCollectionType.toJson(),
-            ),
-            updateMask: 'quizSettings,emailCollectionType',
-          ),
-        ),
-      ]);
-    } catch (e, st) {
-      dev.log('[EditorCubit] updateSettings error: $e', name: 'API', error: e, stackTrace: st);
-      emit(snapshot.copyWith(saveFailed: true));
-    }
+    final result = await _updateSettings(
+      UpdateSettingsParams(formId: formId, settings: settings),
+    );
+    result.fold(
+      (failure) {
+        dev.log(
+          '[EditorCubit] updateSettings error: $failure',
+          name: 'API',
+        );
+        emit(snapshot.copyWith(saveFailed: true));
+      },
+      (_) {},
+    );
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -282,7 +291,7 @@ class EditorCubit extends Cubit<EditorState> {
         final create = pending.creates[i];
         final item =
             localForm.items.firstWhere((it) => it.itemId == create.tempId);
-        final resp = await _sendBatch(formId, [
+        final result = await _sendBatch(formId, [
           forms_api.Request(
             createItem: forms_api.CreateItemRequest(
               // Strip output-only IDs — the API rejects them in createItem.
@@ -291,8 +300,9 @@ class EditorCubit extends Cubit<EditorState> {
             ),
           ),
         ]);
-        final realId = resp.replies?.first.createItem?.itemId;
-        if (realId != null) tempIdMap[create.tempId] = realId;
+        if (result.createdItemId != null) {
+          tempIdMap[create.tempId] = result.createdItemId!;
+        }
       }
 
       // 3. Refresh revision + serverItemOrder (preserves local FormDoc & pending)
@@ -371,8 +381,9 @@ class EditorCubit extends Cubit<EditorState> {
       // 7. Final sync — replaces FormDoc with clean server state
       await _silentRefresh(formId);
     } catch (e, st) {
-      dev.log('[EditorCubit] save() failed: $e', name: 'API', error: e, stackTrace: st);
-      if (isRevisionMismatch(e)) {
+      dev.log('[EditorCubit] save() failed: $e',
+          name: 'API', error: e, stackTrace: st);
+      if (e is RevisionMismatchFailure) {
         emit(snapshot.copyWith(isSaving: false, conflictPending: true));
       } else {
         emit(snapshot.copyWith(isSaving: false, saveFailed: true));
@@ -414,95 +425,62 @@ class EditorCubit extends Cubit<EditorState> {
 
   // ── Core send engine ───────────────────────────────────────────────────────
 
-  /// Sends a batchUpdate and returns the full response.
-  /// Handles one revision-mismatch retry and network backoff (1s → 3s → 8s).
-  /// Throws on unrecoverable failure — caller (save) handles rollback.
-  Future<forms_api.BatchUpdateFormResponse> _sendBatch(
+  /// Calls [ExecuteBatch] use case and returns [BatchUpdateResult].
+  /// Folds the Either: on Left throws the [Failure] so save() catch block
+  /// can handle rollback. On Right, updates [_revisionId] and returns.
+  Future<BatchUpdateResult> _sendBatch(
     String formId,
     List<forms_api.Request> requests,
   ) async {
     dev.log(
       '[EditorCubit] _sendBatch → ${requests.length} request(s): '
-      '${requests.map((r) => r.toJson().keys.join('+')).join(', ')}\n'
-      'payload: ${jsonEncode(requests.map((r) => r.toJson()).toList())}',
+      '${requests.map((r) => r.toJson().keys.join('+')).join(', ')}',
       name: 'API',
     );
 
-    Future<forms_api.BatchUpdateFormResponse> call() async {
-      final resp = await _formsClient.api.forms.batchUpdate(
-        forms_api.BatchUpdateFormRequest(
-          requests: requests,
-          writeControl: forms_api.WriteControl(
-            requiredRevisionId: _revisionId.isEmpty ? null : _revisionId,
-          ),
-          includeFormInResponse: true,
-        ),
-        formId,
-      );
-      _revisionId = resp.form?.revisionId ?? _revisionId;
-      return resp;
-    }
+    final either = await _executeBatch(ExecuteBatchParams(
+      formId: formId,
+      requests: requests,
+      revisionId: _revisionId,
+    ));
 
-    try {
-      return await call();
-    } catch (firstErr, firstSt) {
-      dev.log(
-        '[EditorCubit] _sendBatch error (status=${_tryStatus(firstErr)}): $firstErr',
-        name: 'API',
-        error: firstErr,
-        stackTrace: firstSt,
-      );
-      if (isRevisionMismatch(firstErr)) {
-        // Refresh revision and retry once.
-        // If still mismatches, throws → save() catches as conflict.
-        await _refreshRevisionId(formId);
-        return await call();
-      }
-      // Non-revision 400 = bad request (bug in payload), won't fix with retries.
-      if (_tryStatus(firstErr) == 400) rethrow;
-      // Network / 5xx — backoff retries
-      for (final delay in [
-        const Duration(seconds: 1),
-        const Duration(seconds: 3),
-        const Duration(seconds: 8),
-      ]) {
-        await Future<void>.delayed(delay);
-        try {
-          return await call();
-        } catch (retryErr, retrySt) {
-          dev.log(
-            '[EditorCubit] _sendBatch retry error: $retryErr',
-            name: 'API',
-            error: retryErr,
-            stackTrace: retrySt,
-          );
-        }
-      }
-      rethrow;
-    }
+    return either.fold(
+      (failure) => throw failure,
+      (result) {
+        _revisionId = result.revisionId;
+        return result;
+      },
+    );
   }
 
   Future<void> _refreshRevisionId(String formId) async {
-    final fresh = await _formsClient.api.forms.get(formId);
-    _revisionId = fresh.revisionId ?? _revisionId;
+    final result = await _refreshRevision(formId);
+    result.fold(
+      (_) {},
+      (revId) => _revisionId = revId,
+    );
   }
 
   /// Refreshes revision + serverItemOrder without touching the local FormDoc.
   /// Called mid-save after creates complete.
   Future<void> _refreshRevisionAndOrder(String formId) async {
     try {
-      final apiForm = await _formsClient.api.forms.get(formId);
-      final json =
-          jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
-      final doc = FormDoc.fromJson(json);
-      _revisionId = doc.revisionId;
-      if (state is EditorLoaded) {
-        emit((state as EditorLoaded).copyWith(
-          serverItemOrder: doc.items.map((i) => i.itemId).toList(),
-        ));
-      }
+      final result = await _loadForm(formId);
+      result.fold(
+        (_) {
+          // Silent — proceed with stale server order.
+        },
+        (doc) {
+          _revisionId = doc.revisionId;
+          if (state is EditorLoaded) {
+            emit((state as EditorLoaded).copyWith(
+              serverItemOrder: doc.items.map((i) => i.itemId).toList(),
+            ));
+          }
+        },
+      );
     } catch (_) {
-      // Silent — proceed with stale server order; deletes/moves may still work.
+      // Silent — proceed with stale server order.
     }
   }
 
@@ -510,15 +488,23 @@ class EditorCubit extends Cubit<EditorState> {
   /// Called at the end of save() to sync real IDs and clean up pending state.
   Future<void> _silentRefresh(String formId) async {
     try {
-      final apiForm = await _formsClient.api.forms.get(formId);
-      final json =
-          jsonDecode(jsonEncode(apiForm.toJson())) as Map<String, dynamic>;
-      final doc = FormDoc.fromJson(json);
-      _revisionId = doc.revisionId;
-      if (state is EditorLoaded) {
-        // pending defaults to empty, isSaving defaults to false
-        emit(EditorLoaded(doc, lastKnownGood: doc));
-      }
+      final result = await _loadForm(formId);
+      result.fold(
+        (_) {
+          // Silent — optimistic state remains; clear saving flag.
+          if (state is EditorLoaded) {
+            emit((state as EditorLoaded)
+                .copyWith(pending: PendingChanges.empty, isSaving: false));
+          }
+        },
+        (doc) {
+          _revisionId = doc.revisionId;
+          if (state is EditorLoaded) {
+            // pending defaults to empty, isSaving defaults to false
+            emit(EditorLoaded(doc, lastKnownGood: doc));
+          }
+        },
+      );
     } catch (_) {
       // Silent — optimistic state remains; clear saving flag.
       if (state is EditorLoaded) {
@@ -588,13 +574,5 @@ class EditorCubit extends Cubit<EditorState> {
         ..insert(target, id);
     }
     return moves;
-  }
-}
-
-int? _tryStatus(Object e) {
-  try {
-    return (e as dynamic).status as int?;
-  } catch (_) {
-    return null;
   }
 }

@@ -7,7 +7,7 @@ import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
-import '../../../editor/editor_screen.dart';
+import '../../../editor/presentation/pages/editor_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 
@@ -183,7 +183,7 @@ class _DashboardViewState extends State<_DashboardView> {
   void _navigateToForm(BuildContext context, CreateNavigation nav) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) =>
-          EditorScreen(formId: nav.formId, formName: nav.formName),
+          EditorPage(formId: nav.formId, formName: nav.formName),
     ));
   }
 
@@ -474,7 +474,7 @@ class _FormCard extends StatelessWidget {
 
   void _openForm(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditorScreen(formId: form.id, formName: form.name),
+      builder: (_) => EditorPage(formId: form.id, formName: form.name),
     ));
   }
 

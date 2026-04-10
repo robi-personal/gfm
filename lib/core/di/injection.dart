@@ -16,6 +16,14 @@ import '../../features/sign_in/domain/repositories/auth_repository.dart';
 import '../../features/sign_in/domain/usecases/sign_in_silently.dart';
 import '../../features/sign_in/domain/usecases/sign_in_with_google.dart';
 import '../../features/sign_in/domain/usecases/sign_out.dart';
+import '../../features/editor/data/datasources/editor_datasource.dart';
+import '../../features/editor/data/repositories/editor_repository_impl.dart';
+import '../../features/editor/domain/repositories/editor_repository.dart';
+import '../../features/editor/domain/usecases/execute_batch.dart';
+import '../../features/editor/domain/usecases/load_form.dart';
+import '../../features/editor/domain/usecases/refresh_revision.dart';
+import '../../features/editor/domain/usecases/update_editor_settings.dart';
+import '../../features/editor/presentation/cubit/editor_cubit.dart';
 import '../../features/sign_in/presentation/cubit/sign_in_cubit.dart';
 
 final getIt = GetIt.instance;
@@ -90,6 +98,37 @@ void configureDependencies() {
       getForms: getIt(),
       createForm: getIt(),
       deleteForm: getIt(),
+    ),
+  );
+
+  // ── Editor feature ────────────────────────────────────────────────────────
+  getIt.registerLazySingleton(
+    () => EditorDataSource(getIt<FormsClient>()),
+  );
+
+  getIt.registerLazySingleton<EditorRepository>(
+    () => EditorRepositoryImpl(getIt<EditorDataSource>()),
+  );
+
+  getIt.registerLazySingleton(
+    () => LoadForm(getIt<EditorRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => ExecuteBatch(getIt<EditorRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => RefreshRevision(getIt<EditorRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => UpdateEditorSettings(getIt<EditorRepository>()),
+  );
+
+  getIt.registerFactory(
+    () => EditorCubit(
+      loadForm: getIt(),
+      executeBatch: getIt(),
+      refreshRevision: getIt(),
+      updateSettings: getIt(),
     ),
   );
 }
