@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/choice_option.dart';
 import '../../../core/models/enums.dart';
+import '../../../core/models/grading.dart';
 import '../../../core/models/item.dart';
 import '../../../core/models/item_content.dart';
 import '../../../core/models/question_kind.dart';
@@ -16,24 +17,29 @@ class QuestionEditSheet extends StatefulWidget {
   /// Page-break items from the form — used to populate branching dropdowns.
   final List<Item> sections;
 
+  /// Whether the form is in quiz mode — shows the Points field when true.
+  final bool isQuiz;
+
   const QuestionEditSheet({
     super.key,
     required this.item,
     required this.sections,
+    required this.isQuiz,
   });
 
   static Future<void> show(
     BuildContext context,
     Item item,
-    List<Item> sections,
-  ) {
+    List<Item> sections, {
+    required bool isQuiz,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => BlocProvider.value(
         value: context.read<EditorCubit>(),
-        child: QuestionEditSheet(item: item, sections: sections),
+        child: QuestionEditSheet(item: item, sections: sections, isQuiz: isQuiz),
       ),
     );
   }
@@ -45,6 +51,7 @@ class QuestionEditSheet extends StatefulWidget {
 class _QuestionEditSheetState extends State<QuestionEditSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
+  late final TextEditingController _pointsCtrl;
   late QuestionKind _kind;
   late bool _required;
   late List<TextEditingController> _optionCtrls;
@@ -57,6 +64,9 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     final q = content.question;
     _titleCtrl = TextEditingController(text: widget.item.title ?? '');
     _descCtrl = TextEditingController(text: widget.item.description ?? '');
+    _pointsCtrl = TextEditingController(
+      text: '${q.grading?.pointValue ?? 0}',
+    );
     _kind = q.kind;
     _required = q.required;
     _optionCtrls = [];
@@ -70,6 +80,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _pointsCtrl.dispose();
     _disposeOptionCtrls();
     super.dispose();
   }
@@ -170,6 +181,12 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       finalKind = _kind;
     }
 
+    Grading? grading = content.question.grading;
+    if (widget.isQuiz) {
+      final pts = int.tryParse(_pointsCtrl.text.trim()) ?? 0;
+      grading = (grading ?? const Grading(pointValue: 0)).copyWith(pointValue: pts);
+    }
+
     final updatedItem = widget.item.copyWith(
       title: _titleCtrl.text.isEmpty ? 'Question' : _titleCtrl.text,
       description: _descCtrl.text.isEmpty ? null : _descCtrl.text,
@@ -177,6 +194,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         question: content.question.copyWith(
           kind: finalKind,
           required: _required,
+          grading: grading,
         ),
       ),
     );
@@ -313,6 +331,32 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                       ),
                     ],
                   ),
+                  // Points (quiz mode only)
+                  if (widget.isQuiz) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Text('Points',
+                            style: theme.textTheme.bodyMedium),
+                        const Spacer(),
+                        SizedBox(
+                          width: 72,
+                          child: TextField(
+                            controller: _pointsCtrl,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 8),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -137,7 +137,10 @@ class _EditorView extends StatelessWidget {
         final sections = loaded.form.items
             .where((i) => i.content is PageBreakItemContent)
             .toList();
-        QuestionEditSheet.show(context, item, sections);
+        QuestionEditSheet.show(
+          context, item, sections,
+          isQuiz: loaded.form.settings.quizSettings.isQuiz,
+        );
       }
       return;
     }
@@ -250,17 +253,19 @@ class _BodyData {
 class _ItemData {
   final Item? item;
   final List<Item> sections;
+  final bool isQuiz;
 
-  const _ItemData({required this.item, required this.sections});
+  const _ItemData({required this.item, required this.sections, this.isQuiz = false});
 
   @override
   bool operator ==(Object other) =>
       other is _ItemData &&
       other.item == item &&
+      other.isQuiz == isQuiz &&
       listEquals(other.sections, sections);
 
   @override
-  int get hashCode => Object.hash(item, Object.hashAll(sections));
+  int get hashCode => Object.hash(item, isQuiz, Object.hashAll(sections));
 }
 
 // ── Editor body ───────────────────────────────────────────────────────────────
@@ -372,14 +377,18 @@ class _ItemRow extends StatelessWidget {
         final sections = items
             .where((i) => i.content is PageBreakItemContent)
             .toList(growable: false);
-        return _ItemData(item: item, sections: sections);
+        return _ItemData(
+          item: item,
+          sections: sections,
+          isQuiz: state.form.settings.quizSettings.isQuiz,
+        );
       },
       builder: (context, data) {
         final item = data.item;
         if (item == null) return const SizedBox.shrink();
         return switch (item.content) {
           QuestionItemContent() || QuestionGroupItemContent() =>
-            QuestionCard(item: item, sections: data.sections),
+            QuestionCard(item: item, sections: data.sections, isQuiz: data.isQuiz),
           PageBreakItemContent() => SectionCard(item: item),
           TextItemContent() => TextBlockCard(item: item),
           ImageItemContent() => _ImageCard(item: item),

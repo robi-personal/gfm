@@ -18,7 +18,15 @@ class QuestionCard extends StatelessWidget {
   /// Page-break items — passed through to the edit sheet for branching UI.
   final List<Item> sections;
 
-  const QuestionCard({super.key, required this.item, this.sections = const []});
+  /// Whether the form is in quiz mode — forwarded to the edit sheet.
+  final bool isQuiz;
+
+  const QuestionCard({
+    super.key,
+    required this.item,
+    this.sections = const [],
+    this.isQuiz = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +105,10 @@ class QuestionCard extends StatelessWidget {
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () =>
-                      QuestionEditSheet.show(context, item, sections),
+                      QuestionEditSheet.show(
+                        context, item, sections,
+                        isQuiz: isQuiz,
+                      ),
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('Edit'),
                   style: TextButton.styleFrom(
