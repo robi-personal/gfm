@@ -357,6 +357,104 @@ SVG assets already in repo: `editor_screen_preview_icon.svg`, `editor_screen_sha
 
 ---
 
+## Clean architecture — remaining features
+
+### Guiding principles (from sign_in + dashboard migrations)
+- Domain entities for a feature live in `features/<name>/domain/entities/`
+- Shared models (`FormDoc`, `Item`, `Question`, etc.) stay in `core/models/` — never move them into a feature
+- Use `Either<Failure, T>` at repository boundary; cubits fold results
+- Retry / backoff logic belongs in the **data layer** (repository impl), not the cubit
+- After migration: delete old root-level files, remove `.gitkeep` from populated dirs
+
+---
+
+### Editor clean architecture
+
+**Why it's complex:** `EditorCubit` currently owns both API calls and the retry engine (`_executeBatch`/`_sendBatch` with revision-mismatch retry + 1s→3s→8s backoff). Migration moves the API + retry concerns to the data layer, leaving the cubit purely as a local-state manager (optimistic updates, pending changes, flush ordering).
+
+#### Domain (`features/editor/domain/`)
+- No new entities — reuse `core/models/` (`FormDoc`, `Item`, etc.)
+- `editor_repository.dart` — abstract `EditorRepository`:
+  ```
+  Future<Either<Failure, FormDoc>> getForm(String formId)
+  Future<Either<Failure, String>> getRevisionId(String formId)   // for silent refresh
+  Future<Either<Failure, BatchUpdateResult>> batchUpdate(
+      String formId, List<Request> requests, String revisionId)
+  Future<Either<Failure, void>> updateSettings(String formId, FormSettings settings)
+  ```
+- `BatchUpdateResult` — holds `newRevisionId: String` returned from API
+- `EditorFailure` subtypes (already have `EditorErrorKind`): `NetworkEditorFailure`, `NotFoundFailure`, `PermissionFailure`, `RevisionMismatchFailure`, `ServerEditorFailure`
+- Use cases (thin — mostly pass-through, but allow mocking in tests):
+  - `LoadForm` — `UseCase<FormDoc, String>`
+  - `ExecuteBatch` — `UseCase<BatchUpdateResult, ExecuteBatchParams(formId, requests, revisionId)>`
+  - `RefreshRevision` — `UseCase<String, String>` (formId → revisionId)
+  - `UpdateEditorSettings` — `UseCase<void, UpdateSettingsParams(formId, settings)>`
+
+#### Data (`features/editor/data/`)
+- `editor_datasource.dart` — `EditorDataSource(FormsClient)`:
+  - `getForm(formId)` → parses API response → `FormDoc` (includes the `jsonDecode(jsonEncode(...))` fix)
+  - `batchUpdate(formId, requests, writeControl)` → raw API call, throws on error
+  - `updateSettings(formId, settings)` → `setPublishSettings` + `updateFormInfo`
+- `editor_repository_impl.dart` — `EditorRepositoryImpl(EditorDataSource)`:
+  - `getForm` / `getRevisionId` / `updateSettings` → straightforward Either wrapping
+  - `batchUpdate` → **contains the retry engine** migrated from cubit:
+    - First attempt with `requiredRevisionId`
+    - On revision mismatch (400): silent retry once after fresh `getRevisionId`
+    - Returns `Left(RevisionMismatchFailure)` on second mismatch (cubit emits `conflictPending`)
+    - Returns `Left(NetworkEditorFailure)` on socket error
+    - Non-revision 400: returns `Left(ServerEditorFailure)` immediately (no retry)
+    - **Does NOT do the 1s→3s→8s backoff** — backoff stays in cubit's `save()` flush loop (it's a UX concern, not a data concern)
+
+#### Presentation (`features/editor/presentation/`)
+- `cubit/editor_cubit.dart` — same public API, same state machine; replaces direct `FormsClient` calls with use case calls; `_executeBatch` becomes a thin wrapper that folds `Either` and calls `emit` on failure
+- `cubit/editor_state.dart` — unchanged
+- `pages/editor_page.dart` — renamed from `editor_screen.dart`; updated imports
+- `widgets/` — all 6 widget files moved here unchanged
+
+#### DI changes
+- Register `EditorDataSource`, `EditorRepository → EditorRepositoryImpl`, 4 use cases, `EditorCubit` as factory
+- Remove direct `FormsClient` injection into `EditorCubit`
+
+---
+
+### Responses clean architecture
+
+Simple feature — 54-line cubit.
+
+#### Domain (`features/responses/domain/`)
+- No new entity — `FormResponse` stays in `core/models/`
+- `responses_repository.dart` — abstract `ResponsesRepository`:
+  ```
+  Future<Either<Failure, List<FormResponse>>> getResponses(String formId)
+  ```
+- `LoadResponses` use case — `UseCase<List<FormResponse>, String>`
+
+#### Data (`features/responses/data/`)
+- `responses_datasource.dart` — `ResponsesDataSource(FormsClient)`: paginates `forms.responses.list`, sorts newest-first
+- `responses_repository_impl.dart` — Either wrapping
+
+#### Presentation (`features/responses/presentation/`)
+- `cubit/responses_cubit.dart` — takes `LoadResponses` use case
+- `cubit/responses_state.dart` — extracted from cubit file (currently inline)
+- `pages/responses_page.dart` — renamed from `responses_screen.dart`
+
+#### DI changes
+- Register datasource, repository, use case, cubit factory
+
+---
+
+### Preview — no clean arch needed
+`preview_screen.dart` has zero business logic (just a `WebViewWidget` loading a URL). Move to `features/preview/presentation/pages/preview_page.dart` for folder consistency, update all callers. No domain/data layers needed.
+
+---
+
+### Migration order (do one at a time, ship after each)
+1. **Preview** — 5 min, trivial move + rename callers
+2. **Responses** — 30 min, simple repo + use case
+3. **Editor** — 2–3 hours, migrate retry engine to repo impl, rewire cubit
+
+---
+
 ## Next steps (step 10+)
 
 - **Step 10**: Sections (`pageBreakItem`) + branching (`goToSectionId` on RADIO/DROP_DOWN options) ← DONE
