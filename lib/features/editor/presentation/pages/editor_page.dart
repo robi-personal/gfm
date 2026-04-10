@@ -13,6 +13,7 @@ import '../../../../core/models/item_content.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../widgets/question_edit_sheet.dart';
 import '../../../../core/widgets/error_modal.dart';
+import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/responses_screen.dart';
 import '../cubit/editor_cubit.dart';
@@ -168,12 +169,15 @@ class _EditorViewState extends State<_EditorView>
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: SvgPicture.asset(
-            'assets/dashboard_premium.svg',
-            width: 26,
-            height: 26,
+        GestureDetector(
+          onTap: () => PaywallPage.show(context),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: SvgPicture.asset(
+              'assets/dashboard_premium.svg',
+              width: 26,
+              height: 26,
+            ),
           ),
         ),
       ],

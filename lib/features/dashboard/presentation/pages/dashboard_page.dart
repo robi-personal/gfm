@@ -8,6 +8,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
+import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 
@@ -236,10 +237,13 @@ class _DashboardViewState extends State<_DashboardView> {
           icon: const Icon(Icons.search, color: Colors.black54),
           onPressed: () => setState(() => _searchOpen = true),
         ),
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: SvgPicture.asset('assets/dashboard_premium.svg',
-              width: 28, height: 28),
+        GestureDetector(
+          onTap: () => PaywallPage.show(context),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SvgPicture.asset('assets/dashboard_premium.svg',
+                width: 28, height: 28),
+          ),
         ),
       ],
     );
