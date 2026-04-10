@@ -701,7 +701,7 @@ class __$$GradingImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$GradingImpl implements _Grading {
   const _$GradingImpl({
-    required this.pointValue,
+    this.pointValue = 0,
     this.correctAnswers,
     this.whenRight,
     this.whenWrong,
@@ -712,6 +712,7 @@ class _$GradingImpl implements _Grading {
       _$$GradingImplFromJson(json);
 
   @override
+  @JsonKey()
   final int pointValue;
   @override
   final CorrectAnswers? correctAnswers;
@@ -771,7 +772,7 @@ class _$GradingImpl implements _Grading {
 
 abstract class _Grading implements Grading {
   const factory _Grading({
-    required final int pointValue,
+    final int pointValue,
     final CorrectAnswers? correctAnswers,
     final Feedback? whenRight,
     final Feedback? whenWrong,

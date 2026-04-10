@@ -35,7 +35,7 @@ Map<String, dynamic> _$$CorrectAnswersImplToJson(
 
 _$GradingImpl _$$GradingImplFromJson(Map<String, dynamic> json) =>
     _$GradingImpl(
-      pointValue: (json['pointValue'] as num).toInt(),
+      pointValue: (json['pointValue'] as num?)?.toInt() ?? 0,
       correctAnswers: json['correctAnswers'] == null
           ? null
           : CorrectAnswers.fromJson(

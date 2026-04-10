@@ -37,7 +37,7 @@ class CorrectAnswers with _$CorrectAnswers {
 @freezed
 class Grading with _$Grading {
   const factory Grading({
-    required int pointValue,
+    @Default(0) int pointValue,
     CorrectAnswers? correctAnswers,
     Feedback? whenRight,
     Feedback? whenWrong,
