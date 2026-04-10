@@ -487,81 +487,123 @@ class _ItemData {
 
 // ── Editor body (Questions tab) ───────────────────────────────────────────────
 
-class _EditorBody extends StatelessWidget {
+class _EditorBody extends StatefulWidget {
   const _EditorBody();
 
   @override
+  State<_EditorBody> createState() => _EditorBodyState();
+}
+
+class _EditorBodyState extends State<_EditorBody> {
+  final _scrollController = ScrollController();
+  int _prevItemCount = 0;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState, _BodyData>(
-      selector: (state) {
-        if (state is! EditorLoaded) return _BodyData.empty;
-        final form = state.form;
-        return _BodyData(
-          itemIds: form.items.map((i) => i.itemId).toList(),
-          title: form.info.title,
-          description: form.info.description,
-        );
+    return BlocListener<EditorCubit, EditorState>(
+      listenWhen: (prev, curr) {
+        if (curr is! EditorLoaded) return false;
+        final prevCount =
+            prev is EditorLoaded ? prev.form.items.length : _prevItemCount;
+        return curr.form.items.length > prevCount;
       },
-      builder: (context, data) {
-        final header = FormHeaderCard(
-          key: const ValueKey('__header__'),
-          initialTitle: data.title,
-          initialDescription: data.description,
-        );
+      listener: (context, state) {
+        if (state is EditorLoaded) {
+          _prevItemCount = state.form.items.length;
+          _scrollToBottom();
+        }
+      },
+      child: BlocSelector<EditorCubit, EditorState, _BodyData>(
+        selector: (state) {
+          if (state is! EditorLoaded) return _BodyData.empty;
+          final form = state.form;
+          return _BodyData(
+            itemIds: form.items.map((i) => i.itemId).toList(),
+            title: form.info.title,
+            description: form.info.description,
+          );
+        },
+        builder: (context, data) {
+          final header = FormHeaderCard(
+            key: const ValueKey('__header__'),
+            initialTitle: data.title,
+            initialDescription: data.description,
+          );
 
-        const physics = BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        );
+          const physics = BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          );
 
-        if (data.itemIds.isEmpty) {
+          if (data.itemIds.isEmpty) {
+            return CustomScrollView(
+              controller: _scrollController,
+              physics: physics,
+              slivers: [
+                SliverToBoxAdapter(child: header),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No questions yet.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           return CustomScrollView(
+            controller: _scrollController,
             physics: physics,
+            cacheExtent: 600,
             slivers: [
               SliverToBoxAdapter(child: header),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    'No questions yet.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color:
-                            Theme.of(context).colorScheme.onSurfaceVariant),
-                  ),
+              SliverPadding(
+                padding: const EdgeInsets.only(top: 4, bottom: 100),
+                sliver: SliverReorderableList(
+                  itemCount: data.itemIds.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    if (oldIndex == newIndex) return;
+                    context.read<EditorCubit>().moveItem(oldIndex, newIndex);
+                  },
+                  itemBuilder: (context, i) {
+                    return ReorderableDelayedDragStartListener(
+                      key: ValueKey(data.itemIds[i]),
+                      index: i,
+                      child: BlocProvider.value(
+                        value: context.read<EditorCubit>(),
+                        child: _ItemRow(itemId: data.itemIds[i]),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           );
-        }
-
-        return CustomScrollView(
-          physics: physics,
-          cacheExtent: 600,
-          slivers: [
-            SliverToBoxAdapter(child: header),
-            SliverPadding(
-              padding: const EdgeInsets.only(top: 4, bottom: 100),
-              sliver: SliverReorderableList(
-                itemCount: data.itemIds.length,
-                onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) newIndex--;
-                  if (oldIndex == newIndex) return;
-                  context.read<EditorCubit>().moveItem(oldIndex, newIndex);
-                },
-                itemBuilder: (context, i) {
-                  return ReorderableDelayedDragStartListener(
-                    key: ValueKey(data.itemIds[i]),
-                    index: i,
-                    child: BlocProvider.value(
-                      value: context.read<EditorCubit>(),
-                      child: _ItemRow(itemId: data.itemIds[i]),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+        },
+      ),
     );
   }
 }
