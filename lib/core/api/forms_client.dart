@@ -1,11 +1,11 @@
 import 'package:googleapis/forms/v1.dart';
 
-import '../auth/google_auth_service.dart';
+import '../auth/google_auth_datasource.dart';
 
 /// Lazy singleton wrapper around [FormsApi]. The API instance is built on
-/// first access, using the authenticated client from [GoogleAuthService].
+/// first access, using the authenticated client from [GoogleAuthDataSource].
 class FormsClient {
-  final GoogleAuthService _authService;
+  final GoogleAuthDataSource _authService;
   FormsApi? _api;
 
   FormsClient(this._authService);

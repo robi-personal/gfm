@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../core/auth/auth_cubit.dart';
+import '../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../core/di/injection.dart';
 import '../../core/models/drive_form_entry.dart';
 import '../../core/widgets/error_modal.dart';
@@ -184,7 +184,7 @@ class _DashboardViewState extends State<_DashboardView> {
         ),
         IconButton(
           icon: const Icon(Icons.logout),
-          onPressed: () => context.read<AuthCubit>().signOut(),
+          onPressed: () => context.read<SignInCubit>().signOut(),
         ),
       ],
     );

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'core/auth/auth_cubit.dart';
 import 'core/di/injection.dart';
 import 'features/dashboard/dashboard_screen.dart';
-import 'features/sign_in/sign_in_screen.dart';
+import 'features/sign_in/presentation/cubit/sign_in_cubit.dart';
+import 'features/sign_in/presentation/screens/sign_in_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -12,13 +12,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create:
-          (_) =>
-              AuthCubit(
-                getIt(),
-                getIt(),
-                getIt(),
-              )..checkAuth(),
+      create: (_) => getIt<SignInCubit>()..checkAuth(),
       child: MaterialApp(
         title: 'Form Manager',
         theme: ThemeData(
@@ -36,12 +30,12 @@ class _AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
+    return BlocBuilder<SignInCubit, SignInState>(
       builder: (context, state) {
         return switch (state) {
-          AuthSignedIn() => const DashboardScreen(),
-          AuthInitial() || AuthLoading() => const _SplashScreen(),
-          AuthSignedOut() || AuthSignInFailed() => const SignInScreen(),
+          Authenticated() => const DashboardScreen(),
+          SignInInitial() || SignInLoading() => const _SplashScreen(),
+          Unauthenticated() || SignInError() => const SignInScreen(),
         };
       },
     );

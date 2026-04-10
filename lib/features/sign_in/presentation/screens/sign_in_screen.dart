@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/auth/auth_cubit.dart';
+import '../cubit/sign_in_cubit.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
@@ -11,15 +11,15 @@ class SignInScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F6FB),
-      body: BlocBuilder<AuthCubit, AuthState>(
+      body: BlocBuilder<SignInCubit, SignInState>(
         builder: (context, state) {
-          final isLoading = state is AuthLoading;
+          final isLoading = state is SignInLoading;
 
           return SafeArea(
             child: Column(
               children: [
-                if (state case AuthSignInFailed())
-                  _ErrorBanner(message: _errorMessage(state)),
+                if (state case SignInError(:final message))
+                  _ErrorBanner(message: message),
 
                 // Banner illustration — takes upper portion of screen
                 Expanded(
@@ -35,8 +35,9 @@ class SignInScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
                   child: _GoogleSignInButton(
                     isLoading: isLoading,
-                    onPressed:
-                        isLoading ? null : () => context.read<AuthCubit>().signIn(),
+                    onPressed: isLoading
+                        ? null
+                        : () => context.read<SignInCubit>().signIn(),
                   ),
                 ),
               ],
@@ -45,17 +46,6 @@ class SignInScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _errorMessage(AuthSignInFailed state) {
-    final msg = state.message.toLowerCase();
-    if (msg.contains('network') ||
-        msg.contains('socket') ||
-        msg.contains('connection') ||
-        msg.contains('timeout')) {
-      return "Couldn't reach Google. Check your connection.";
-    }
-    return "Couldn't reach Google. Check your connection.";
   }
 }
 
@@ -91,7 +81,8 @@ class _GoogleSignInButton extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2.5),
                 )
               else
-                SvgPicture.asset('assets/google_icon.svg', width: 22, height: 22),
+                SvgPicture.asset('assets/google_icon.svg',
+                    width: 22, height: 22),
               const SizedBox(width: 12),
               Text(
                 isLoading ? 'Signing in…' : 'Continue with Google',
@@ -132,7 +123,7 @@ class _ErrorBanner extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => context.read<AuthCubit>().signIn(),
+            onTap: () => context.read<SignInCubit>().signIn(),
             child: Icon(Icons.close, color: Colors.orange[800], size: 20),
           ),
         ],
