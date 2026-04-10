@@ -61,34 +61,12 @@ class _EditorViewState extends State<_EditorView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(_onTabChange);
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChange);
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _onTabChange() {
-    // Intercept Responses tab: navigate instead of switching tabs
-    if (_tabController.index == 1 && !_tabController.indexIsChanging) {
-      _tabController.animateTo(0, duration: Duration.zero);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openResponses());
-    }
-  }
-
-  void _openResponses() {
-    final state = context.read<EditorCubit>().state;
-    if (state is! EditorLoaded) return;
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => ResponsesScreen(
-        formId: widget.formId,
-        formTitle: state.form.info.title,
-        items: state.form.items,
-      ),
-    ));
   }
 
   @override
@@ -148,12 +126,14 @@ class _EditorViewState extends State<_EditorView>
                           context.read<EditorCubit>().loadForm(widget.formId),
                     ),
                   EditorError() => const SizedBox.shrink(),
-                  EditorLoaded() => TabBarView(
+                  EditorLoaded(:final form) => TabBarView(
                       controller: _tabController,
                       children: [
                         const _EditorBody(),
-                        // Responses: intercepted by tab listener — never actually shown
-                        const SizedBox.shrink(),
+                        ResponsesScreen(
+                          formId: widget.formId,
+                          items: form.items,
+                        ),
                         _SettingsTabPage(formId: widget.formId),
                       ],
                     ),

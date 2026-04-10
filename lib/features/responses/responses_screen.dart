@@ -13,13 +13,11 @@ import 'responses_cubit.dart';
 
 class ResponsesScreen extends StatelessWidget {
   final String formId;
-  final String formTitle;
   final List<Item> items;
 
   const ResponsesScreen({
     super.key,
     required this.formId,
-    required this.formTitle,
     required this.items,
   });
 
@@ -27,11 +25,7 @@ class ResponsesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => ResponsesCubit(getIt())..loadResponses(formId),
-      child: _ResponsesView(
-        formId: formId,
-        formTitle: formTitle,
-        items: items,
-      ),
+      child: _ResponsesView(formId: formId, items: items),
     );
   }
 }
@@ -40,31 +34,26 @@ class ResponsesScreen extends StatelessWidget {
 
 class _ResponsesView extends StatelessWidget {
   final String formId;
-  final String formTitle;
   final List<Item> items;
 
   const _ResponsesView({
     required this.formId,
-    required this.formTitle,
     required this.items,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Responses — $formTitle')),
-      body: BlocBuilder<ResponsesCubit, ResponsesState>(
-        builder: (context, state) => switch (state) {
-          ResponsesLoading() => const _ResponsesSkeleton(),
-          ResponsesError(:final message) => _FullScreenError(
-              message: message,
-              onRetry: () =>
-                  context.read<ResponsesCubit>().loadResponses(formId),
-            ),
-          ResponsesLoaded(:final responses) =>
-            _ResponseList(responses: responses, items: items),
-        },
-      ),
+    return BlocBuilder<ResponsesCubit, ResponsesState>(
+      builder: (context, state) => switch (state) {
+        ResponsesLoading() => const _ResponsesSkeleton(),
+        ResponsesError(:final message) => _FullScreenError(
+            message: message,
+            onRetry: () =>
+                context.read<ResponsesCubit>().loadResponses(formId),
+          ),
+        ResponsesLoaded(:final responses) =>
+          _ResponseList(responses: responses, items: items),
+      },
     );
   }
 }
