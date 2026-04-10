@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection.dart';
-import 'features/dashboard/dashboard_screen.dart';
+import 'features/dashboard/presentation/pages/dashboard_page.dart';
 import 'features/sign_in/presentation/cubit/sign_in_cubit.dart';
 import 'features/sign_in/presentation/screens/sign_in_screen.dart';
 
@@ -33,7 +33,7 @@ class _AuthGate extends StatelessWidget {
     return BlocBuilder<SignInCubit, SignInState>(
       builder: (context, state) {
         return switch (state) {
-          Authenticated() => const DashboardScreen(),
+          Authenticated() => const DashboardPage(),
           SignInInitial() || SignInLoading() => const _SplashScreen(),
           Unauthenticated() || SignInError() => const SignInScreen(),
         };
