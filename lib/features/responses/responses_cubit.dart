@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/api/forms_client.dart';
@@ -44,7 +46,8 @@ class ResponsesCubit extends Cubit<ResponsesState> {
 
       raw.sort((a, b) => b.createTime.compareTo(a.createTime));
       emit(ResponsesLoaded(raw));
-    } catch (_) {
+    } catch (e, st) {
+      dev.log('[ResponsesCubit] loadResponses error: $e', name: 'API', error: e, stackTrace: st);
       emit(ResponsesError("Couldn't load responses."));
     }
   }

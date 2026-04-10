@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
@@ -61,10 +62,12 @@ class DashboardCubit extends Cubit<DashboardState> {
         query: query,
         sortOrder: currentSort,
       ));
-    } on SocketException {
+    } on SocketException catch (e) {
+      dev.log('[DashboardCubit] loadForms network error: $e', name: 'API');
       _emitError(
           "Can't load your forms. Check your connection.", cached, currentSort);
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('[DashboardCubit] loadForms error: $e', name: 'API', error: e, stackTrace: st);
       final status = _tryGetStatus(e);
       final message = switch (status) {
         500 || 503 => "Google Forms is having trouble. Try again in a moment.",
@@ -112,7 +115,8 @@ class DashboardCubit extends Cubit<DashboardState> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('[DashboardCubit] createForm error: $e', name: 'API', error: e, stackTrace: st);
       _setCreating(false);
       rethrow; // screen shows "Couldn't create form." modal
     }
@@ -192,7 +196,8 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     try {
       await _driveClient.api.files.update(File()..trashed = true, fileId);
-    } catch (_) {
+    } catch (e, st) {
+      dev.log('[DashboardCubit] deleteForm error: $e', name: 'API', error: e, stackTrace: st);
       emit(loaded);
       rethrow;
     }

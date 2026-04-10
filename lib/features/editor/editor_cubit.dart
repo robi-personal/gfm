@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
@@ -33,10 +34,12 @@ class EditorCubit extends Cubit<EditorState> {
       final doc = FormDoc.fromJson(json);
       _revisionId = doc.revisionId;
       emit(EditorLoaded(doc));
-    } on SocketException {
+    } on SocketException catch (e) {
+      dev.log('[EditorCubit] loadForm network error: $e', name: 'API');
       emit(const EditorError("Couldn't load this form.",
           kind: EditorErrorKind.network));
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('[EditorCubit] loadForm error: $e', name: 'API', error: e, stackTrace: st);
       emit(switch (_tryStatus(e)) {
         404 => const EditorError('This form was deleted.',
             kind: EditorErrorKind.notFound),
@@ -218,7 +221,8 @@ class EditorCubit extends Cubit<EditorState> {
           ),
         ),
       ]);
-    } catch (_) {
+    } catch (e, st) {
+      dev.log('[EditorCubit] updateSettings error: $e', name: 'API', error: e, stackTrace: st);
       emit(snapshot.copyWith(saveFailed: true));
     }
   }
@@ -346,7 +350,8 @@ class EditorCubit extends Cubit<EditorState> {
 
       // 7. Final sync — replaces FormDoc with clean server state
       await _silentRefresh(formId);
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('[EditorCubit] save() failed: $e', name: 'API', error: e, stackTrace: st);
       if (isRevisionMismatch(e)) {
         emit(snapshot.copyWith(isSaving: false, conflictPending: true));
       } else {
@@ -396,6 +401,13 @@ class EditorCubit extends Cubit<EditorState> {
     String formId,
     List<forms_api.Request> requests,
   ) async {
+    dev.log(
+      '[EditorCubit] _sendBatch → ${requests.length} request(s): '
+      '${requests.map((r) => r.toJson().keys.join('+')).join(', ')}\n'
+      'payload: ${jsonEncode(requests.map((r) => r.toJson()).toList())}',
+      name: 'API',
+    );
+
     Future<forms_api.BatchUpdateFormResponse> call() async {
       final resp = await _formsClient.api.forms.batchUpdate(
         forms_api.BatchUpdateFormRequest(
@@ -413,7 +425,13 @@ class EditorCubit extends Cubit<EditorState> {
 
     try {
       return await call();
-    } catch (firstErr) {
+    } catch (firstErr, firstSt) {
+      dev.log(
+        '[EditorCubit] _sendBatch error (status=${_tryStatus(firstErr)}): $firstErr',
+        name: 'API',
+        error: firstErr,
+        stackTrace: firstSt,
+      );
       if (isRevisionMismatch(firstErr)) {
         // Refresh revision and retry once.
         // If still mismatches, throws → save() catches as conflict.
@@ -431,7 +449,14 @@ class EditorCubit extends Cubit<EditorState> {
         await Future<void>.delayed(delay);
         try {
           return await call();
-        } catch (_) {}
+        } catch (retryErr, retrySt) {
+          dev.log(
+            '[EditorCubit] _sendBatch retry error: $retryErr',
+            name: 'API',
+            error: retryErr,
+            stackTrace: retrySt,
+          );
+        }
       }
       rethrow;
     }

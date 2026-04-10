@@ -30,10 +30,19 @@ class Question {
 
   Map<String, dynamic> toJson() {
     final kindEntry = kind.toJsonEntry();
+    // The Forms API rejects a grading object that has only pointValue:0 and
+    // nothing else — it considers that "empty grading". Omit it in that case.
+    final g = grading;
+    final hasGrading = g != null &&
+        (g.pointValue != 0 ||
+            g.correctAnswers != null ||
+            g.whenRight != null ||
+            g.whenWrong != null ||
+            g.generalFeedback != null);
     return {
       'questionId': questionId,
       'required': required,
-      if (grading != null) 'grading': grading!.toJson(),
+      if (hasGrading) 'grading': g!.toJson(),
       kindEntry.key: kindEntry.value,
     };
   }

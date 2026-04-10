@@ -158,9 +158,13 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
 
   QuestionKind _mergeKind(QuestionKind old, QuestionKind next) {
     if (next is! ChoiceQuestion) return next;
-    final opts = old is ChoiceQuestion && old.options.isNotEmpty
+    final oldOpts = old is ChoiceQuestion && old.options.isNotEmpty
         ? old.options
         : [ChoiceOption(value: 'Option 1')];
+    // CHECKBOX doesn't support branching — strip goTo data from options.
+    final opts = next.type == ChoiceType.checkbox
+        ? oldOpts.map((o) => ChoiceOption(value: o.value)).toList()
+        : oldOpts;
     return next.copyWith(options: opts);
   }
 
