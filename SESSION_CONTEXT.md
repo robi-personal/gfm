@@ -63,9 +63,10 @@ lib/
       forms_client.dart         FormsApi wrapper
       drive_client.dart         DriveApi wrapper
     auth/
-      google_auth_service.dart  GoogleSignIn + _GoogleAuthClient
-      auth_cubit.dart
+      google_auth_datasource.dart  GoogleSignIn + _GoogleAuthClient + OAuth header injection
     di/injection.dart           get_it registrations
+    error/failure.dart          sealed Failure hierarchy (Network/Auth/Server)
+    usecases/usecase.dart       UseCase<T,P> base + NoParams
     models/
       form_doc.dart             Top-level form model
       item.dart                 Item with ItemContent sealed union
@@ -76,9 +77,27 @@ lib/
       enums.dart                ChoiceType, RatingIconType, GoToAction, EmailCollectionType
       form_response.dart        FormResponse — responseId, createTime, respondentEmail, answers map
   features/
+    sign_in/
+      domain/entities/auth_user.dart
+      domain/repositories/auth_repository.dart
+      domain/usecases/sign_in_with_google.dart
+      domain/usecases/sign_in_silently.dart
+      domain/usecases/sign_out.dart
+      data/repositories/auth_repository_impl.dart
+      presentation/cubit/sign_in_cubit.dart   SignInInitial/Loading/Authenticated/Unauthenticated/Error
+      presentation/screens/sign_in_screen.dart
     dashboard/
-      dashboard_cubit.dart      loadForms, createForm (3-step), deleteForm
-      dashboard_screen.dart
+      domain/entities/form_entry.dart         FormEntry, SortOrder, CreateFormResult
+      domain/repositories/form_repository.dart
+      domain/usecases/get_forms.dart
+      domain/usecases/create_form.dart
+      domain/usecases/delete_form.dart
+      data/datasources/drive_datasource.dart  files.list + files.update(trashed)
+      data/datasources/forms_datasource.dart  forms.create + batchUpdate + setPublishSettings
+      data/models/form_entry_model.dart       maps Drive API File → FormEntry
+      data/repositories/form_repository_impl.dart
+      presentation/cubit/dashboard_cubit.dart loadForms, createForm, deleteForm
+      presentation/pages/dashboard_page.dart
     editor/
       editor_cubit.dart         Full write path, debounce, retry engine, _silentRefresh
       editor_state.dart         EditorLoading/Loaded/Error + EditorLoaded.copyWith
