@@ -4,7 +4,7 @@ Read this file at the start of every session before touching any code.
 
 ---
 
-## Build progress (steps per CLAUDE.md §12)
+## Build progress
 
 | Step | Status | Notes |
 |------|--------|-------|
@@ -30,7 +30,14 @@ Read this file at the start of every session before touching any code.
 | Paywall page | ✅ Done | `PaywallPage.show()`, plan selector (Weekly/Annual/Monthly), crown icon nav from dashboard + editor |
 | CSV export | ✅ Done | Settings tab → loads all responses → builds CSV → `Share.shareXFiles`; no paywall gate for now |
 | Linked sheet button | ✅ Done | Settings tab → `url_launcher` opens sheet in browser when `linkedSheetId` present |
-| 17–20 | ⬜ Not started | |
+| YouTube video insert | ✅ Done | Search dialog → `addVideoItem` → `VideoItemContent` → Forms API |
+| Image insert | ✅ Done | URL paste or gallery picker → Drive upload → public URL → `ImageItemContent` |
+| Polish — empty states | ✅ Done | All screens have icon + text empty states (dashboard, editor, responses) |
+| 17 Duplicate form/question | ⬜ Out of scope for MVP | |
+| 18 Offline queue | ⬜ Out of scope for MVP | |
+| 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
+| Analytics + Crashlytics | 🔜 Next | Firebase Analytics + Crashlytics |
+| Production readiness | 🔜 After analytics | OAuth verification, app signing, store submission |
 
 ---
 
@@ -61,6 +68,13 @@ Manual sealed classes (not freezed) for `QuestionKind` and `ItemContent` because
 uses key-presence dispatch (e.g. `json.containsKey('textQuestion')`), not a type discriminator.
 `ChoiceOption` uses freezed. `FormDoc`, `Item`, `Question` are manual with `fromJson`/`toJson`/`copyWith`.
 
+### Image insert — Drive upload flow
+`image_picker` → bytes → `DriveClient.uploadImage()` → Drive multipart upload → set `anyone/reader` permission → `https://drive.google.com/uc?id={fileId}&export=view` → used as `sourceUri` in `ImageItemContent`.
+Scope: `drive.file` (already in use). No new scope needed.
+
+### File upload questions
+`FileUploadQuestion` exists in the domain model as read-only. The Forms API does **not** support creating file upload questions — they can only be created via the web UI. Do not attempt to add this.
+
 ---
 
 ## Key files
@@ -71,7 +85,7 @@ lib/
     api/
       concurrency.dart            runBatchUpdate() + isRevisionMismatch()
       forms_client.dart           FormsApi wrapper
-      drive_client.dart           DriveApi wrapper
+      drive_client.dart           DriveApi wrapper + uploadImage()
     auth/
       google_auth_datasource.dart GoogleSignIn + _GoogleAuthClient + OAuth header injection
     di/injection.dart             get_it registrations (all features)
@@ -112,16 +126,17 @@ lib/
       presentation/cubit/editor_state.dart          EditorLoading/Loaded/Error + PendingChanges
       presentation/pages/editor_page.dart           BlocProvider + _EditorView (TabController, auto-scroll on add)
       presentation/widgets/
-        form_header_card.dart     Editable title + description
-        question_card.dart        Purple left border, type chip, options preview, edit/delete buttons
-        question_edit_sheet.dart  Full question edit bottom sheet
-        type_chip.dart            Color-coded pill, showCaret flag
-        type_picker_sheet.dart    Bottom sheet, 10 types grouped free/advanced
-        section_card.dart         SectionCard + TextBlockCard + TextBlockEditSheet
-        settings_sheet.dart       (legacy — not actively used; settings are inline in editor tab)
+        form_header_card.dart       Editable title + description
+        question_card.dart          Purple left border, type chip, options preview, edit/delete buttons
+        question_edit_sheet.dart    Full question edit bottom sheet
+        type_chip.dart              Color-coded pill, showCaret flag
+        type_picker_sheet.dart      Bottom sheet, 10 types grouped free/advanced
+        section_card.dart           SectionCard + TextBlockCard + TextBlockEditSheet
+        image_url_dialog.dart       URL paste + gallery picker + Drive upload flow
+        video_search_dialog.dart    YouTube search + insert
+        settings_sheet.dart         (legacy — not actively used; settings are inline in editor tab)
     responses/
-      responses_cubit.dart        ResponsesLoading/Loaded/Error; paginated list load
-      responses_screen.dart       ResponsesScreen (list) + ResponseDetailScreen (per-question answers)
+      presentation/pages/responses_page.dart  ResponsesScreen + ResponseDetailScreen; Summary + Individual tabs
     preview/
       preview_screen.dart         Full-screen WebViewWidget loading responderUri
 ```
@@ -154,6 +169,7 @@ lib/
 - Do NOT skip `setPublishSettings` after create — forms are unpublished by default since March 31 2026.
 - Do NOT use `identical()` for `FormDoc` equality check on item changes — `copyWith` always creates a new list reference.
 - Do NOT pass null-containing maps to `googleapis` `fromJson` — always run `removeNulls` first (freezed includes null fields in `toJson`).
+- Do NOT attempt to create `FileUploadQuestion` via the API — it is read-only.
 
 ---
 
@@ -180,23 +196,21 @@ lib/
 
 ---
 
-## Next steps
-
-- **Step 17**: Duplicate form + duplicate question ← **NEXT**
-- **Step 18**: Offline queue (drift-backed pending writes)
-- **Step 19**: IAP integration — wire paywall purchase button; gate CSV export behind premium
-- **Step 20**: Polish
-- **Responses clean arch**: domain/data/presentation layers (simple — 54-line cubit)
-- **Preview clean arch**: trivial move to `presentation/pages/preview_page.dart`
-
 ## Auth scopes (current)
 
 ```
-drive.readonly
-drive.metadata
+drive.file
 forms.body
 forms.responses.readonly
 ```
 
-Decision: avoiding all restricted scopes. Will move to `drive.file` before production.
+`drive.file` covers both reading/listing Drive files created by the app and the image upload flow.
 No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened in browser.
+
+---
+
+## Next steps
+
+1. **Analytics + Crashlytics** — Firebase Analytics (screen views, key events) + Crashlytics (crash reporting)
+2. **Google OAuth consent screen verification** — required before public launch; `forms.body` and `forms.responses.readonly` are sensitive scopes
+3. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
