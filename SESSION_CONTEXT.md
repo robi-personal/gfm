@@ -26,6 +26,10 @@ Read this file at the start of every session before touching any code.
 | 16 Editor UI overhaul | ✅ Done | New AppBar, action strip, tab bar, redesigned cards, bottom bar |
 | Clean arch — Dashboard | ✅ Done | domain/data/presentation layers |
 | Clean arch — Editor | ✅ Done | domain/data/presentation layers; retry engine in repo impl |
+| Responses tab redesign | ✅ Done | Summary + Individual sub-tabs; choice bars, text previews, numeric averages |
+| Paywall page | ✅ Done | `PaywallPage.show()`, plan selector (Weekly/Annual/Monthly), crown icon nav from dashboard + editor |
+| CSV export | ✅ Done | Settings tab → loads all responses → builds CSV → `Share.shareXFiles`; no paywall gate for now |
+| Linked sheet button | ✅ Done | Settings tab → `url_launcher` opens sheet in browser when `linkedSheetId` present |
 | 17–20 | ⬜ Not started | |
 
 ---
@@ -180,7 +184,19 @@ lib/
 
 - **Step 17**: Duplicate form + duplicate question ← **NEXT**
 - **Step 18**: Offline queue (drift-backed pending writes)
-- **Step 19**: Paywall + CSV/XLSX export
+- **Step 19**: IAP integration — wire paywall purchase button; gate CSV export behind premium
 - **Step 20**: Polish
 - **Responses clean arch**: domain/data/presentation layers (simple — 54-line cubit)
 - **Preview clean arch**: trivial move to `presentation/pages/preview_page.dart`
+
+## Auth scopes (current)
+
+```
+drive.readonly
+drive.metadata
+forms.body
+forms.responses.readonly
+```
+
+Decision: avoiding all restricted scopes. Will move to `drive.file` before production.
+No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened in browser.
