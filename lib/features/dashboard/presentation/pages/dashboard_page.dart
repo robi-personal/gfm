@@ -8,7 +8,6 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
-import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 
@@ -237,14 +236,6 @@ class _DashboardViewState extends State<_DashboardView> {
           icon: const Icon(Icons.search, color: Colors.black54),
           onPressed: () => setState(() => _searchOpen = true),
         ),
-        GestureDetector(
-          onTap: () => PaywallPage.show(context),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: SvgPicture.asset('assets/dashboard_premium.svg',
-                width: 28, height: 28),
-          ),
-        ),
       ],
     );
   }
@@ -272,10 +263,11 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget _buildBody(BuildContext context, DashboardState state) {
     return switch (state) {
       DashboardInitial() || DashboardLoading() => const _DashboardSkeleton(),
-      DashboardLoaded(:final forms, :final isShowingCache) => Column(
+      DashboardLoaded(:final forms, :final query, :final isShowingCache) =>
+        Column(
           children: [
             if (isShowingCache) const _CacheBanner(),
-            Expanded(child: _FormList(forms: forms)),
+            Expanded(child: _FormList(forms: forms, query: query)),
           ],
         ),
       DashboardError(:final message, :final cachedForms) =>
@@ -283,7 +275,7 @@ class _DashboardViewState extends State<_DashboardView> {
             ? Column(
                 children: [
                   _InlineBanner(message: message),
-                  Expanded(child: _FormList(forms: cachedForms)),
+                  Expanded(child: _FormList(forms: cachedForms, query: '')),
                 ],
               )
             : _FullScreenError(
@@ -351,19 +343,27 @@ class _SkeletonCard extends StatelessWidget {
 
 class _FormList extends StatelessWidget {
   final List<FormEntry> forms;
+  final String query;
 
-  const _FormList({required this.forms});
+  const _FormList({required this.forms, required this.query});
 
   @override
   Widget build(BuildContext context) {
     if (forms.isEmpty) {
-      return const _EmptyState();
+      return query.isNotEmpty
+          ? _SearchEmptyState(query: query)
+          : const _EmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: () => context.read<DashboardCubit>().refresh(),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.fromLTRB(
+          12,
+          8,
+          12,
+          MediaQuery.viewPaddingOf(context).bottom + 80,
+        ),
         itemCount: forms.length,
         itemBuilder: (context, i) => _FormCard(form: forms[i]),
       ),
@@ -377,29 +377,67 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            'assets/dashboard_no_form_banner.svg',
-            width: 220,
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            "You don't have a form yet",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              'assets/dashboard_no_form_banner.svg',
+              width: 200,
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            "You don't have a google form creation at the moment.",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.black54),
-          ),
-        ],
+            const SizedBox(height: 32),
+            const Text(
+              'No forms yet.',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Forms you create here will appear in this list.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchEmptyState extends StatelessWidget {
+  final String query;
+  const _SearchEmptyState({required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded, size: 56, color: Colors.grey[350]),
+            const SizedBox(height: 20),
+            Text(
+              'No forms match "$query".',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Try a different search term.',
+              style: TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -508,7 +546,7 @@ class _FormCard extends StatelessWidget {
             ErrorModal.show(
               context,
               title: "Couldn't delete this form.",
-              body: "It's still in your list. Try again?",
+              body: "It's still in your list.",
               secondaryLabel: 'Cancel',
               onSecondary: () {},
               primaryLabel: 'Retry',

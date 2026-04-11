@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
@@ -20,7 +19,6 @@ import '../../../../core/models/item_content.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../widgets/question_edit_sheet.dart';
 import '../../../../core/widgets/error_modal.dart';
-import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/pages/responses_page.dart';
 import '../cubit/editor_cubit.dart';
@@ -148,18 +146,19 @@ class _EditorViewState extends State<_EditorView>
                 },
               ),
             ),
+            // Bottom toolbar — only visible on the Questions tab
+            AnimatedBuilder(
+              animation: _tabController,
+              builder: (context, _) {
+                if (_tabController.index != 0) return const SizedBox.shrink();
+                return BlocSelector<EditorCubit, EditorState, bool>(
+                  selector: (state) => state is EditorLoaded && !state.isSaving,
+                  builder: (context, enabled) =>
+                      _BottomBar(enabled: enabled, formId: widget.formId),
+                );
+              },
+            ),
           ],
-        ),
-        bottomNavigationBar: AnimatedBuilder(
-          animation: _tabController,
-          builder: (context, _) {
-            if (_tabController.index != 0) return const SizedBox.shrink();
-            return BlocSelector<EditorCubit, EditorState, bool>(
-              selector: (state) => state is EditorLoaded && !state.isSaving,
-              builder: (context, enabled) =>
-                  _BottomBar(enabled: enabled, formId: widget.formId),
-            );
-          },
         ),
       ),
     );
@@ -175,19 +174,7 @@ class _EditorViewState extends State<_EditorView>
         'Form list',
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
-      actions: [
-        GestureDetector(
-          onTap: () => PaywallPage.show(context),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: SvgPicture.asset(
-              'assets/dashboard_premium.svg',
-              width: 26,
-              height: 26,
-            ),
-          ),
-        ),
-      ],
+      actions: const [],
     );
   }
 
@@ -235,7 +222,7 @@ class _EditorViewState extends State<_EditorView>
       context.read<EditorCubit>().clearSaveFailed();
       ErrorModal.show(
         context,
-        title: 'Failed to save',
+        title: "Couldn't save your changes.",
         body: 'Check your connection and try again.',
         primaryLabel: 'OK',
         onPrimary: () {},
@@ -552,11 +539,47 @@ class _EditorBodyState extends State<_EditorBody> {
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: Text(
-                      'No questions yet.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.quiz_outlined,
+                            size: 56,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.4),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No questions yet.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tap + below to add your first question.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.7),
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

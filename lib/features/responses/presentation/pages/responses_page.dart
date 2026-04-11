@@ -174,7 +174,7 @@ class _IndividualTab extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.only(
-                bottom: MediaQuery.viewPaddingOf(context).bottom),
+                bottom: MediaQuery.paddingOf(context).bottom),
             itemCount: responses.length,
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, i) => _ResponseTile(
@@ -262,7 +262,7 @@ class _SummaryTab extends StatelessWidget {
 
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(
-          12, 12, 12, 12 + MediaQuery.viewPaddingOf(context).bottom),
+          12, 12, 12, 12 + MediaQuery.paddingOf(context).bottom),
       itemCount: questions.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, i) =>

@@ -22,7 +22,7 @@ class AuthFailure extends Failure {
 
 /// The server returned an unexpected error (5xx, malformed response, etc.).
 class ServerFailure extends Failure {
-  const ServerFailure([super.message = 'Something went wrong. Try again.']);
+  const ServerFailure([super.message = 'Something went wrong.']);
 }
 
 /// The requested resource was not found (404).

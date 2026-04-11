@@ -11,8 +11,7 @@ import '../error/failure.dart';
 /// to the domain [AuthUser] entity. Maps exceptions to [Failure] types.
 class GoogleAuthDataSource {
   static const _scopes = [
-    'https://www.googleapis.com/auth/drive.readonly',
-    'https://www.googleapis.com/auth/drive.metadata',
+    'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/forms.body',
     'https://www.googleapis.com/auth/forms.responses.readonly',
   ];
