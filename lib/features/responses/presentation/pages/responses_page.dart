@@ -150,10 +150,21 @@ class _IndividualTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (responses.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('No responses yet.', textAlign: TextAlign.center),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(height: 12),
+              Text('No responses yet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+          ),
         ),
       );
     }
@@ -248,14 +259,37 @@ class _SummaryTab extends StatelessWidget {
     final questions = _buildQuestionEntries(items);
 
     if (questions.isEmpty) {
-      return const Center(child: Text('No questions in this form.'));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.help_outline, size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text('No questions in this form.',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ],
+        ),
+      );
     }
 
     if (responses.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('No responses yet.', textAlign: TextAlign.center),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(height: 12),
+              Text('No responses yet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+          ),
         ),
       );
     }
@@ -647,7 +681,20 @@ class ResponseDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(label, overflow: TextOverflow.ellipsis)),
       body: questions.isEmpty
-          ? const Center(child: Text('No questions in this form.'))
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.help_outline, size: 48,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('No questions in this form.',
+                      style: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            )
           : ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: questions.length,
