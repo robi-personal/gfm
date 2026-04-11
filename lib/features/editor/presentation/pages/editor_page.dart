@@ -980,42 +980,28 @@ class _BottomBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Add question
+            // 1. Add question
             _BarButton(
               icon: Icons.add,
               tooltip: 'Add question',
               enabled: enabled,
               onTap: () => cubit.addQuestion(),
             ),
-            // Add text block
+            // 2. Add image (not yet supported by Forms API)
+            _BarButton(
+              icon: Icons.image_outlined,
+              tooltip: 'Add image',
+              enabled: false,
+              onTap: null,
+            ),
+            // 3. Add text block
             _BarButton(
               icon: Icons.text_fields,
               tooltip: 'Add text block',
               enabled: enabled,
               onTap: () => cubit.addTextBlock(),
             ),
-            // Preview
-            _BarButton(
-              icon: Icons.play_arrow_outlined,
-              tooltip: 'Preview',
-              enabled: enabled,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => PreviewScreen(
-                    responderUri: responderUri,
-                    formTitle: formTitle,
-                  ),
-                ),
-              ),
-            ),
-            // Add section
-            _BarButton(
-              icon: Icons.view_agenda_outlined,
-              tooltip: 'Add section',
-              enabled: enabled,
-              onTap: () => cubit.addSection(),
-            ),
-            // Add video
+            // 4. Add video
             _BarButton(
               icon: Icons.video_library_outlined,
               tooltip: 'Add video',
@@ -1026,6 +1012,13 @@ class _BottomBar extends StatelessWidget {
                   cubit.addVideoItem(video.videoId, video.title);
                 }
               },
+            ),
+            // 5. Add section
+            _BarButton(
+              icon: Icons.view_agenda_outlined,
+              tooltip: 'Add section',
+              enabled: enabled,
+              onTap: () => cubit.addSection(),
             ),
           ],
         ),
