@@ -36,7 +36,7 @@ Read this file at the start of every session before touching any code.
 | 17 Duplicate form/question | ⬜ Out of scope for MVP | |
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
-| Analytics + Crashlytics | 🔜 Next | Firebase Analytics + Crashlytics |
+| Analytics + Crashlytics | ✅ Done | Firebase Analytics + Crashlytics; DebugView confirmed working |
 | Production readiness | 🔜 After analytics | OAuth verification, app signing, store submission |
 
 ---
