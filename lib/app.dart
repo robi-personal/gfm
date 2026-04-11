@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection.dart';
+import 'core/services/analytics_service.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
 import 'features/sign_in/presentation/cubit/sign_in_cubit.dart';
 import 'features/sign_in/presentation/screens/sign_in_screen.dart';
@@ -20,6 +21,7 @@ class App extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4285F4)),
           useMaterial3: true,
         ),
+        navigatorObservers: [AnalyticsService.observer],
         home: const _AuthGate(),
       ),
     );

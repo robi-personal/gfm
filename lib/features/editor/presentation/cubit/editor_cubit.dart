@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/models/form_doc.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
@@ -61,6 +62,7 @@ class EditorCubit extends Cubit<EditorState> {
       (doc) {
         _revisionId = doc.revisionId;
         emit(EditorLoaded(doc));
+        AnalyticsService.logFormOpened();
       },
     );
   }
@@ -120,6 +122,7 @@ class EditorCubit extends Cubit<EditorState> {
       ),
       pendingEditItemId: tempId,
     ));
+    AnalyticsService.logQuestionAdded();
   }
 
   // ── Add text block ─────────────────────────────────────────────────────────
@@ -162,6 +165,7 @@ class EditorCubit extends Cubit<EditorState> {
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
     ));
+    AnalyticsService.logImageAdded(source: sourceUri.startsWith('https://drive.google.com') ? 'gallery' : 'url');
   }
 
   // ── Add video ──────────────────────────────────────────────────────────────
@@ -185,6 +189,7 @@ class EditorCubit extends Cubit<EditorState> {
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
     ));
+    AnalyticsService.logVideoAdded();
   }
 
   // ── Add section ────────────────────────────────────────────────────────────
@@ -426,6 +431,7 @@ class EditorCubit extends Cubit<EditorState> {
 
       // 7. Final sync — replaces FormDoc with clean server state
       await _silentRefresh(formId);
+      AnalyticsService.logFormSaved();
     } catch (e, st) {
       dev.log('[EditorCubit] save() failed: $e',
           name: 'API', error: e, stackTrace: st);

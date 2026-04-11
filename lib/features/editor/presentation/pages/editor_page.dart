@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/form_doc.dart';
 import '../../../../core/models/form_response.dart';
@@ -70,6 +71,12 @@ class _EditorViewState extends State<_EditorView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index == 1) AnalyticsService.logResponsesViewed();
   }
 
   @override
@@ -759,6 +766,7 @@ class _SettingsContentState extends State<_SettingsContent> {
         [XFile(file.path, mimeType: 'text/csv')],
         subject: '${form.info.title} — Responses',
       );
+      AnalyticsService.logCsvExported();
     } catch (e) {
       if (!mounted) return;
       ErrorModal.show(

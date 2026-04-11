@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/form_entry.dart';
 import '../../domain/usecases/create_form.dart';
 import '../../domain/usecases/delete_form.dart';
@@ -84,6 +85,7 @@ class DashboardCubit extends Cubit<DashboardState> {
         throw Exception(failure.message);
       },
       (createResult) {
+        AnalyticsService.logFormCreated();
         _setCreating(false,
             nav: CreateNavigation(
               formId: createResult.entry.id,

@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/sign_in_silently.dart';
@@ -37,7 +38,10 @@ class SignInCubit extends Cubit<SignInState> {
     final result = await _signInSilently(const NoParams());
     result.fold(
       (_) => emit(const Unauthenticated()),
-      (user) => emit(Authenticated(user)),
+      (user) {
+        AnalyticsService.setUser(user.email);
+        emit(Authenticated(user));
+      },
     );
   }
 
@@ -50,7 +54,10 @@ class SignInCubit extends Cubit<SignInState> {
         AuthCancelledFailure() => emit(const Unauthenticated()),
         _ => emit(SignInError(failure.message)),
       },
-      (user) => emit(Authenticated(user)),
+      (user) {
+        AnalyticsService.setUser(user.email);
+        emit(Authenticated(user));
+      },
     );
   }
 
@@ -58,6 +65,7 @@ class SignInCubit extends Cubit<SignInState> {
     await _signOut();
     _formsClient.reset();
     _driveClient.reset();
+    AnalyticsService.clearUser();
     emit(const Unauthenticated());
   }
 }
