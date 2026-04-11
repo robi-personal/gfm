@@ -18,6 +18,7 @@ import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../widgets/question_edit_sheet.dart';
+import '../widgets/video_search_dialog.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/pages/responses_page.dart';
@@ -986,13 +987,6 @@ class _BottomBar extends StatelessWidget {
               enabled: enabled,
               onTap: () => cubit.addQuestion(),
             ),
-            // Add image (placeholder — no API support yet)
-            _BarButton(
-              icon: Icons.image_outlined,
-              tooltip: 'Add image',
-              enabled: false,
-              onTap: null,
-            ),
             // Add text block
             _BarButton(
               icon: Icons.text_fields,
@@ -1020,6 +1014,18 @@ class _BottomBar extends StatelessWidget {
               tooltip: 'Add section',
               enabled: enabled,
               onTap: () => cubit.addSection(),
+            ),
+            // Add video
+            _BarButton(
+              icon: Icons.video_library_outlined,
+              tooltip: 'Add video',
+              enabled: enabled,
+              onTap: () async {
+                final video = await showVideoSearchDialog(context);
+                if (video != null && context.mounted) {
+                  cubit.addVideoItem(video.videoId, video.title);
+                }
+              },
             ),
           ],
         ),
@@ -1192,28 +1198,82 @@ class _VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = item.content as VideoItemContent;
+    final videoId =
+        Uri.tryParse(content.video.youtubeUri)?.queryParameters['v'];
+    final thumbnailUrl = videoId != null
+        ? 'https://img.youtube.com/vi/$videoId/mqdefault.jpg'
+        : null;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Container(
-        height: 120,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.red.shade50,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_circle_outline,
-                size: 40, color: Colors.red.shade400),
-            const SizedBox(height: 4),
-            if (content.caption?.isNotEmpty == true)
-              Text(content.caption!,
-                  style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              if (thumbnailUrl != null)
+                Image.network(
+                  thumbnailUrl,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    height: 160,
+                    color: Colors.red.shade50,
+                    child: Icon(Icons.play_circle_outline,
+                        size: 48, color: Colors.red.shade300),
+                  ),
+                )
+              else
+                Container(
+                  height: 160,
+                  color: Colors.red.shade50,
+                  child: Icon(Icons.play_circle_outline,
+                      size: 48, color: Colors.red.shade300),
+                ),
+              Container(
+                width: 52,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.play_arrow,
+                    color: Colors.white, size: 24),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: GestureDetector(
+                  onTap: () =>
+                      context.read<EditorCubit>().deleteItem(item.itemId),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(Icons.close,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Text(
+              item.title ?? content.caption ?? 'Video',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
       ),
     );
   }

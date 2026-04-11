@@ -7,6 +7,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/models/form_doc.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
+import '../../../../core/models/form_image.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question.dart';
 import '../../../../core/models/question_kind.dart';
@@ -139,6 +140,29 @@ class EditorCubit extends Cubit<EditorState> {
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
       pendingEditItemId: tempId,
+    ));
+  }
+
+  // ── Add video ──────────────────────────────────────────────────────────────
+
+  void addVideoItem(String videoId, String title) {
+    if (state is! EditorLoaded) return;
+    final l = state as EditorLoaded;
+    final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
+    final placeholder = Item(
+      itemId: tempId,
+      title: title,
+      content: VideoItemContent(
+        video: FormVideo(
+            youtubeUri: 'https://www.youtube.com/watch?v=$videoId'),
+      ),
+    );
+    final newItems = [...l.form.items, placeholder];
+    emit(l.copyWith(
+      form: l.form.copyWith(items: newItems),
+      pending: l.pending.copyWith(
+        creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
+      ),
     ));
   }
 
