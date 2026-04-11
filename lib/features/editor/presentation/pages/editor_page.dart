@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/models/enums.dart';
@@ -18,6 +19,7 @@ import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../widgets/question_edit_sheet.dart';
+import '../widgets/image_url_dialog.dart';
 import '../widgets/video_search_dialog.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../preview/preview_screen.dart';
@@ -962,11 +964,6 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cubit = context.read<EditorCubit>();
-    final state = cubit.state;
-    final responderUri =
-        state is EditorLoaded ? state.form.responderUri : '';
-    final formTitle =
-        state is EditorLoaded ? state.form.info.title : '';
 
     return SafeArea(
       child: Container(
@@ -987,12 +984,22 @@ class _BottomBar extends StatelessWidget {
               enabled: enabled,
               onTap: () => cubit.addQuestion(),
             ),
-            // 2. Add image (not yet supported by Forms API)
+            // 2. Add image
             _BarButton(
               icon: Icons.image_outlined,
               tooltip: 'Add image',
-              enabled: false,
-              onTap: null,
+              enabled: enabled,
+              onTap: () async {
+                final driveClient = getIt<DriveClient>();
+                final url = await showImageUrlDialog(
+                  context,
+                  onGalleryUpload: (bytes, mimeType) =>
+                      driveClient.uploadImage(bytes, mimeType),
+                );
+                if (url != null && context.mounted) {
+                  cubit.addImageItem(url);
+                }
+              },
             ),
             // 3. Add text block
             _BarButton(
@@ -1153,31 +1160,59 @@ class _ImageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = item.content as ImageItemContent;
+    final imageUrl =
+        content.image.sourceUri ?? content.image.contentUri;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Container(
-        height: 120,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.image_outlined,
-                size: 32,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            if (item.title?.isNotEmpty == true)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(item.title!,
-                    style: Theme.of(context).textTheme.bodySmall),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (imageUrl != null)
+            Image.network(
+              imageUrl,
+              width: double.infinity,
+              height: 180,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                height: 180,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(Icons.broken_image_outlined,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
-          ],
-        ),
+            )
+          else
+            Container(
+              height: 180,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Center(
+                child: Icon(Icons.image_outlined,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: () =>
+                  context.read<EditorCubit>().deleteItem(item.itemId),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(Icons.close,
+                    color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
