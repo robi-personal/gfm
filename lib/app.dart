@@ -14,6 +14,7 @@ class App extends StatelessWidget {
     return BlocProvider(
       create: (_) => getIt<SignInCubit>()..checkAuth(),
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'Form Manager',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4285F4)),

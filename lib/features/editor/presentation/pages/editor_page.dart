@@ -1,12 +1,19 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/api/forms_client.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/models/enums.dart';
+import '../../../../core/models/form_doc.dart';
+import '../../../../core/models/form_response.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
@@ -643,16 +650,20 @@ class _SettingsTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState, FormSettings?>(
-      selector: (state) =>
-          state is EditorLoaded ? state.form.settings : null,
-      builder: (context, settings) {
-        if (settings == null) {
+    return BlocSelector<EditorCubit, EditorState,
+        ({FormSettings? settings, String? linkedSheetId})>(
+      selector: (state) => (
+        settings: state is EditorLoaded ? state.form.settings : null,
+        linkedSheetId: state is EditorLoaded ? state.form.linkedSheetId : null,
+      ),
+      builder: (context, data) {
+        if (data.settings == null) {
           return const Center(child: CircularProgressIndicator());
         }
         return _SettingsContent(
-          initialSettings: settings,
+          initialSettings: data.settings!,
           formId: formId,
+          linkedSheetId: data.linkedSheetId,
         );
       },
     );
@@ -662,10 +673,12 @@ class _SettingsTabPage extends StatelessWidget {
 class _SettingsContent extends StatefulWidget {
   final FormSettings initialSettings;
   final String formId;
+  final String? linkedSheetId;
 
   const _SettingsContent({
     required this.initialSettings,
     required this.formId,
+    this.linkedSheetId,
   });
 
   @override
@@ -676,12 +689,107 @@ class _SettingsContentState extends State<_SettingsContent> {
   late EmailCollectionType _emailType;
   late bool _isQuiz;
   bool _isSaving = false;
+  bool _isExporting = false;
 
   @override
   void initState() {
     super.initState();
     _emailType = widget.initialSettings.emailCollectionType;
     _isQuiz = widget.initialSettings.quizSettings.isQuiz;
+  }
+
+  Future<void> _exportCsv() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      final editorState = context.read<EditorCubit>().state;
+      if (editorState is! EditorLoaded) return;
+      final form = editorState.form;
+
+      // Load all responses
+      final client = getIt<FormsClient>();
+      final responses = <FormResponse>[];
+      String? pageToken;
+      do {
+        final result = await client.api.forms.responses.list(
+          widget.formId,
+          pageSize: 100,
+          pageToken: pageToken,
+        );
+        responses.addAll((result.responses ?? []).map(FormResponse.fromApi));
+        pageToken = result.nextPageToken;
+      } while (pageToken != null);
+      responses.sort((a, b) => a.createTime.compareTo(b.createTime));
+
+      final csv = _buildCsv(form, responses);
+
+      final dir = await getTemporaryDirectory();
+      final title = form.info.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
+      final file = File('${dir.path}/${title}_responses.csv');
+      await file.writeAsString(csv);
+
+      if (!mounted) return;
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        subject: '${form.info.title} — Responses',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ErrorModal.show(
+        context,
+        title: "Export failed.",
+        body: 'Check your connection and try again.',
+        primaryLabel: 'OK',
+        onPrimary: () {},
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  String _buildCsv(FormDoc form, List<FormResponse> responses) {
+    // Build ordered question index
+    final cols = <({String title, String questionId})>[];
+    for (final item in form.items) {
+      final itemTitle =
+          item.title?.isNotEmpty == true ? item.title! : 'Untitled';
+      switch (item.content) {
+        case QuestionItemContent(:final question):
+          cols.add((title: itemTitle, questionId: question.questionId));
+        case QuestionGroupItemContent(:final questions):
+          for (final q in questions) {
+            cols.add((title: itemTitle, questionId: q.questionId));
+          }
+        default:
+          break;
+      }
+    }
+    final questions = cols;
+
+    String escape(String v) {
+      if (v.contains(',') || v.contains('"') || v.contains('\n')) {
+        return '"${v.replaceAll('"', '""')}"';
+      }
+      return v;
+    }
+
+    final buffer = StringBuffer();
+    // Header row
+    buffer.write('Timestamp,Email');
+    for (final q in questions) { buffer.write(',${escape(q.title)}'); }
+    buffer.writeln();
+
+    // Data rows
+    for (final r in responses) {
+      buffer.write(escape(r.createTime.toIso8601String()));
+      buffer.write(',${escape(r.respondentEmail ?? '')}');
+      for (final q in questions) {
+        final vals = r.answers[q.questionId] ?? [];
+        buffer.write(',${escape(vals.join('; '))}');
+      }
+      buffer.writeln();
+    }
+    return buffer.toString();
   }
 
   Future<void> _save({required EmailCollectionType emailType, required bool isQuiz}) async {
@@ -776,6 +884,42 @@ class _SettingsContentState extends State<_SettingsContent> {
             value: _isQuiz,
             onChanged: _isSaving ? null : _onQuizToggle,
           ),
+          const Divider(height: 24),
+          // Data section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(
+              'Data',
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.primary),
+            ),
+          ),
+          // Export as CSV
+          ListTile(
+            leading: _isExporting
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : const Icon(Icons.download_outlined),
+            title: const Text('Export responses as CSV'),
+            onTap: _isExporting ? null : _exportCsv,
+          ),
+          // Open linked sheet — only shown if the form has one
+          if (widget.linkedSheetId != null)
+            ListTile(
+              leading: const Icon(Icons.table_chart_outlined),
+              title: const Text('Open linked Google Sheet'),
+              trailing: const Icon(Icons.open_in_new, size: 18),
+              onTap: () => launchUrl(
+                Uri.parse(
+                  'https://docs.google.com/spreadsheets/d/${widget.linkedSheetId}',
+                ),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          SizedBox(height: MediaQuery.viewPaddingOf(context).bottom + 12),
         ],
       ),
     );
