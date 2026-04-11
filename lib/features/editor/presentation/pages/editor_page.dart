@@ -22,7 +22,7 @@ import '../widgets/question_edit_sheet.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
-import '../../../responses/responses_screen.dart';
+import '../../../responses/presentation/pages/responses_page.dart';
 import '../cubit/editor_cubit.dart';
 import '../widgets/form_header_card.dart';
 import '../widgets/question_card.dart';
