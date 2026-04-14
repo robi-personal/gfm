@@ -180,11 +180,14 @@ class _DashboardViewState extends State<_DashboardView> {
     _navigateToForm(context, nav);
   }
 
-  void _navigateToForm(BuildContext context, CreateNavigation nav) {
-    Navigator.of(context).push(MaterialPageRoute(
+  void _navigateToForm(BuildContext context, CreateNavigation nav) async {
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) =>
           EditorPage(formId: nav.formId, formName: nav.formName),
     ));
+    if (context.mounted) {
+      context.read<DashboardCubit>().loadForms();
+    }
   }
 
   PreferredSizeWidget _buildAppBar(
