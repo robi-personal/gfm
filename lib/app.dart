@@ -16,7 +16,7 @@ class App extends StatelessWidget {
       create: (_) => getIt<SignInCubit>()..checkAuth(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Form Manager',
+        title: 'GFM',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4285F4)),
           useMaterial3: true,
