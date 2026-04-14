@@ -54,6 +54,12 @@ export default function Nav() {
               Features
             </a>
             <a
+              href="/#screenshots"
+              className="text-sm text-[#64748B] hover:text-[#1A1A2E] transition-colors"
+            >
+              Screenshots
+            </a>
+            <a
               href="/#how-it-works"
               className="text-sm text-[#64748B] hover:text-[#1A1A2E] transition-colors"
             >
@@ -119,6 +125,13 @@ export default function Nav() {
               className="block px-3 py-2.5 text-sm text-[#64748B] hover:text-[#1A1A2E] hover:bg-[#F3F0FA] rounded-lg transition-colors"
             >
               Features
+            </a>
+            <a
+              href="/#screenshots"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2.5 text-sm text-[#64748B] hover:text-[#1A1A2E] hover:bg-[#F3F0FA] rounded-lg transition-colors"
+            >
+              Screenshots
             </a>
             <a
               href="/#how-it-works"

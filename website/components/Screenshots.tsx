@@ -28,7 +28,7 @@ export default function Screenshots() {
   const next = () => setActive((i) => Math.min(screenshots.length - 1, i + 1));
 
   return (
-    <section className="py-24 bg-white">
+    <section id="screenshots" className="py-24 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
