@@ -19,6 +19,9 @@ export const metadata: Metadata = {
       "Create, edit, and manage Google Forms from anywhere. Native speed, full functionality — no compromises.",
     type: "website",
   },
+  verification: {
+    google: "HlI3dZzboPdJnX-JjUSoQw-XeYP49ezYWILGIqCs6vk",
+  },
 };
 
 export default function RootLayout({
