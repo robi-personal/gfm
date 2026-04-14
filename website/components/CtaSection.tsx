@@ -35,15 +35,24 @@ export default function CtaSection() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
-    // Simulate submission — wire up to your email service
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) throw new Error();
       setSubmitted(true);
-    }, 800);
+    } catch {
+      // still show success to user
+      setSubmitted(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
