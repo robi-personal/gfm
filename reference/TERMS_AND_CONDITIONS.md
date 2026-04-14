@@ -9,9 +9,9 @@
 
 ## 1. Acceptance of Terms
 
-By accessing or using **GFM — Google Forms Manager** ("GFM", "the app"), or any other product operated by **AlphaIIT** at https://alphaiit.com, you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you must not use the app.
+By accessing or using **GFM** ("GFM", "the app") at https://netlify.gfm.com, you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you must not use the app.
 
-These Terms work alongside our [Privacy Policy](https://alphaiit.com/privacy), which describes how we handle data.
+These Terms work alongside our [Privacy Policy](https://netlify.gfm.com/privacy), which describes how we handle data.
 
 ---
 
@@ -19,8 +19,8 @@ These Terms work alongside our [Privacy Policy](https://alphaiit.com/privacy), w
 
 These Terms are entered into between you and:
 
-- Website: https://alphaiit.com
-- Contact: support@alphaiit.com
+- Website: https://netlify.gfm.com
+- Contact: formmanager000@gmail.com
 
 ---
 
@@ -80,7 +80,7 @@ You are solely responsible for the legality of forms you create and the data you
 
 ## 7. Your content
 
-You retain all rights to the forms, questions, responses, and other content you create or collect through GFM. AlphaIIT claims no ownership over your content.
+You retain all rights to the forms, questions, responses, and other content you create or collect through GFM. GFM claims no ownership over your content.
 
 Because all content lives in your Google account, your use of that content is also subject to Google's terms of service for Google Forms and Google Drive.
 
@@ -102,7 +102,7 @@ You are solely responsible for:
 
 Some features of GFM are available only to users on a paid subscription ("Pro features"). Pro features may include, but are not limited to: advanced question types, quiz mode, response export, and the removal of advertisements.
 
-- Pricing and billing for Pro features are presented in the app at the time of purchase and are processed by the relevant app store (Google Play or Apple App Store), not by AlphaIIT directly.
+- Pricing and billing for Pro features are presented in the app at the time of purchase and are processed by the relevant app store (Google Play or Apple App Store), not by GFM directly.
 - Refunds, cancellations, and subscription management are governed by the terms of the app store you used to subscribe.
 - We may add, remove, or modify Pro features over time. Material changes that reduce features in your active subscription will be communicated through the app.
 
@@ -138,7 +138,7 @@ We will make reasonable efforts to communicate planned changes that materially a
 
 ## 12. Disclaimer of warranties
 
-GFM is provided **"as is" and "as available," without warranties of any kind**, whether express, implied, statutory, or otherwise. To the maximum extent permitted by applicable law, AlphaIIT disclaims all warranties, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, and that the service will meet your requirements or operate without interruption.
+GFM is provided **"as is" and "as available," without warranties of any kind**, whether express, implied, statutory, or otherwise. To the maximum extent permitted by applicable law, GFM disclaims all warranties, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, and that the service will meet your requirements or operate without interruption.
 
 We do not warrant the accuracy, completeness, or reliability of any data displayed through GFM, including data retrieved from Google APIs.
 
@@ -148,7 +148,7 @@ Some jurisdictions do not allow the exclusion of certain warranties; in those ju
 
 ## 13. Limitation of liability
 
-To the maximum extent permitted by applicable law, AlphaIIT and its operators shall not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, including but not limited to:
+To the maximum extent permitted by applicable law, GFM and its operators shall not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, including but not limited to:
 
 - Loss of data, forms, or responses.
 - Loss of profits, revenue, goodwill, or business opportunity.
@@ -156,7 +156,7 @@ To the maximum extent permitted by applicable law, AlphaIIT and its operators sh
 - Damages resulting from your reliance on the service or on data displayed by it.
 - Damages arising from third-party services on which GFM depends.
 
-To the maximum extent permitted by law, our total cumulative liability arising out of or relating to these Terms or your use of GFM shall not exceed the greater of (a) the amount you paid AlphaIIT for the app in the twelve months preceding the event giving rise to the claim, or (b) USD $50.
+To the maximum extent permitted by law, our total cumulative liability arising out of or relating to these Terms or your use of GFM shall not exceed the greater of (a) the amount you paid GFM for the app in the twelve months preceding the event giving rise to the claim, or (b) USD $50.
 
 You acknowledge that GFM is a thin client over Google APIs, and that primary responsibility for your data rests with Google as the platform on which it is stored.
 
@@ -166,7 +166,7 @@ Some jurisdictions do not allow certain limitations of liability; in those juris
 
 ## 14. Indemnification
 
-You agree to indemnify and hold harmless AlphaIIT, and any contributors, from any claims, damages, losses, liabilities, and expenses (including reasonable legal fees) arising from:
+You agree to indemnify and hold harmless GFM, and any contributors, from any claims, damages, losses, liabilities, and expenses (including reasonable legal fees) arising from:
 
 - Your use of GFM in violation of these Terms.
 - Forms you create or responses you collect through GFM.
@@ -194,7 +194,7 @@ Termination does not affect your ownership of forms and data already stored in y
 
 We may update these Terms from time to time. The current version is always available at:
 
-https://alphaiit.com/terms
+https://netlify.gfm.com/terms
 
 For material changes that affect your rights or obligations, we will notify you within the app and where appropriate require re-acknowledgement before continued use. Minor clarifications will be reflected via an updated "Last Updated" date. Your continued use of GFM after changes take effect constitutes acceptance of the updated Terms.
 
@@ -208,7 +208,7 @@ These Terms are governed by and interpreted in accordance with the laws of Bangl
 
 ## 18. Dispute resolution
 
-Any dispute arising out of or relating to these Terms or your use of GFM shall first be addressed through good-faith negotiation by contacting support@alphaiit.com. If the dispute cannot be resolved within 60 days of written notice, it shall be subject to the exclusive jurisdiction of the competent courts located in Bangladesh.
+Any dispute arising out of or relating to these Terms or your use of GFM shall first be addressed through good-faith negotiation by contacting formmanager000@gmail.com. If the dispute cannot be resolved within 60 days of written notice, it shall be subject to the exclusive jurisdiction of the competent courts located in Bangladesh.
 
 Nothing in this section prevents either party from seeking injunctive or other equitable relief in any court of competent jurisdiction to protect intellectual property rights or confidential information.
 
@@ -216,16 +216,15 @@ Nothing in this section prevents either party from seeking injunctive or other e
 
 ## 19. Miscellaneous
 
-- **Entire agreement.** These Terms, together with the Privacy Policy, constitute the entire agreement between you and AlphaIIT regarding GFM.
+- **Entire agreement.** These Terms, together with the Privacy Policy, constitute the entire agreement between you and GFM.
 - **Severability.** If any provision of these Terms is held invalid or unenforceable, the remaining provisions remain in full force.
 - **No waiver.** Our failure to enforce any provision is not a waiver of our right to do so later.
 - **Assignment.** You may not assign these Terms without our prior written consent. We may assign these Terms in connection with a merger, acquisition, or sale of assets.
-- **No agency.** Nothing in these Terms creates an agency, partnership, employment, or joint venture relationship between you and AlphaIIT.
+- **No agency.** Nothing in these Terms creates an agency, partnership, employment, or joint venture relationship between you and GFM.
 
 ---
 
 ## 20. Contact
 
-**AlphaIIT**
-Email: support@alphaiit.com
-Website: https://alphaiit.com
+Email: formmanager000@gmail.com
+Website: https://netlify.gfm.com

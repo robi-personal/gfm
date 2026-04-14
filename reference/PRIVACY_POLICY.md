@@ -9,12 +9,12 @@
 
 ## 1. Who we are
 
-This Privacy Policy describes how **AlphaIIT** ("we", "our", "us") processes information in connection with our application **GFM — Google Forms Manager** ("GFM", "the app").
+This Privacy Policy describes how ("we", "our", "us") processes information in connection with our application **GFM — Google Forms Manager** ("GFM", "the app").
 
-- Website: https://alphaiit.com
-- Contact: support@alphaiit.com
+- Website: netlify.gfm.com
+- Contact: formmanager000@gmail.com
 
-This policy applies to GFM and any future products published under the same identity at alphaiit.com.
+This policy applies to GFM and any future products published under the same identity at netlify.gfm.com.
 
 ---
 
@@ -55,7 +55,7 @@ To enable offline editing and a responsive user experience, GFM may temporarily 
 - is private to the user's device,
 - is encrypted at rest where supported by the operating system (Android Keystore, iOS Keychain),
 - is cleared automatically on sign-out or app uninstall,
-- is never transmitted to AlphaIIT servers or to any third party other than Google APIs.
+- is never transmitted to external servers or to any third party other than Google APIs.
 
 ---
 
@@ -95,7 +95,7 @@ Form responses may contain personal or sensitive information, depending on what 
 
 GFM enforces:
 
-- No storage of response data on AlphaIIT servers.
+- No storage of response data on external servers.
 - No transmission of response data outside of Google APIs and the user's device.
 - No analysis, profiling, or aggregation of response content.
 
@@ -111,7 +111,7 @@ Authentication uses Google OAuth 2.0 via the official Google Sign-In flow.
 - Access tokens are held in memory only during an active session.
 - All tokens are deleted from the device when the user signs out, uninstalls the app, or revokes access from their Google Account.
 
-We never transmit OAuth tokens to AlphaIIT servers or to any third party other than Google.
+We never transmit OAuth tokens to external servers or to any third party other than Google.
 
 ---
 
@@ -141,7 +141,7 @@ Firebase data handling is governed by [Google's privacy policies](https://fireba
 
 ## 9. Data retention
 
-- **Google user data:** not retained by AlphaIIT. All form data lives in the user's Google account.
+- **Google user data:** not retained by any external entity. All form data lives in the user's Google account.
 - **On-device cache:** retained until the user signs out, uninstalls the app, or clears app data.
 - **Firebase Analytics and Crashlytics:** retained according to Firebase's default retention settings, which are configured and controlled by Google. We do not extend or alter these defaults.
 
@@ -185,7 +185,7 @@ We implement:
 - HTTPS encryption for all network communications.
 - OAuth 2.0 authentication via Google's official SDK — GFM never sees the user's Google password.
 - On-device encryption of authentication tokens via OS-provided secure storage.
-- No storage of Google user data on AlphaIIT infrastructure, eliminating server-side breach risk for that data class.
+- No storage of Google user data on external infrastructure, eliminating server-side breach risk for that data class.
 - Regular updates to the application and its dependencies to address security advisories.
 
 No system is perfectly secure. Users should keep their device operating system and the GFM app up to date.
@@ -198,9 +198,9 @@ GFM is intended for use by adults (typically aged 18 and over), including teache
 
 GFM is not directed to children under 13 (or under 16 in jurisdictions where that is the applicable threshold under GDPR-K), and we do not knowingly collect personal information from children through the app.
 
-When teachers use GFM to collect responses from students, those responses are submitted to and stored within the teacher's Google account, governed by Google's terms and the educational institution's policies. AlphaIIT does not receive, store, or process student response data.
+When teachers use GFM to collect responses from students, those responses are submitted to and stored within the teacher's Google account, governed by Google's terms and the educational institution's policies. We do not receive, store, or process student response data.
 
-If you believe a child has provided personal information through GFM in a way that involves us, please contact support@alphaiit.com and we will take appropriate action.
+If you believe a child has provided personal information through GFM in a way that involves us, please contact formmanager000@gmail.com and we will take appropriate action.
 
 ---
 
@@ -221,7 +221,7 @@ Depending on your jurisdiction, you may have the right to:
 - Withdraw your consent to data processing at any time by revoking the app's Google access (see §10).
 - Lodge a complaint with your local data protection authority.
 
-To exercise any of these rights, contact support@alphaiit.com.
+To exercise any of these rights, contact formmanager000@gmail.com.
 
 ---
 
@@ -229,7 +229,7 @@ To exercise any of these rights, contact support@alphaiit.com.
 
 We may update this Privacy Policy from time to time. The current version is always available at:
 
-https://alphaiit.com/privacy
+https://netlify.gfm.com/privacy
 
 For material changes that affect how we process your data, we will notify you within the app and where appropriate require re-acknowledgement before continued use. Minor clarifications or formatting changes will be reflected via an updated "Last Updated" date.
 
@@ -237,9 +237,8 @@ For material changes that affect how we process your data, we will notify you wi
 
 ## 18. Contact
 
-**AlphaIIT**
-Email: support@alphaiit.com
-Website: https://alphaiit.com
+Email: formmanager000@gmail.com
+Website: https://netlify.gfm.com
 
 ---
 

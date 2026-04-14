@@ -1,26 +1,34 @@
 {
   "project_info": {
-    "project_number": "751857864758",
-    "project_id": "gfmapp",
-    "storage_bucket": "gfmapp.firebasestorage.app"
+    "project_number": "410943078794",
+    "project_id": "form-manager-493310",
+    "storage_bucket": "form-manager-493310.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:751857864758:android:1b6e3d9819ffd71815c897",
+        "mobilesdk_app_id": "1:410943078794:android:a1e5e192f72efb2c9fc873",
         "android_client_info": {
-          "package_name": "com.application.gfm"
+          "package_name": "com.app.formmanager"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDI1d8rVZcT7VF6hTKcTHo6B3Mh7CA4gtM"
+          "current_key": "AIzaSyCR07Av2CCRZcyvAU4OHKQBNZ5QQxuxlKk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "410943078794-scuv9kbopmun1deub4j88tiehgk2hq99.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.app.formmanager"
+              }
+            }
+          ]
         }
       }
     }
