@@ -11,9 +11,9 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (Firebase.apps.isEmpty) {
+  try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  }
+  } catch (_) {}
 
   // Route Flutter framework errors to Crashlytics.
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
