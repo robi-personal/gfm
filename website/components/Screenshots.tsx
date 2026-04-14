@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 
 const screenshots = [
@@ -14,6 +14,15 @@ const screenshots = [
 
 export default function Screenshots() {
   const [active, setActive] = useState(0);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    itemRefs.current[active]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [active]);
 
   const prev = () => setActive((i) => Math.max(0, i - 1));
   const next = () => setActive((i) => Math.min(screenshots.length - 1, i + 1));
@@ -56,6 +65,7 @@ export default function Screenshots() {
               return (
                 <div
                   key={i}
+                  ref={(el) => { itemRefs.current[i] = el; }}
                   onClick={() => setActive(i)}
                   className={`relative flex-shrink-0 cursor-pointer select-none transition-all duration-500 snap-center ${
                     isActive
