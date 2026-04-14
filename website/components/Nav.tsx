@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Nav() {
@@ -25,23 +26,7 @@ export default function Nav() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-[#772FC0] flex items-center justify-center shadow-lg shadow-[#772FC0]/30 group-hover:bg-[#5B1F94] transition-colors">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="4" y="3" width="16" height="18" rx="2" />
-                <line x1="8" y1="8" x2="16" y2="8" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-                <line x1="8" y1="16" x2="13" y2="16" />
-              </svg>
-            </div>
+            <Image src="/app_logo.svg" alt="GFM logo" width={32} height={32} className="rounded-lg" />
             <span className="text-lg font-bold text-[#1A1A2E] tracking-tight">GFM</span>
           </Link>
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   const currentYear = 2026;
@@ -11,23 +12,7 @@ export default function Footer() {
           {/* Col 1 — Logo + tagline */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-[#772FC0] flex items-center justify-center shadow-md shadow-[#772FC0]/30">
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="4" y="3" width="16" height="18" rx="2" />
-                  <line x1="8" y1="8" x2="16" y2="8" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                  <line x1="8" y1="16" x2="13" y2="16" />
-                </svg>
-              </div>
+              <Image src="/app_logo.svg" alt="GFM logo" width={28} height={28} className="rounded-lg" />
               <span className="text-base font-bold text-white">GFM</span>
             </div>
             <p className="text-sm text-[#94A3B8] leading-relaxed max-w-xs">

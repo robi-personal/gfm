@@ -106,64 +106,11 @@ export default function Hero() {
                 <text x="28" y="58" fill="#94A3B8" fontSize="10" fontFamily="system-ui">9:41</text>
                 <text x="218" y="58" fill="#94A3B8" fontSize="10" fontFamily="system-ui" textAnchor="middle">●●●</text>
 
-                {/* App bar */}
-                <rect x="12" y="65" width="256" height="48" fill="#FFFFFF" />
-                <text x="30" y="95" fill="#1A1A2E" fontSize="14" fontWeight="bold" fontFamily="system-ui">My Forms</text>
+                {/* App logo centered in screen */}
+                <image href="/app_logo.svg" x="70" y="185" width="140" height="177" />
 
-                {/* Search bar */}
-                <rect x="24" y="122" width="232" height="32" rx="10" fill="#FFFFFF" stroke="#E8E6F0" strokeWidth="1" />
-                <text x="44" y="142" fill="#94A3B8" fontSize="11" fontFamily="system-ui">Search forms...</text>
-                <circle cx="36" cy="138" r="6" stroke="#94A3B8" strokeWidth="1.2" fill="none" />
-
-                {/* Section label */}
-                <text x="24" y="176" fill="#772FC0" fontSize="9" fontWeight="600" fontFamily="system-ui" letterSpacing="1">RECENT</text>
-
-                {/* Form card 1 */}
-                <rect x="24" y="186" width="232" height="70" rx="12" fill="#FFFFFF" stroke="rgba(119,47,192,0.25)" strokeWidth="1" />
-                <rect x="40" y="200" width="28" height="28" rx="8" fill="rgba(119,47,192,0.12)" />
-                <text x="46" y="219" fill="#772FC0" fontSize="14" fontFamily="system-ui">✦</text>
-                <text x="78" y="211" fill="#1A1A2E" fontSize="11" fontWeight="600" fontFamily="system-ui">End of Year Survey</text>
-                <text x="78" y="226" fill="#64748B" fontSize="9.5" fontFamily="system-ui">48 responses · Quiz</text>
-                <rect x="40" y="237" width="180" height="7" rx="3.5" fill="#E8E6F0" />
-                <rect x="40" y="237" width="110" height="7" rx="3.5" fill="rgba(119,47,192,0.5)" />
-
-                {/* Form card 2 */}
-                <rect x="24" y="268" width="232" height="70" rx="12" fill="#FFFFFF" stroke="#E8E6F0" strokeWidth="1" />
-                <rect x="40" y="282" width="28" height="28" rx="8" fill="rgba(119,47,192,0.08)" />
-                <text x="46" y="301" fill="#772FC0" fontSize="14" fontFamily="system-ui">≡</text>
-                <text x="78" y="293" fill="#1A1A2E" fontSize="11" fontWeight="600" fontFamily="system-ui">Math Quiz — Unit 4</text>
-                <text x="78" y="308" fill="#64748B" fontSize="9.5" fontFamily="system-ui">23 responses · Active</text>
-                <rect x="40" y="319" width="180" height="7" rx="3.5" fill="#E8E6F0" />
-                <rect x="40" y="319" width="60" height="7" rx="3.5" fill="rgba(119,47,192,0.4)" />
-
-                {/* Form card 3 */}
-                <rect x="24" y="350" width="232" height="70" rx="12" fill="#FFFFFF" stroke="#E8E6F0" strokeWidth="1" />
-                <rect x="40" y="364" width="28" height="28" rx="8" fill="rgba(16,185,129,0.12)" />
-                <text x="46" y="383" fill="#059669" fontSize="14" fontFamily="system-ui">✓</text>
-                <text x="78" y="375" fill="#1A1A2E" fontSize="11" fontWeight="600" fontFamily="system-ui">Field Trip Permission</text>
-                <text x="78" y="390" fill="#64748B" fontSize="9.5" fontFamily="system-ui">7 responses · Draft</text>
-                <rect x="40" y="401" width="180" height="7" rx="3.5" fill="#E8E6F0" />
-                <rect x="40" y="401" width="30" height="7" rx="3.5" fill="rgba(16,185,129,0.4)" />
-
-                {/* Bottom nav */}
-                <rect x="12" y="500" width="256" height="48" rx="0" fill="#FFFFFF" />
-                <rect x="12" y="499" width="256" height="1" fill="#E8E6F0" />
-
-                {/* Bottom nav icons */}
-                <rect x="52" y="516" width="16" height="16" rx="2" stroke="#772FC0" strokeWidth="1.5" fill="none" />
-                <line x1="55" y1="522" x2="65" y2="522" stroke="#772FC0" strokeWidth="1.2" />
-                <line x1="55" y1="526" x2="62" y2="526" stroke="#772FC0" strokeWidth="1.2" />
-
-                <rect x="132" y="516" width="16" height="16" rx="8" stroke="#94A3B8" strokeWidth="1.5" fill="none" />
-                <line x1="140" y1="512" x2="140" y2="520" stroke="#94A3B8" strokeWidth="1.2" />
-
-                <circle cx="212" cy="524" r="8" stroke="#94A3B8" strokeWidth="1.5" fill="none" />
-                <circle cx="212" cy="524" r="3" fill="#94A3B8" />
-
-                {/* FAB */}
-                <circle cx="140" cy="476" r="22" fill="#772FC0" />
-                <line x1="140" y1="466" x2="140" y2="486" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                <line x1="130" y1="476" x2="150" y2="476" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Home bar */}
+                <rect x="100" y="530" width="80" height="4" rx="2" fill="#CDB7E3" />
 
                 {/* Side buttons */}
                 <rect x="276" y="140" width="4" height="50" rx="2" fill="#E8E6F0" />
