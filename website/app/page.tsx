@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import StatsBar from "@/components/StatsBar";
 import Features from "@/components/Features";
+import Screenshots from "@/components/Screenshots";
 import HowItWorks from "@/components/HowItWorks";
 import PrivacyBand from "@/components/PrivacyBand";
 import ContactSection from "@/components/ContactSection";
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero />
       <StatsBar />
       <Features />
+      <Screenshots />
       <HowItWorks />
       <PrivacyBand />
       <ContactSection />
