@@ -48,7 +48,7 @@ class SignInScreen extends StatelessWidget {
                     children: [
                       TextButton(
                         onPressed: () => launchUrl(
-                          Uri.parse('https://netlify.gfm.com/privacy'),
+                          Uri.parse('https://gformmanager.netlify.app/privacy'),
                           mode: LaunchMode.externalApplication,
                         ),
                         child: const Text(
@@ -63,7 +63,7 @@ class SignInScreen extends StatelessWidget {
                           style: TextStyle(color: Colors.black38, fontSize: 12)),
                       TextButton(
                         onPressed: () => launchUrl(
-                          Uri.parse('https://netlify.gfm.com/terms'),
+                          Uri.parse('https://gformmanager.netlify.app/terms'),
                           mode: LaunchMode.externalApplication,
                         ),
                         child: const Text(
