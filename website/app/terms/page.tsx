@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions — GFM",
-  description: "Terms and Conditions for GFM — Google Forms Manager by AlphaIIT.",
+  description: "Terms and Conditions for GFM — Google Forms Manager.",
 };
 
 export default function TermsPage() {
@@ -27,10 +27,10 @@ export default function TermsPage() {
 
           <div className="space-y-10 text-[#64748B] leading-relaxed">
             <p className="text-lg text-[#1A1A2E]">
-              By accessing or using <strong>GFM — Google Forms Manager</strong> ("GFM", "the app"),
-              or any other product operated by <strong>AlphaIIT</strong> at{" "}
-              <a href="https://alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                alphaiit.com
+              By accessing or using <strong>GFM — Google Forms Manager</strong> ("GFM", "the app")
+              at{" "}
+              <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                netlify.gfm.com
               </a>
               , you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree,
               you must not use the app. These Terms work alongside our{" "}
@@ -42,14 +42,14 @@ export default function TermsPage() {
 
             <Section title="1. Who You Are Agreeing With">
               <p>
-                These Terms are entered into between you and <strong>AlphaIIT</strong>.
+                These Terms are entered into between you and us.
                 Website:{" "}
-                <a href="https://alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  alphaiit.com
+                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  netlify.gfm.com
                 </a>
                 {" "}· Contact:{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
                 </a>
               </p>
             </Section>
@@ -138,7 +138,7 @@ export default function TermsPage() {
             <Section title="6. Your Content">
               <p>
                 You retain all rights to the forms, questions, responses, and other content you
-                create or collect through GFM. AlphaIIT claims no ownership over your content.
+                create or collect through GFM. We claim no ownership over your content.
                 Because all content lives in your Google account, your use of that content is also
                 subject to Google's terms of service for Google Forms and Google Drive.
               </p>
@@ -170,7 +170,7 @@ export default function TermsPage() {
               </p>
               <ul className="space-y-3 ml-4">
                 {[
-                  "Pricing and billing for Pro features are presented in the app at the time of purchase and are processed by the relevant app store (Google Play or Apple App Store), not by AlphaIIT directly.",
+                  "Pricing and billing for Pro features are presented in the app at the time of purchase and are processed by the relevant app store (Google Play or Apple App Store), not by us directly.",
                   "Refunds, cancellations, and subscription management are governed by the terms of the app store you used to subscribe.",
                   "We may add, remove, or modify Pro features over time. Material changes that reduce features in your active subscription will be communicated through the app.",
                 ].map((item, i) => (
@@ -218,7 +218,7 @@ export default function TermsPage() {
               <p>
                 GFM is provided <strong>"as is" and "as available," without warranties of any kind</strong>,
                 whether express, implied, statutory, or otherwise. To the maximum extent permitted
-                by applicable law, AlphaIIT disclaims all warranties, including but not limited to
+                by applicable law, we disclaim all warranties, including but not limited to
                 warranties of merchantability, fitness for a particular purpose, non-infringement,
                 and that the service will meet your requirements or operate without interruption. We
                 do not warrant the accuracy, completeness, or reliability of any data displayed
@@ -230,7 +230,7 @@ export default function TermsPage() {
 
             <Section title="12. Limitation of Liability">
               <p className="mb-4">
-                To the maximum extent permitted by applicable law, AlphaIIT shall not be liable for
+                To the maximum extent permitted by applicable law, we shall not be liable for
                 any indirect, incidental, special, consequential, exemplary, or punitive damages,
                 including but not limited to:
               </p>
@@ -247,7 +247,7 @@ export default function TermsPage() {
               </ul>
               <p className="mt-4">
                 Our total cumulative liability arising out of or relating to these Terms or your use
-                of GFM shall not exceed the greater of (a) the amount you paid AlphaIIT in the
+                of GFM shall not exceed the greater of (a) the amount you paid us in the
                 twelve months preceding the claim, or (b) USD $50. Some jurisdictions do not allow
                 certain limitations of liability; in those jurisdictions, our liability is limited
                 to the maximum extent permitted by law.
@@ -256,7 +256,7 @@ export default function TermsPage() {
 
             <Section title="13. Indemnification">
               <p className="mb-4">
-                You agree to indemnify and hold harmless AlphaIIT, and any contributors, from any
+                You agree to indemnify and hold harmless us, and any contributors, from any
                 claims, damages, losses, liabilities, and expenses (including reasonable legal fees)
                 arising from:
               </p>
@@ -297,8 +297,8 @@ export default function TermsPage() {
               <p>
                 We may update these Terms from time to time. The current version is always available
                 at{" "}
-                <a href="https://alphaiit.com/terms" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  alphaiit.com/terms
+                <a href="https://netlify.gfm.com/terms" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  netlify.gfm.com/terms
                 </a>
                 . For material changes that affect your rights or obligations, we will notify you
                 within the app and where appropriate require re-acknowledgement before continued use.
@@ -318,8 +318,8 @@ export default function TermsPage() {
               <p>
                 Any dispute arising out of or relating to these Terms or your use of GFM shall
                 first be addressed through good-faith negotiation by contacting{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
                 </a>
                 . If the dispute cannot be resolved within 60 days of written notice, it shall be
                 subject to the exclusive jurisdiction of the competent courts located in Bangladesh.
@@ -331,11 +331,11 @@ export default function TermsPage() {
             <Section title="18. Miscellaneous">
               <ul className="space-y-3 ml-4">
                 {[
-                  "Entire agreement. These Terms, together with the Privacy Policy, constitute the entire agreement between you and AlphaIIT regarding GFM.",
+                  "Entire agreement. These Terms, together with the Privacy Policy, constitute the entire agreement between you and us regarding GFM.",
                   "Severability. If any provision of these Terms is held invalid or unenforceable, the remaining provisions remain in full force.",
                   "No waiver. Our failure to enforce any provision is not a waiver of our right to do so later.",
                   "Assignment. You may not assign these Terms without our prior written consent. We may assign these Terms in connection with a merger, acquisition, or sale of assets.",
-                  "No agency. Nothing in these Terms creates an agency, partnership, employment, or joint venture relationship between you and AlphaIIT.",
+                  "No agency. Nothing in these Terms creates an agency, partnership, employment, or joint venture relationship between you and us.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
                 ))}
@@ -344,19 +344,18 @@ export default function TermsPage() {
 
             <Section title="19. Contact">
               <p>
-                <strong className="text-[#1A1A2E]">AlphaIIT</strong>
-                <br />
                 Email:{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
                 </a>
                 <br />
                 Website:{" "}
-                <a href="https://alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  alphaiit.com
+                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  netlify.gfm.com
                 </a>
               </p>
             </Section>
+
           </div>
         </div>
       </section>

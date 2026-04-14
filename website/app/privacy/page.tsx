@@ -26,21 +26,32 @@ export default function PrivacyPage() {
           </div>
 
           <div className="space-y-10 text-[#64748B] leading-relaxed">
-            <p className="text-lg text-[#1A1A2E]">
-              This Privacy Policy describes how <strong>AlphaIIT</strong> ("we", "our", "us")
-              processes information in connection with our application{" "}
-              <strong>GFM — Google Forms Manager</strong> ("GFM", "the app").
-              Website:{" "}
-              <a href="https://alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                alphaiit.com
-              </a>
-              {" "}· Contact:{" "}
-              <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                support@alphaiit.com
-              </a>
-            </p>
 
-            <Section title="1. What GFM Is">
+            <Section title="1. Who We Are">
+              <p>
+                This Privacy Policy describes how we ("we", "our", "us") process information
+                in connection with our application{" "}
+                <strong className="text-[#1A1A2E]">GFM — Google Forms Manager</strong> ("GFM", "the app").
+              </p>
+              <ul className="mt-4 space-y-1 ml-4">
+                <li>Website:{" "}
+                  <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                    netlify.gfm.com
+                  </a>
+                </li>
+                <li>Contact:{" "}
+                  <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                    formmanager000@gmail.com
+                  </a>
+                </li>
+              </ul>
+              <p className="mt-4">
+                This policy applies to GFM and any future products published under the same
+                identity at netlify.gfm.com.
+              </p>
+            </Section>
+
+            <Section title="2. What GFM Is">
               <p>
                 GFM is a mobile client application that interacts directly with Google APIs
                 (Google Forms API and Google Drive API) on behalf of the signed-in user.
@@ -51,7 +62,7 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="2. Google API Services — Limited Use Compliance">
+            <Section title="3. Google API Services — Limited Use Compliance">
               <p className="mb-4">
                 GFM's use and transfer of information received from Google APIs adheres to the{" "}
                 <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
@@ -73,7 +84,7 @@ export default function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section title="3. Data Storage and On-Device Caching">
+            <Section title="4. Data Storage and On-Device Caching">
               <p className="mb-4">
                 We do not store, log, or persist Google user data on our servers. To enable
                 offline editing and a responsive user experience, GFM may temporarily cache
@@ -84,14 +95,14 @@ export default function PrivacyPage() {
                   "is private to the user's device,",
                   "is encrypted at rest where supported by the operating system (Android Keystore, iOS Keychain),",
                   "is cleared automatically on sign-out or app uninstall,",
-                  "is never transmitted to AlphaIIT servers or to any third party other than Google APIs.",
+                  "is never transmitted to external servers or to any third party other than Google APIs.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
                 ))}
               </ul>
             </Section>
 
-            <Section title="4. Google API Scopes and Why We Need Them">
+            <Section title="5. Google API Scopes and Why We Need Them">
               <div className="space-y-6">
                 <div>
                   <p className="font-semibold text-[#1A1A2E] mb-2">
@@ -130,13 +141,13 @@ export default function PrivacyPage() {
               </div>
             </Section>
 
-            <Section title="5. Sensitive Data in Form Responses">
+            <Section title="6. Sensitive Data in Form Responses">
               <p className="mb-4">
                 Form responses may contain personal or sensitive information. GFM enforces:
               </p>
               <ul className="space-y-3 ml-4">
                 {[
-                  "No storage of response data on AlphaIIT servers.",
+                  "No storage of response data on external servers.",
                   "No transmission of response data outside of Google APIs and the user's device.",
                   "No analysis, profiling, or aggregation of response content.",
                 ].map((item, i) => (
@@ -148,20 +159,20 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="6. Authentication and Tokens">
+            <Section title="7. Authentication and Tokens">
               <ul className="space-y-3 ml-4">
                 {[
                   "Refresh tokens are stored encrypted on-device using the operating system's secure storage (Android Keystore, iOS Keychain).",
                   "Access tokens are held in memory only during an active session.",
                   "All tokens are deleted from the device when the user signs out, uninstalls the app, or revokes access from their Google Account.",
-                  "We never transmit OAuth tokens to AlphaIIT servers or to any third party other than Google.",
+                  "We never transmit OAuth tokens to external servers or to any third party other than Google.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
                 ))}
               </ul>
             </Section>
 
-            <Section title="7. Analytics and Crash Reporting">
+            <Section title="8. Analytics and Crash Reporting">
               <p className="mb-4">
                 GFM uses two Firebase services from Google to maintain app quality:
               </p>
@@ -198,10 +209,10 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="8. Data Retention">
+            <Section title="9. Data Retention">
               <ul className="space-y-3 ml-4">
                 {[
-                  "Google user data: not retained by AlphaIIT. All form data lives in the user's Google account.",
+                  "Google user data: not retained by any external entity. All form data lives in the user's Google account.",
                   "On-device cache: retained until the user signs out, uninstalls the app, or clears app data.",
                   "Firebase Analytics and Crashlytics: retained according to Firebase's default retention settings, controlled by Google.",
                 ].map((item, i) => (
@@ -210,7 +221,7 @@ export default function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section title="9. Data Deletion and Revocation">
+            <Section title="10. Data Deletion and Revocation">
               <div className="space-y-4">
                 <div>
                   <p className="font-semibold text-[#1A1A2E] mb-1">To revoke GFM&apos;s access:</p>
@@ -236,7 +247,7 @@ export default function PrivacyPage() {
               </div>
             </Section>
 
-            <Section title="10. Data Sharing">
+            <Section title="11. Data Sharing">
               <p>
                 We do not sell, rent, lease, or share user data with third parties for any purpose
                 other than the service provider relationships described in this policy (Google APIs,
@@ -245,7 +256,7 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="11. Uploaded Images and Link-Based Access">
+            <Section title="12. Uploaded Images and Link-Based Access">
               <p>
                 When a user adds an image to a form through GFM, the image is uploaded to the
                 user's own Google Drive and its sharing permission is set to "anyone with the link
@@ -256,13 +267,13 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="12. Security Measures">
+            <Section title="13. Security Measures">
               <ul className="space-y-3 ml-4">
                 {[
                   "HTTPS encryption for all network communications.",
                   "OAuth 2.0 authentication via Google's official SDK — GFM never sees the user's Google password.",
                   "On-device encryption of authentication tokens via OS-provided secure storage.",
-                  "No storage of Google user data on AlphaIIT infrastructure, eliminating server-side breach risk for that data class.",
+                  "No storage of Google user data on external infrastructure, eliminating server-side breach risk for that data class.",
                   "Regular updates to the application and its dependencies to address security advisories.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
@@ -270,22 +281,22 @@ export default function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section title="13. Children and Educational Use">
+            <Section title="14. Children and Educational Use">
               <p>
                 GFM is intended for adults (typically aged 18 and over) and is not directed to
                 children under 13 (or under 16 in jurisdictions where that is the applicable
                 threshold under GDPR-K). We do not knowingly collect personal information from
                 children. When teachers use GFM to collect responses from students, those responses
-                are stored within the teacher's Google account — AlphaIIT does not receive, store,
+                are stored within the teacher's Google account — we do not receive, store,
                 or process student response data. If you believe a child has provided personal
                 information through GFM, contact{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
                 </a>.
               </p>
             </Section>
 
-            <Section title="14. International Data Transfers">
+            <Section title="15. International Data Transfers">
               <p>
                 GFM is operated from Bangladesh. Google and Firebase services may process data on
                 servers located in countries other than the user's own, including the United States.
@@ -296,13 +307,13 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="15. Your Rights">
+            <Section title="16. Your Rights">
               <p className="mb-4">Depending on your jurisdiction, you may have the right to:</p>
               <ul className="space-y-3 ml-4">
                 {[
                   "Access the personal data we hold about you (in our case, none beyond Firebase telemetry tied to a random installation ID).",
                   "Request correction or deletion of your data.",
-                  "Withdraw your consent to data processing at any time by revoking the app's Google access (see §9).",
+                  "Withdraw your consent to data processing at any time by revoking the app's Google access (see §10).",
                   "Lodge a complaint with your local data protection authority.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
@@ -310,18 +321,18 @@ export default function PrivacyPage() {
               </ul>
               <p className="mt-4">
                 To exercise any of these rights, contact{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
                 </a>.
               </p>
             </Section>
 
-            <Section title="16. Changes to This Policy">
+            <Section title="17. Changes to This Policy">
               <p>
                 We may update this Privacy Policy from time to time. The current version is always
                 available at{" "}
-                <a href="https://alphaiit.com/privacy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  alphaiit.com/privacy
+                <a href="https://netlify.gfm.com/privacy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  netlify.gfm.com/privacy
                 </a>
                 . For material changes that affect how we process your data, we will notify you
                 within the app and where appropriate require re-acknowledgement before continued use.
@@ -329,28 +340,27 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="17. Governing Law">
+            <Section title="18. Contact">
+              <p>
+                Email:{" "}
+                <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  formmanager000@gmail.com
+                </a>
+                <br />
+                Website:{" "}
+                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  netlify.gfm.com
+                </a>
+              </p>
+            </Section>
+
+            <Section title="19. Governing Law">
               <p>
                 This Privacy Policy is governed by the laws of Bangladesh, without regard to its
                 conflict-of-law provisions.
               </p>
             </Section>
 
-            <Section title="18. Contact">
-              <p>
-                <strong className="text-[#1A1A2E]">AlphaIIT</strong>
-                <br />
-                Email:{" "}
-                <a href="mailto:support@alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  support@alphaiit.com
-                </a>
-                <br />
-                Website:{" "}
-                <a href="https://alphaiit.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  alphaiit.com
-                </a>
-              </p>
-            </Section>
           </div>
         </div>
       </section>
