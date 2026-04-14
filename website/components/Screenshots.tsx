@@ -15,8 +15,13 @@ const screenshots = [
 export default function Screenshots() {
   const [active, setActive] = useState(0);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mounted = useRef(false);
 
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     itemRefs.current[active]?.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
