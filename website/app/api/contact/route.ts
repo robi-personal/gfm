@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await resend.emails.send({
-    from: "GFM Contact <contact@gfm.app>",
+    from: "GFM Contact <onboarding@resend.dev>",
     to: process.env.CONTACT_EMAIL!,
     replyTo: email,
     subject: `[GFM Contact] ${subject}`,
