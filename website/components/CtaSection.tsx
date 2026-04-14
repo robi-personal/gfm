@@ -87,7 +87,18 @@ export default function CtaSection() {
               </svg>
             </div>
             <p className="text-lg font-semibold text-[#1A1A2E] mb-1">You&apos;re on the list!</p>
-            <p className="text-[#64748B] text-sm">We&apos;ll send one email when GFM is ready to download.</p>
+            <p className="text-[#64748B] text-sm mb-6">We&apos;ll send one email when GFM is ready to download.</p>
+            <a
+              href="https://github.com/robi-personal/gfm/releases/download/v1.0.0-beta/app-release.apk"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#772FC0] hover:bg-[#5B1F94] text-white text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-[#772FC0]/30"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download Beta APK
+            </a>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="max-w-md mx-auto">
@@ -115,7 +126,7 @@ export default function CtaSection() {
               </button>
             </div>
             <p className="text-xs text-[#94A3B8]">
-              No spam. One email when it launches.
+              You will be listed as a tester.
             </p>
           </form>
         )}
