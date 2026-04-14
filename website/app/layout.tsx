@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GFM — Google Forms for Your Phone",
+  title: "GFM",
   description:
     "Create, edit, and manage Google Forms from anywhere. Native speed, full functionality — no compromises. Privacy-first: all data stays in Google Drive.",
   keywords: ["Google Forms", "mobile app", "forms manager", "educators", "teachers"],
