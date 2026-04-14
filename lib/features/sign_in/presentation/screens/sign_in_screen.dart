@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../cubit/sign_in_cubit.dart';
 
@@ -30,14 +31,50 @@ class SignInScreen extends StatelessWidget {
                   ),
                 ),
 
-                // Bottom area — sign-in button
+                // Bottom area — sign-in button + legal footer
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                   child: _GoogleSignInButton(
                     isLoading: isLoading,
                     onPressed: isLoading
                         ? null
                         : () => context.read<SignInCubit>().signIn(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () => launchUrl(
+                          Uri.parse('https://netlify.gfm.com/privacy'),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF772FC0),
+                          ),
+                        ),
+                      ),
+                      const Text('·',
+                          style: TextStyle(color: Colors.black38, fontSize: 12)),
+                      TextButton(
+                        onPressed: () => launchUrl(
+                          Uri.parse('https://netlify.gfm.com/terms'),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        child: const Text(
+                          'Terms of Use',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF772FC0),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
