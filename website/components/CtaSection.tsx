@@ -135,7 +135,7 @@ export default function CtaSection() {
               </button>
             </div>
             <p className="text-xs text-[#94A3B8]">
-              You will be listed as a tester.
+              You will be listed as a tester. It may take 24 hours to give access. Thank you for your support.
             </p>
           </form>
         )}
