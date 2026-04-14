@@ -86,8 +86,8 @@ export default function PrivacyPage() {
 
             <Section title="4. Data Storage and On-Device Caching">
               <p className="mb-4">
-                We do not store, log, or persist Google user data on our servers. To enable
-                offline editing and a responsive user experience, GFM may temporarily cache
+                We do not store, log, or persist Google user data on our servers. To provide
+                a responsive user experience, GFM may temporarily cache
                 form content on the user's device. This local cache:
               </p>
               <ul className="space-y-3 ml-4">
@@ -133,9 +133,8 @@ export default function PrivacyPage() {
                   <p>
                     Used to display response counts and individual responses to the signed-in user,
                     for forms they have access to, and to power the in-app "Responses" view and
-                    CSV/Excel export (paid feature). Access occurs only during active user
-                    interaction. We do not perform background polling, bulk extraction, or external
-                    processing of response data.
+                    CSV export. Access occurs only during active user interaction. We do not perform
+                    background polling, bulk extraction, or external processing of response data.
                   </p>
                 </div>
               </div>
@@ -261,7 +260,6 @@ export default function PrivacyPage() {
                 When a user adds an image to a form through GFM, the image is uploaded to the
                 user's own Google Drive and its sharing permission is set to "anyone with the link
                 can view," which is required by the Google Forms API for embedded images to render.
-                GFM displays an in-app confirmation before any image is uploaded for the first time.
                 Once a file is set to "anyone with the link," anyone who obtains the link may view
                 the file. Users are responsible for managing the visibility of files they upload.
               </p>

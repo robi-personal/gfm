@@ -61,11 +61,11 @@ export default function TermsPage() {
               </p>
               <ul className="space-y-3 ml-4">
                 {[
-                  "Create, edit, duplicate, and delete Google Forms.",
+                  "Create, edit, and delete Google Forms.",
                   "Manage form questions, sections, and settings.",
                   "Share form links.",
                   "View responses to forms you have access to.",
-                  "Export responses (where available as a paid feature).",
+                  "Export responses as CSV.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
                 ))}
@@ -148,8 +148,7 @@ export default function TermsPage() {
               <p className="mb-4">
                 When you upload an image to a form through GFM, the image is stored in your Google
                 Drive and its sharing permission is set to "anyone with the link can view" so that
-                form respondents can see it. GFM displays an in-app confirmation before the first
-                such upload. You are solely responsible for:
+                form respondents can see it. You are solely responsible for:
               </p>
               <ul className="space-y-3 ml-4">
                 {[
@@ -164,23 +163,19 @@ export default function TermsPage() {
 
             <Section title="8. Paid Features and Subscriptions">
               <p className="mb-4">
-                Some features of GFM are available only to users on a paid subscription ("Pro
-                features"), which may include advanced question types, quiz mode, response export,
-                and removal of advertisements.
+                GFM is currently free to use. We reserve the right to introduce paid features or
+                subscriptions ("Pro features") in future versions of the app. If and when paid
+                features are introduced:
               </p>
               <ul className="space-y-3 ml-4">
                 {[
-                  "Pricing and billing for Pro features are presented in the app at the time of purchase and are processed by the relevant app store (Google Play or Apple App Store), not by us directly.",
-                  "Refunds, cancellations, and subscription management are governed by the terms of the app store you used to subscribe.",
+                  "Pricing and billing will be presented in the app at the time of purchase and processed by the relevant app store (Google Play or Apple App Store), not by us directly.",
+                  "Refunds, cancellations, and subscription management will be governed by the terms of the app store used to subscribe.",
                   "We may add, remove, or modify Pro features over time. Material changes that reduce features in your active subscription will be communicated through the app.",
                 ].map((item, i) => (
                   <Bullet key={i}>{item}</Bullet>
                 ))}
               </ul>
-              <p className="mt-4">
-                The free tier of GFM may be supported by non-intrusive advertisements. By using
-                the free tier, you agree to be shown such advertisements.
-              </p>
             </Section>
 
             <Section title="9. Third-Party Services">
