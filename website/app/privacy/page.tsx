@@ -35,8 +35,8 @@ export default function PrivacyPage() {
               </p>
               <ul className="mt-4 space-y-1 ml-4">
                 <li>Website:{" "}
-                  <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                    netlify.gfm.com
+                  <a href="https://gformmanager.netlify.app" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                    gformmanager.netlify.app
                   </a>
                 </li>
                 <li>Contact:{" "}
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
               </ul>
               <p className="mt-4">
                 This policy applies to GFM and any future products published under the same
-                identity at netlify.gfm.com.
+                identity at gformmanager.netlify.app.
               </p>
             </Section>
 
@@ -331,8 +331,8 @@ export default function PrivacyPage() {
               <p>
                 We may update this Privacy Policy from time to time. The current version is always
                 available at{" "}
-                <a href="https://netlify.gfm.com/privacy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  netlify.gfm.com/privacy
+                <a href="https://gformmanager.netlify.app/privacy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  gformmanager.netlify.app/privacy
                 </a>
                 . For material changes that affect how we process your data, we will notify you
                 within the app and where appropriate require re-acknowledgement before continued use.
@@ -348,8 +348,8 @@ export default function PrivacyPage() {
                 </a>
                 <br />
                 Website:{" "}
-                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  netlify.gfm.com
+                <a href="https://gformmanager.netlify.app" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  gformmanager.netlify.app
                 </a>
               </p>
             </Section>

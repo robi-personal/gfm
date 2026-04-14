@@ -29,8 +29,8 @@ export default function TermsPage() {
             <p className="text-lg text-[#1A1A2E]">
               By accessing or using <strong>GFM — Google Forms Manager</strong> ("GFM", "the app")
               at{" "}
-              <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                netlify.gfm.com
+              <a href="https://gformmanager.netlify.app" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                gformmanager.netlify.app
               </a>
               , you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree,
               you must not use the app. These Terms work alongside our{" "}
@@ -44,8 +44,8 @@ export default function TermsPage() {
               <p>
                 These Terms are entered into between you and us.
                 Website:{" "}
-                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  netlify.gfm.com
+                <a href="https://gformmanager.netlify.app" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  gformmanager.netlify.app
                 </a>
                 {" "}· Contact:{" "}
                 <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
@@ -297,8 +297,8 @@ export default function TermsPage() {
               <p>
                 We may update these Terms from time to time. The current version is always available
                 at{" "}
-                <a href="https://netlify.gfm.com/terms" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  netlify.gfm.com/terms
+                <a href="https://gformmanager.netlify.app/terms" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  gformmanager.netlify.app/terms
                 </a>
                 . For material changes that affect your rights or obligations, we will notify you
                 within the app and where appropriate require re-acknowledgement before continued use.
@@ -350,8 +350,8 @@ export default function TermsPage() {
                 </a>
                 <br />
                 Website:{" "}
-                <a href="https://netlify.gfm.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
-                  netlify.gfm.com
+                <a href="https://gformmanager.netlify.app" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  gformmanager.netlify.app
                 </a>
               </p>
             </Section>
