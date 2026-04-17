@@ -21,7 +21,7 @@ export default function PrivacyPage() {
               Privacy Policy
             </h1>
             <p className="mt-3 text-[#64748B]">
-              Effective Date: April 14, 2026 &nbsp;·&nbsp; Last Updated: April 14, 2026
+              Effective Date: April 14, 2026 &nbsp;·&nbsp; Last Updated: April 17, 2026
             </p>
           </div>
 
@@ -82,6 +82,81 @@ export default function PrivacyPage() {
                   <Bullet key={i}>{item}</Bullet>
                 ))}
               </ul>
+            </Section>
+
+            <Section title="3a. Google User Data — Required Disclosures">
+              <p className="mb-6 text-sm italic">
+                This section directly addresses the disclosure requirements set out in the{" "}
+                <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">
+                  Google API Services User Data Policy
+                </a>
+                .
+              </p>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">Data Accessed</h3>
+                  <p className="mb-2">GFM requests three OAuth scopes from the signed-in Google user:</p>
+                  <ul className="space-y-2 ml-4">
+                    <Bullet>
+                      <strong className="text-[#1A1A2E]">drive.file</strong> — metadata and content of Google Drive files that the user creates inside GFM, or explicitly opens within GFM (e.g. by tapping a form from the dashboard). Also used to upload images the user embeds in their forms. GFM cannot access any other files in the user's Drive.
+                    </Bullet>
+                    <Bullet>
+                      <strong className="text-[#1A1A2E]">forms.body</strong> — the structure of the user's Google Forms: titles, descriptions, questions, sections, settings, quiz configuration, and publish state for forms created or opened in GFM.
+                    </Bullet>
+                    <Bullet>
+                      <strong className="text-[#1A1A2E]">forms.responses.readonly</strong> — submitted responses to the user's forms, for display in the in-app Responses view and CSV export. Read-only; GFM never writes response data.
+                    </Bullet>
+                  </ul>
+                  <p className="mt-3">No additional Google account data (contacts, email, calendar, profile beyond a sign-in identifier, etc.) is requested or accessed.</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">Data Usage</h3>
+                  <p className="mb-2">Google user data is used exclusively to operate GFM's core features:</p>
+                  <ul className="space-y-2 ml-4">
+                    <Bullet>Drive file data is used to list the user's forms on the dashboard and to upload embedded images to the user's own Drive.</Bullet>
+                    <Bullet>Form body data is used to render, create, edit, reorder, and publish forms and their questions within the app.</Bullet>
+                    <Bullet>Response data is used to display individual and summary responses to the signed-in user, and to generate CSV exports the user initiates.</Bullet>
+                  </ul>
+                  <p className="mt-3">Data is never used for advertising, profiling, AI/ML model training, or any purpose beyond providing the in-app features described above.</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">Data Sharing</h3>
+                  <p>
+                    GFM does not share Google user data with any third party. The only data flows are:
+                  </p>
+                  <ul className="space-y-2 ml-4 mt-2">
+                    <Bullet>Between the app and Google's own APIs (Forms API, Drive API) — required for the app to function.</Bullet>
+                    <Bullet>Aggregate, anonymous crash and usage telemetry to Firebase (a Google service), which contains no form content, no response data, and no personally identifying information. See §8 for details.</Bullet>
+                    <Bullet>CSV exports that the user manually initiates and shares via the device's native share sheet — to a destination the user chooses.</Bullet>
+                  </ul>
+                  <p className="mt-3">We do not sell, rent, lease, or otherwise transfer Google user data to advertisers, data brokers, or any unaffiliated third party.</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">Data Storage &amp; Protection</h3>
+                  <ul className="space-y-2 ml-4">
+                    <Bullet>GFM does not operate backend servers that store Google user data. All form data, questions, and responses remain in the user's Google account.</Bullet>
+                    <Bullet>OAuth refresh tokens are stored on-device using the operating system's secure enclave (Android Keystore / iOS Keychain). Access tokens are held in memory only for the duration of an active session.</Bullet>
+                    <Bullet>Any temporary on-device cache of form content is private to the user's device, encrypted at rest where the OS supports it, and never transmitted externally.</Bullet>
+                    <Bullet>All network communication uses HTTPS/TLS. GFM never sees the user's Google password — authentication is handled entirely by Google's OAuth 2.0 SDK.</Bullet>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-2">Data Retention &amp; Deletion</h3>
+                  <ul className="space-y-2 ml-4">
+                    <Bullet>Google user data (forms, responses) is not retained by GFM. It lives in the user's Google account and is subject to Google's own retention policies.</Bullet>
+                    <Bullet>On-device cache is deleted automatically when the user signs out or uninstalls the app, and can also be cleared via the device's app settings at any time.</Bullet>
+                    <Bullet>OAuth tokens are deleted from the device upon sign-out, uninstall, or when the user revokes GFM's access from their Google Account settings.</Bullet>
+                    <Bullet>To delete forms and responses created via GFM, users can do so directly from Google Drive or the Google Forms web interface.</Bullet>
+                    <Bullet>To revoke all access: visit <a href="https://myaccount.google.com/permissions" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">Google Account → Security → Third-party apps with account access</a> and remove GFM.</Bullet>
+                    <Bullet>To request deletion of any Firebase telemetry data tied to your installation, contact us at <a href="mailto:formmanager000@gmail.com" className="text-[#772FC0] hover:text-[#5B1F94] underline underline-offset-4 transition-colors">formmanager000@gmail.com</a>.</Bullet>
+                  </ul>
+                </div>
+              </div>
             </Section>
 
             <Section title="4. Data Storage and On-Device Caching">
