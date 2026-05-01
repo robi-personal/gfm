@@ -37,7 +37,7 @@ Read this file at the start of every session before touching any code.
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
 | Analytics + Crashlytics | ✅ Done | Firebase Analytics + Crashlytics; DebugView confirmed working |
-| Production readiness | 🔜 After analytics | OAuth verification, app signing, store submission |
+| Production readiness | 🔄 In progress | OAuth verification ✅, app signing, store submission |
 
 ---
 
@@ -211,6 +211,6 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ## Next steps
 
-1. **Analytics + Crashlytics** — Firebase Analytics (screen views, key events) + Crashlytics (crash reporting)
-2. **Google OAuth consent screen verification** — required before public launch; `forms.body` and `forms.responses.readonly` are sensitive scopes
+1. ~~**Analytics + Crashlytics**~~ — ✅ Done
+2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
