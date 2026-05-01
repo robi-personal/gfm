@@ -47,6 +47,19 @@
 			</array>
 		</dict>
 	</dict>
+	<key>GIDClientID</key>
+	<string>410943078794-scuv9kbopmun1deub4j88tiehgk2hq99.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.410943078794-scuv9kbopmun1deub4j88tiehgk2hq99</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose an image from your photo library to add to your form.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

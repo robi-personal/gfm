@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
@@ -23,6 +24,7 @@ import '../widgets/question_edit_sheet.dart';
 import '../widgets/image_url_dialog.dart';
 import '../widgets/video_search_dialog.dart';
 import '../../../../core/widgets/error_modal.dart';
+import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/pages/responses_page.dart';
 import '../cubit/editor_cubit.dart';
@@ -184,7 +186,19 @@ class _EditorViewState extends State<_EditorView>
         'Form list',
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),
-      actions: const [],
+      actions: [
+        GestureDetector(
+          onTap: () => PaywallPage.show(context),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: SvgPicture.asset(
+              'assets/dashboard_premium.svg',
+              width: 26,
+              height: 26,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
