@@ -96,6 +96,7 @@ flutter:
     - assets/dashboard_hamburger.svg
     - assets/dashboard_premium.svg
     - assets/dashboard_no_form_banner.svg
+    - assets/template_image/
 
 flutter_launcher_icons:
   android: true

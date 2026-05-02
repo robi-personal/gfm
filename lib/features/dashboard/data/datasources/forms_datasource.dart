@@ -1,6 +1,7 @@
 import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../../../core/api/forms_client.dart';
+import '../../../../core/models/item.dart' as domain;
 
 class FormsDataSource {
   final FormsClient _client;
@@ -37,6 +38,30 @@ class FormsDataSource {
         formId,
       );
 
+  /// Adds template items to a freshly created form via batchUpdate.
+  /// Uses an empty revisionId (no write-control) since the form is brand new.
+  Future<void> addTemplateItems(
+      String formId, List<domain.Item> items) async {
+    final requests = items.asMap().entries.map((entry) {
+      final index = entry.key;
+      final item = entry.value;
+      // Strip itemId/questionId — API rejects output-only fields on create.
+      final rawJson = _stripIds(item.toJson());
+      final apiItem = forms_api.Item.fromJson(rawJson);
+      return forms_api.Request(
+        createItem: forms_api.CreateItemRequest(
+          item: apiItem,
+          location: forms_api.Location(index: index),
+        ),
+      );
+    }).toList();
+
+    await _client.api.forms.batchUpdate(
+      forms_api.BatchUpdateFormRequest(requests: requests),
+      formId,
+    );
+  }
+
   Future<void> publishForm(String formId) =>
       _client.api.forms.setPublishSettings(
         forms_api.SetPublishSettingsRequest(
@@ -50,3 +75,34 @@ class FormsDataSource {
         formId,
       );
 }
+
+// Removes null-valued keys recursively (freezed toJson includes nulls;
+// googleapis fromJson crashes on them) and strips output-only id fields.
+Map<String, dynamic> _stripIds(Map<String, dynamic> map) {
+  final clean = _removeNulls(map);
+  clean.remove('itemId');
+  if (clean['questionItem'] case Map<String, dynamic> qi) {
+    if (qi['question'] case Map<String, dynamic> q) {
+      q.remove('questionId');
+    }
+  }
+  return clean;
+}
+
+Map<String, dynamic> _removeNulls(Map<String, dynamic> map) =>
+    Map.fromEntries(
+      map.entries
+          .where((e) => e.value != null)
+          .map((e) => MapEntry(
+                e.key,
+                e.value is Map<String, dynamic>
+                    ? _removeNulls(e.value as Map<String, dynamic>)
+                    : e.value is List
+                        ? (e.value as List)
+                            .map((v) => v is Map<String, dynamic>
+                                ? _removeNulls(v)
+                                : v)
+                            .toList()
+                        : e.value,
+              )),
+    );

@@ -1197,8 +1197,7 @@ class _ImageCard extends StatelessWidget {
             Image.network(
               imageUrl,
               width: double.infinity,
-              height: 180,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               errorBuilder: (_, _, _) => Container(
                 height: 180,
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -1220,23 +1219,61 @@ class _ImageCard extends StatelessWidget {
           Positioned(
             top: 6,
             right: 6,
-            child: GestureDetector(
-              onTap: () =>
-                  context.read<EditorCubit>().deleteItem(item.itemId),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () => _editImage(context),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(Icons.edit,
+                        color: Colors.white, size: 18),
+                  ),
                 ),
-                padding: const EdgeInsets.all(4),
-                child: const Icon(Icons.close,
-                    color: Colors.white, size: 18),
-              ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () =>
+                      context.read<EditorCubit>().deleteItem(item.itemId),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(Icons.close,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _editImage(BuildContext context) async {
+    final cubit = context.read<EditorCubit>();
+    final driveClient = getIt<DriveClient>();
+    final url = await showImageUrlDialog(
+      context,
+      onGalleryUpload: (bytes, mimeType) =>
+          driveClient.uploadImage(bytes, mimeType),
+    );
+    if (url != null && context.mounted) {
+      final content = item.content as ImageItemContent;
+      cubit.updateItemFull(
+        item.copyWith(
+          content: content.copyWith(
+            image: content.image.copyWith(sourceUri: url),
+          ),
+        ),
+      );
+    }
   }
 }
 

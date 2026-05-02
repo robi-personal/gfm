@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/models/item.dart' as domain;
 import '../../domain/entities/form_entry.dart';
 import '../../domain/repositories/form_repository.dart';
 import '../datasources/drive_datasource.dart';
@@ -43,6 +44,7 @@ class FormRepositoryImpl implements FormRepository {
   @override
   Future<Either<Failure, CreateFormResult>> createForm({
     String title = 'Untitled form',
+    List<domain.Item>? items,
   }) async {
     final forms_api.Form created;
     try {
@@ -57,7 +59,11 @@ class FormRepositoryImpl implements FormRepository {
     final entry = FormEntryModel(id: formId, name: formName);
 
     try {
-      await _forms.addDefaultQuestion(formId);
+      if (items != null && items.isNotEmpty) {
+        await _forms.addTemplateItems(formId, items);
+      } else {
+        await _forms.addDefaultQuestion(formId);
+      }
     } catch (_) {}
 
     bool publishFailed = false;

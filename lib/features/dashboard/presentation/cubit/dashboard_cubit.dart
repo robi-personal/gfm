@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 
+import '../../../../core/models/item.dart' as domain;
 import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/form_entry.dart';
 import '../../domain/usecases/create_form.dart';
@@ -74,10 +75,14 @@ class DashboardCubit extends Cubit<DashboardState> {
 
   // ── Create ─────────────────────────────────────────────────────────────────
 
-  Future<void> createForm({String title = 'Untitled form'}) async {
+  Future<void> createForm({
+    String title = 'Untitled form',
+    List<domain.Item>? items,
+  }) async {
     _setCreating(true);
 
-    final result = await _createForm(CreateFormParams(title: title));
+    final result = await _createForm(
+        CreateFormParams(title: title, items: items));
 
     result.fold(
       (failure) {

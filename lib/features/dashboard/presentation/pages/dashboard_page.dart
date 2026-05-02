@@ -11,6 +11,7 @@ import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
+import 'template_picker_page.dart';
 
 const _purple = Color(0xFF772FC0);
 
@@ -87,77 +88,14 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  void _onNewForm(BuildContext context) async {
-    final name = await _showCreateDialog(context);
-    if (name == null || !context.mounted) return;
+  void _onNewForm(BuildContext context) {
     final cubit = context.read<DashboardCubit>();
-    try {
-      await cubit.createForm(title: name.isEmpty ? 'Untitled form' : name);
-    } catch (_) {
-      if (!context.mounted) return;
-      ErrorModal.show(
-        context,
-        title: "Couldn't create form.",
-        body: 'Check your connection and try again.',
-        secondaryLabel: 'Cancel',
-        onSecondary: () {},
-        primaryLabel: 'Retry',
-        onPrimary: () => _onNewForm(context),
-      );
-    }
-  }
-
-  Future<String?> _showCreateDialog(BuildContext context) {
-    final ctrl = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Please enter form name',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter form name',
-                  filled: true,
-                  fillColor: const Color(0xFFF3F0FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
-                ),
-                onSubmitted: (v) => Navigator.of(ctx).pop(v),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(ctrl.text),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _purple,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Create',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-        ),
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: const TemplatePickerPage(),
       ),
-    );
+    ));
   }
 
   void _handleCreateNavigation(

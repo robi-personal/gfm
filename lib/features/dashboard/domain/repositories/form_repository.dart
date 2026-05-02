@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/models/item.dart' as domain;
 import '../entities/form_entry.dart';
 
 abstract class FormRepository {
@@ -11,6 +12,7 @@ abstract class FormRepository {
 
   Future<Either<Failure, CreateFormResult>> createForm({
     String title = 'Untitled form',
+    List<domain.Item>? items,
   });
 
   Future<Either<Failure, Unit>> deleteForm(String fileId);

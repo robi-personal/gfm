@@ -1,14 +1,16 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/models/item.dart' as domain;
 import '../../../../core/usecases/usecase.dart';
 import '../entities/form_entry.dart';
 import '../repositories/form_repository.dart';
 
 class CreateFormParams {
   final String title;
+  final List<domain.Item>? items;
 
-  const CreateFormParams({this.title = 'Untitled form'});
+  const CreateFormParams({this.title = 'Untitled form', this.items});
 }
 
 class CreateForm implements UseCase<CreateFormResult, CreateFormParams> {
@@ -18,5 +20,5 @@ class CreateForm implements UseCase<CreateFormResult, CreateFormParams> {
 
   @override
   Future<Either<Failure, CreateFormResult>> call(CreateFormParams params) =>
-      _repository.createForm(title: params.title);
+      _repository.createForm(title: params.title, items: params.items);
 }
