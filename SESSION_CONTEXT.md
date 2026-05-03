@@ -37,7 +37,8 @@ Read this file at the start of every session before touching any code.
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
 | Analytics + Crashlytics | ✅ Done | Firebase Analytics + Crashlytics; DebugView confirmed working |
-| Template gallery | ✅ Done | 17 templates across Work/Personal/Education; data matches exact Google Forms content verified by screenshots; `FormTemplate.quizMode` field added; Blank Quiz creates with quiz mode enabled via `enableQuizMode()` in `FormsDataSource`; Blank Quiz moved to top beside Blank Form; all 4 Education thumbnails added |
+| Template gallery | ✅ Done | 17 templates across Work/Personal/Education; data matches exact Google Forms content verified by screenshots; `FormTemplate.quizMode` field added; Blank Quiz creates with quiz mode enabled via `enableQuizMode()` in `FormsDataSource`; Blank Quiz moved to top beside Blank Form; all 4 Education thumbnails added; full UI redesign (2-column grid, bordered sections, lavender blank cards, Lato font) |
+| Side drawer / nav menu | ✅ Done | Purple header, 5 sections (Subscription, Support Us, Feedback, Policy, Sign Out), white rounded cards per section, custom PNG asset icons, chevrons; `assets/` declared as directory in pubspec |
 | Production readiness | 🔄 In progress | OAuth verification ✅, app signing, store submission |
 
 ---

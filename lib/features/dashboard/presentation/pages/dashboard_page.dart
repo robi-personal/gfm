@@ -192,20 +192,125 @@ class _DashboardViewState extends State<_DashboardView> {
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Sign out'),
-              onTap: () {
-                Navigator.of(context).pop();
-                context.read<SignInCubit>().signOut();
-              },
+      backgroundColor: const Color(0xFFF5F5F5),
+      child: Column(
+        children: [
+          // ── Purple header ──────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            color: _purple,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 20,
+              bottom: 24,
+              left: 20,
+              right: 20,
             ),
-          ],
-        ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text(
+                  'Form list',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    PaywallPage.show(context);
+                  },
+                  child: SvgPicture.asset(
+                    'assets/dashboard_premium.svg',
+                    width: 28,
+                    height: 28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── Menu items ─────────────────────────────────────────────────────
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _DrawerSection(
+                  label: 'Subscription',
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/upgrade_to_premium.png',
+                      title: 'Upgrade to Premium',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        PaywallPage.show(context);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _DrawerSection(
+                  label: 'Support Us',
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/nav_share.png',
+                      title: 'Share the AppStore link',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    _DrawerItem(
+                      assetIcon: 'assets/rate_us.png',
+                      title: 'Rate the app on AppStore',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _DrawerSection(
+                  label: 'Feedback',
+                  items: [
+                    _DrawerItem(
+                      icon: Icons.mail_outline,
+                      title: 'Email',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _DrawerSection(
+                  label: 'Policy',
+                  items: [
+                    _DrawerItem(
+                      title: 'Privacy policy',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    _DrawerItem(
+                      title: 'Term of Use',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _DrawerSection(
+                  label: 'Sign Out',
+                  labelColor: Colors.red,
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/logout.png',
+                      assetColor: Colors.red,
+                      title: 'Sign out',
+                      textColor: Colors.red,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.read<SignInCubit>().signOut();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -581,6 +686,106 @@ class _CacheBanner extends StatelessWidget {
       child: Text(
         'Showing cached list',
         style: TextStyle(color: Colors.blue[900], fontSize: 13),
+      ),
+    );
+  }
+}
+
+// ── Drawer widgets ────────────────────────────────────────────────────────────
+
+class _DrawerSection extends StatelessWidget {
+  final String label;
+  final Color labelColor;
+  final List<_DrawerItem> items;
+
+  const _DrawerSection({
+    required this.label,
+    required this.items,
+    this.labelColor = _purple,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: labelColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                items[i],
+                if (i < items.length - 1)
+                  const Divider(
+                      height: 1, thickness: 1, color: Color(0xFFF0F0F0),
+                      indent: 16, endIndent: 16),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final String title;
+  final String? assetIcon;
+  final IconData? icon;
+  final Color assetColor;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  const _DrawerItem({
+    required this.title,
+    required this.onTap,
+    this.assetIcon,
+    this.icon,
+    this.assetColor = Colors.black87,
+    this.textColor = Colors.black87,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            if (assetIcon != null) ...[
+              Image.asset(assetIcon!, width: 22, height: 22, color: assetColor),
+              const SizedBox(width: 14),
+            ] else if (icon != null) ...[
+              Icon(icon, size: 22, color: Colors.black87),
+              const SizedBox(width: 14),
+            ],
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: Colors.black38),
+          ],
+        ),
       ),
     );
   }
