@@ -7,6 +7,7 @@ import '../cubit/dashboard_cubit.dart';
 import 'template_data.dart';
 
 const _purple = Color(0xFF772FC0);
+const _bgGray = Color(0xFFF5F5F5);
 
 class TemplatePickerPage extends StatelessWidget {
   const TemplatePickerPage({super.key});
@@ -25,13 +26,13 @@ class TemplatePickerPage extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: _bgGray,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           scrolledUnderElevation: 1,
           title: const Text(
-            'New form',
+            'Create New Form',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
         ),
@@ -88,34 +89,47 @@ class _TemplatePickerBody extends StatelessWidget {
         children: [
           CustomScrollView(
             slivers: [
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                sliver: SliverToBoxAdapter(child: _BlankCardsRow()),
-              ),
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 28, 16, 6),
-                sliver: SliverToBoxAdapter(
+              // ── Start from scratch ─────────────────────────────────────────
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
                   child: Text(
-                    'Templates',
+                    'Start from scratch',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Colors.black54,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ),
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final category = kTemplateCategories[index];
-                    final templates = kFormTemplates
-                        .where((t) => t.category == category)
-                        .toList();
-                    return _CategorySection(
-                        category: category, templates: templates);
-                  },
-                  childCount: kTemplateCategories.length,
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                sliver: SliverToBoxAdapter(child: _BlankCardsRow()),
+              ),
+              // ── Template Gallery banner ────────────────────────────────────
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 28),
+                  child: _TemplateGalleryBanner(),
+                ),
+              ),
+              // ── Category sections ──────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.only(top: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final category = kTemplateCategories[index];
+                      final templates = kFormTemplates
+                          .where((t) => t.category == category)
+                          .toList();
+                      return _CategorySection(
+                          category: category, templates: templates);
+                    },
+                    childCount: kTemplateCategories.length,
+                  ),
                 ),
               ),
               const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
@@ -124,11 +138,33 @@ class _TemplatePickerBody extends StatelessWidget {
           if (isCreating)
             const Positioned.fill(
               child: ColoredBox(
-                color: Colors.white54,
-                child: Center(child: CircularProgressIndicator()),
+                color: Colors.black26,
+                child: Center(child: CircularProgressIndicator(color: _purple)),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _TemplateGalleryBanner extends StatelessWidget {
+  const _TemplateGalleryBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _purple,
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: const Center(
+        child: Text(
+          'Template Gallery',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -144,14 +180,12 @@ class _BlankCardsRow extends StatelessWidget {
         Expanded(child: _BlankCard(
           icon: Icons.add,
           title: 'Blank form',
-          subtitle: 'Start from scratch',
           onCreate: (context) => _create(context, quiz: false),
         )),
         const SizedBox(width: 12),
         Expanded(child: _BlankCard(
           icon: Icons.quiz_outlined,
           title: 'Blank quiz',
-          subtitle: 'Auto-graded quiz',
           onCreate: (context) => _create(context, quiz: true),
         )),
       ],
@@ -188,61 +222,46 @@ class _BlankCardsRow extends StatelessWidget {
 class _BlankCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final void Function(BuildContext) onCreate;
 
   const _BlankCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onCreate,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => onCreate(context),
-      borderRadius: BorderRadius.circular(14),
-      child: Ink(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0D6F5), width: 1.5),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
+    return Column(
+      children: [
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: () => onCreate(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Ink(
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F0FA),
+                color: const Color(0xFFEDE7F6),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFD1C4E9), width: 1),
               ),
-              child: Icon(icon, color: _purple, size: 22),
+              height: 96,
+              child: Center(child: Icon(icon, color: _purple, size: 40)),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 11, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -256,37 +275,59 @@ class _CategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: Text(
-              category,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black54,
-                letterSpacing: 0.4,
-              ),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(_categoryIcon(category), color: _purple, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  category,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-          ),
-          SizedBox(
-            height: 136,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            const SizedBox(height: 10),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 14),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: templates.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.78,
+              ),
               itemBuilder: (context, index) =>
                   _TemplateCard(template: templates[index]),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  IconData _categoryIcon(String category) => switch (category) {
+        'Work' => Icons.work_outline,
+        'Personal' => Icons.person_outline,
+        'Education' => Icons.school_outlined,
+        _ => Icons.folder_outlined,
+      };
 }
 
 class _TemplateCard extends StatelessWidget {
@@ -296,44 +337,58 @@ class _TemplateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _createFromTemplate(context, template),
-      child: SizedBox(
-        width: 120,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: () => _createFromTemplate(context, template),
+        borderRadius: BorderRadius.circular(10),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                template.imagePath,
-                width: 120,
-                height: 96,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) => Container(
-                  width: 120,
-                  height: 96,
-                  color: const Color(0xFFF3F0FA),
-                  child: const Icon(Icons.description_outlined,
-                      color: _purple, size: 32),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(10),
+                  ),
+                  child: Image.asset(
+                    template.imagePath,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(
+                      color: const Color(0xFFF3F0FA),
+                      child: const Center(
+                        child: Icon(Icons.description_outlined,
+                            color: _purple, size: 32),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              template.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-                color: Colors.black87,
-                height: 1.25,
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF3F0FA),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(10),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Text(
+                  template.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.black87,
+                    height: 1.25,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
     );
   }
 
@@ -342,7 +397,9 @@ class _TemplateCard extends StatelessWidget {
     final cubit = context.read<DashboardCubit>();
     try {
       await cubit.createForm(
-          title: template.title, items: template.items, enableQuiz: template.quizMode);
+          title: template.title,
+          items: template.items,
+          enableQuiz: template.quizMode);
     } catch (_) {
       if (!context.mounted) return;
       ErrorModal.show(

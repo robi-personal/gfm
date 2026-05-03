@@ -78,11 +78,12 @@ class DashboardCubit extends Cubit<DashboardState> {
   Future<void> createForm({
     String title = 'Untitled form',
     List<domain.Item>? items,
+    bool enableQuiz = false,
   }) async {
     _setCreating(true);
 
     final result = await _createForm(
-        CreateFormParams(title: title, items: items));
+        CreateFormParams(title: title, items: items, enableQuiz: enableQuiz));
 
     result.fold(
       (failure) {

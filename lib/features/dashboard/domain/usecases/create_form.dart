@@ -9,8 +9,9 @@ import '../repositories/form_repository.dart';
 class CreateFormParams {
   final String title;
   final List<domain.Item>? items;
+  final bool enableQuiz;
 
-  const CreateFormParams({this.title = 'Untitled form', this.items});
+  const CreateFormParams({this.title = 'Untitled form', this.items, this.enableQuiz = false});
 }
 
 class CreateForm implements UseCase<CreateFormResult, CreateFormParams> {
@@ -20,5 +21,5 @@ class CreateForm implements UseCase<CreateFormResult, CreateFormParams> {
 
   @override
   Future<Either<Failure, CreateFormResult>> call(CreateFormParams params) =>
-      _repository.createForm(title: params.title, items: params.items);
+      _repository.createForm(title: params.title, items: params.items, enableQuiz: params.enableQuiz);
 }

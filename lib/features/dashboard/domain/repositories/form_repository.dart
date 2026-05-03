@@ -13,6 +13,7 @@ abstract class FormRepository {
   Future<Either<Failure, CreateFormResult>> createForm({
     String title = 'Untitled form',
     List<domain.Item>? items,
+    bool enableQuiz = false,
   });
 
   Future<Either<Failure, Unit>> deleteForm(String fileId);
