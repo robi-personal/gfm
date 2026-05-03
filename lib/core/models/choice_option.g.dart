@@ -8,7 +8,7 @@ part of 'choice_option.dart';
 
 _$ChoiceOptionImpl _$$ChoiceOptionImplFromJson(Map<String, dynamic> json) =>
     _$ChoiceOptionImpl(
-      value: json['value'] as String,
+      value: json['value'] as String? ?? '',
       image: json['image'] == null
           ? null
           : FormImage.fromJson(json['image'] as Map<String, dynamic>),

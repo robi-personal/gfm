@@ -11,12 +11,14 @@ class FormTemplate {
   final String category;
   final String imagePath;
   final List<Item> items;
+  final bool quizMode;
 
   const FormTemplate({
     required this.title,
     required this.category,
     required this.imagePath,
     required this.items,
+    this.quizMode = false,
   });
 }
 
@@ -47,14 +49,14 @@ const _paragraph = TextQuestion(paragraph: true);
 // ── Work ──────────────────────────────────────────────────────────────────────
 
 final _contactInfo = FormTemplate(
-  title: 'Contact Information',
+  title: 'Contact information',
   category: 'Work',
   imagePath: 'assets/template_image/contact_information.png',
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),
     _q('3', 'Address', _paragraph, required: true),
-    _q('4', 'Phone number', _text, required: true),
+    _q('4', 'Phone number', _text),
     _q('5', 'Comments', _paragraph),
   ],
 );
@@ -64,16 +66,12 @@ final _customerFeedback = FormTemplate(
   category: 'Work',
   imagePath: 'assets/template_image/customer_feedback.png',
   items: [
-    _q('1', 'Full name', _text),
-    _q('2', 'Email address', _text),
-    _q('3', 'How satisfied are you with our product or service?',
-        _radio(['Very satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very dissatisfied']),
-        required: true),
-    _q('4', 'What did we do well?', _paragraph),
-    _q('5', 'What could we improve?', _paragraph),
-    _q('6', 'Would you recommend us to others?',
-        _radio(['Definitely', 'Probably', 'Not sure', 'Probably not', 'Definitely not'])),
-    _q('7', 'Any other comments?', _paragraph),
+    _q('1', 'Feedback Type',
+        _radio(['Comments', 'Questions', 'Bug Reports', 'Feature Request'])),
+    _q('2', 'Feedback', _paragraph, required: true),
+    _q('3', 'Suggestions for improvement', _paragraph),
+    _q('4', 'Name', _text),
+    _q('5', 'Email', _text),
   ],
 );
 
@@ -82,74 +80,118 @@ final _workRequest = FormTemplate(
   category: 'Work',
   imagePath: 'assets/template_image/work_request.png',
   items: [
-    _q('1', 'Requester name', _text, required: true),
+    Item(
+      itemId: 'ti1',
+      title: 'Personal info',
+      content: const TextItemContent(),
+    ),
+    _q('1', 'Name', _text, required: true),
     _q('2', 'Email address', _text, required: true),
-    _q('3', 'Department', _text),
-    _q('4', 'Request title', _text, required: true),
-    _q('5', 'Description of work needed', _paragraph, required: true),
-    _q('6', 'Priority', _radio(['Low', 'Medium', 'High', 'Urgent']), required: true),
-    _q('7', 'Requested completion date', const DateQuestion()),
-    _q('8', 'Additional notes', _paragraph),
+    Item(
+      itemId: 'ti2',
+      title: 'Describe the problem',
+      content: const TextItemContent(),
+    ),
+    _q('3', 'Summary', _text, required: true),
+    _q('4', 'Location of problem', _text, required: true),
+    _q('5', 'Type',
+        ChoiceQuestion(
+          type: ChoiceType.radio,
+          options: [
+            ChoiceOption(value: 'Plumbing'),
+            ChoiceOption(value: 'Lighting'),
+            ChoiceOption(value: 'Heat/AC'),
+            ChoiceOption(value: 'Pests'),
+            ChoiceOption(value: 'Security'),
+            ChoiceOption(value: 'Noise'),
+            ChoiceOption(value: '', isOther: true),
+          ],
+        ),
+        required: true),
+    _q('6', 'Priority',
+        const ScaleQuestion(low: 1, high: 5, lowLabel: 'Very high', highLabel: 'Very low'),
+        required: true),
+    _q('7', 'Due date', const DateQuestion()),
+    _q('8', 'More details', _paragraph),
   ],
 );
 
 final _orderForm = FormTemplate(
-  title: 'Order Form',
+  title: 'Order Request',
   category: 'Work',
   imagePath: 'assets/template_image/order_form.png',
   items: [
-    _q('1', 'Full name', _text, required: true),
-    _q('2', 'Email address', _text, required: true),
-    _q('3', 'Phone number', _text),
-    _q('4', 'Delivery address', _paragraph, required: true),
-    _q('5', 'Item(s) ordered', _paragraph, required: true),
-    _q('6', 'Quantity', _text, required: true),
-    _q('7', 'Payment method',
-        _radio(['Credit card', 'Debit card', 'Bank transfer', 'Cash on delivery'])),
-    _q('8', 'Special instructions', _paragraph),
+    _q('1', 'Are you a new or existing customer?',
+        _radio(['I am a new customer', 'I am an existing customer'])),
+    _q('2', 'What is the item you would like to order?', _text, required: true),
+    _q('3', 'What color(s) would you like to order?',
+        _checkbox(['color 1', 'color 2', 'color 3', 'color 4'])),
+    _q('4', 'Product options', _paragraph),
+    Item(
+      itemId: 'ti1',
+      title: 'Contact info',
+      content: const TextItemContent(),
+    ),
+    _q('5', 'Your name', _text, required: true),
+    _q('6', 'Phone number', _text, required: true),
+    _q('7', 'E-mail', _text),
+    _q('8', 'Preferred contact method',
+        _checkbox(['Phone', 'Email']), required: true),
+    _q('9', 'Questions and comments', _paragraph),
   ],
 );
 
 final _jobApplication = FormTemplate(
-  title: 'Job Application',
+  title: 'Job application form',
   category: 'Work',
   imagePath: 'assets/template_image/job_application.png',
   items: [
-    _q('1', 'Full name', _text, required: true),
-    _q('2', 'Email address', _text, required: true),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Email', _text, required: true),
     _q('3', 'Phone number', _text, required: true),
-    _q('4', 'Position applying for', _text, required: true),
-    _q('5', 'LinkedIn profile URL', _text),
-    _q('6', 'Years of relevant experience',
-        _radio(['Less than 1 year', '1–3 years', '3–5 years', '5–10 years', '10+ years'])),
-    _q('7', 'How did you hear about this role?',
-        _radio(['LinkedIn', 'Job board', 'Company website', 'Referral', 'Other'])),
-    _q('8', 'Cover letter / motivation', _paragraph, required: true),
+    _q('4', 'Which position(s) are you interested in?',
+        _checkbox(['Position 1', 'Position 2', 'Position 3']), required: true),
+    _q('5', 'Submit your cover letter or resume', _paragraph),
   ],
 );
 
 final _timeOffRequest = FormTemplate(
-  title: 'Time Off Request',
+  title: 'Time off request',
   category: 'Work',
   imagePath: 'assets/template_image/time_off_request.png',
   items: [
-    _q('1', 'Employee name', _text, required: true),
-    _q('2', 'Email address', _text, required: true),
-    _q('3', 'Department / team', _text),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Leave date(s)', _text, required: true),
+    _q('3', 'AM/PM/All day', _radio(['AM', 'PM', 'Full day']), required: true),
+    Item(
+      itemId: 'ti1',
+      title: 'Type of leave',
+      content: const TextItemContent(),
+    ),
     _q('4', 'Type of leave',
-        _radio(['Annual leave', 'Sick leave', 'Parental leave', 'Unpaid leave', 'Other']),
+        ChoiceQuestion(
+          type: ChoiceType.radio,
+          options: [
+            ChoiceOption(value: 'Sick leave (Illness or Injury)'),
+            ChoiceOption(value: 'Bereavement leave (Immediate Family)'),
+            ChoiceOption(value: 'Bereavement leave (Other)'),
+            ChoiceOption(value: 'Personal leave'),
+            ChoiceOption(value: 'Jury duty or legal leave'),
+            ChoiceOption(value: 'Emergency leave'),
+            ChoiceOption(value: 'Temporary leave'),
+            ChoiceOption(value: 'Leave without pay'),
+            ChoiceOption(value: '', isOther: true),
+          ],
+        ),
         required: true),
-    _q('5', 'Start date', const DateQuestion(), required: true),
-    _q('6', 'End date', const DateQuestion(), required: true),
-    _q('7', 'Reason (optional)', _paragraph),
-    _q('8', 'Cover arrangements', _paragraph),
+    _q('5', 'Reason for leave', _paragraph),
   ],
 );
 
 // ── Personal ──────────────────────────────────────────────────────────────────
 
 final _rsvp = FormTemplate(
-  title: 'RSVP',
+  title: 'Event RSVP',
   category: 'Personal',
   imagePath: 'assets/template_image/rsvp.png',
   items: [
@@ -167,14 +209,26 @@ final _eventRegistration = FormTemplate(
   category: 'Personal',
   imagePath: 'assets/template_image/event_registration.png',
   items: [
-    _q('1', 'Full name', _text, required: true),
-    _q('2', 'Email address', _text, required: true),
-    _q('3', 'Phone number', _text),
-    _q('4', 'Organisation or affiliation', _text),
-    _q('5', 'Which sessions will you attend?',
-        _checkbox(['Morning keynote', 'Workshop A', 'Workshop B', 'Afternoon panel', 'Networking dinner'])),
-    _q('6', 'T-shirt size', _radio(['XS', 'S', 'M', 'L', 'XL', 'XXL'])),
-    _q('7', 'Special requirements or accessibility needs', _paragraph),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Email', _text, required: true),
+    _q('3', 'Organization', _text, required: true),
+    _q('4', 'What days will you attend?',
+        _checkbox(['Day 1', 'Day 2', 'Day 3']), required: true),
+    _q('5', 'Dietary restrictions',
+        ChoiceQuestion(
+          type: ChoiceType.radio,
+          options: [
+            ChoiceOption(value: 'None'),
+            ChoiceOption(value: 'Vegetarian'),
+            ChoiceOption(value: 'Vegan'),
+            ChoiceOption(value: 'Kosher'),
+            ChoiceOption(value: 'Gluten-free'),
+            ChoiceOption(value: '', isOther: true),
+          ],
+        ),
+        required: true),
+    _q('6', 'I understand that I will have to pay \$\$ upon arrival',
+        _checkbox(['Yes']), required: true),
   ],
 );
 
@@ -183,13 +237,74 @@ final _eventFeedback = FormTemplate(
   category: 'Personal',
   imagePath: 'assets/template_image/event_feedback.png',
   items: [
-    _q('1', 'Overall, how would you rate the event?',
-        _radio(['Excellent', 'Good', 'Average', 'Poor']), required: true),
-    _q('2', 'What did you enjoy most?', _paragraph),
-    _q('3', 'What could be improved?', _paragraph),
-    _q('4', 'Would you recommend this event to others?',
-        _radio(['Definitely', 'Probably', 'Not sure', 'No'])),
-    _q('5', 'Any other comments?', _paragraph),
+    _q('1', 'How satisfied were you with the event?',
+        const ScaleQuestion(low: 1, high: 5, lowLabel: 'Not very', highLabel: 'Very much'),
+        required: true),
+    _q('2', 'How relevant and helpful do you think it was for your job?',
+        const ScaleQuestion(low: 1, high: 5, lowLabel: 'Not very', highLabel: 'Very much'),
+        required: true),
+    _q('3', 'What were your key take aways from this event?', _text),
+    Item(
+      itemId: 'g1',
+      title: 'How satisfied were you with the logistics?',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg1r1', required: true, kind: const RowQuestion(title: 'Accommodation')),
+          Question(questionId: 'qg1r2', required: true, kind: const RowQuestion(title: 'Welcome kit')),
+          Question(questionId: 'qg1r3', required: true, kind: const RowQuestion(title: 'Communication')),
+          Question(questionId: 'qg1r4', required: true, kind: const RowQuestion(title: 'Transportation')),
+          Question(questionId: 'qg1r5', required: true, kind: const RowQuestion(title: 'Welcome activity')),
+          Question(questionId: 'qg1r6', required: true, kind: const RowQuestion(title: 'Venue')),
+          Question(questionId: 'qg1r7', required: true, kind: const RowQuestion(title: 'Activities')),
+          Question(questionId: 'qg1r8', required: true, kind: const RowQuestion(title: 'Closing ceremony')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: '1'),
+              ChoiceOption(value: '2'),
+              ChoiceOption(value: '3'),
+              ChoiceOption(value: '4'),
+              ChoiceOption(value: '5'),
+              ChoiceOption(value: 'N/A'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    _q('4', 'Additional feedback on logistics', _text, required: true),
+    Item(
+      itemId: 'g2',
+      title: 'Which sessions did you find most relevant?',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg2r1', required: true, kind: const RowQuestion(title: 'Welcome activity')),
+          Question(questionId: 'qg2r2', required: true, kind: const RowQuestion(title: 'Speaker #1')),
+          Question(questionId: 'qg2r3', required: true, kind: const RowQuestion(title: 'Activity #1')),
+          Question(questionId: 'qg2r4', required: true, kind: const RowQuestion(title: 'Speaker #2')),
+          Question(questionId: 'qg2r5', required: true, kind: const RowQuestion(title: 'Activity #2')),
+          Question(questionId: 'qg2r6', required: true, kind: const RowQuestion(title: 'Closing activity')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: 'Not relevant'),
+              ChoiceOption(value: 'Relevant'),
+              ChoiceOption(value: 'Very relevant'),
+              ChoiceOption(value: 'Did not attend'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    _q('5', 'How satisfied were you with the session content?',
+        const ScaleQuestion(low: 1, high: 5, lowLabel: 'Poor', highLabel: 'Excellent'),
+        required: true),
+    _q('6', 'Any additional comments regarding the sessions or overall agenda?', _text),
+    _q('7', 'Any overall feedback for the event?', _text),
+    _q('8', 'Name (optional)', _text),
   ],
 );
 
@@ -203,8 +318,27 @@ final _partyInvite = FormTemplate(
         _radio(['Yes, I\'ll be there', 'Sorry, can\'t make it']),
         required: true),
     _q('3', 'How many of you are attending?', _text),
-    _q('4', 'What will you be bringing?',
-        _checkbox(['Mains', 'Salad', 'Dessert', 'Drinks', 'Sides/Appetizers'])),
+    Item(
+      itemId: '4',
+      title: 'What will you be bringing?',
+      description: "Let us know what kind of dish(es) you'll be bringing",
+      content: QuestionItemContent(
+        question: Question(
+          questionId: 'q4',
+          kind: ChoiceQuestion(
+            type: ChoiceType.checkbox,
+            options: [
+              ChoiceOption(value: 'Mains'),
+              ChoiceOption(value: 'Salad'),
+              ChoiceOption(value: 'Dessert'),
+              ChoiceOption(value: 'Drinks'),
+              ChoiceOption(value: 'Sides/Appetizers'),
+              ChoiceOption(value: '', isOther: true),
+            ],
+          ),
+        ),
+      ),
+    ),
     _q('5', 'Do you have any allergies or dietary restrictions?', _text),
     _q('6', 'What is your email address?', _text),
   ],
@@ -236,37 +370,157 @@ final _findATime = FormTemplate(
   category: 'Personal',
   imagePath: 'assets/template_image/find_a_time.png',
   items: [
-    _q('1', 'What times are you available? – Days',
-        _checkbox(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
-        required: true),
-    _q('2', 'What times are you available? – Time of day',
-        _checkbox(['Morning', 'Midday', 'Afternoon', 'Evening']),
-        required: true),
-    _q('3', 'Items to discuss?', _paragraph),
-    _q('4', 'Allergies or dietary restrictions?',
-        _radio(['Vegetarian', 'Vegan', 'Kosher', 'Halal', 'Gluten-free', 'None'])),
-    _q('5', 'Any other comments and/or questions?', _paragraph),
+    Item(
+      itemId: 'g1',
+      title: 'What times are you available?',
+      description: 'Please select all that apply',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg1r1', kind: const RowQuestion(title: 'Monday')),
+          Question(questionId: 'qg1r2', kind: const RowQuestion(title: 'Tuesday')),
+          Question(questionId: 'qg1r3', kind: const RowQuestion(title: 'Wednesday')),
+          Question(questionId: 'qg1r4', kind: const RowQuestion(title: 'Thursday')),
+          Question(questionId: 'qg1r5', kind: const RowQuestion(title: 'Friday')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.checkbox,
+            options: [
+              ChoiceOption(value: 'Morning'),
+              ChoiceOption(value: 'Midday'),
+              ChoiceOption(value: 'Afternoon'),
+              ChoiceOption(value: 'Evening'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    _q('1', 'Items to discuss?', _paragraph),
+    _q('2', 'Allergies or dietary restrictions?',
+        ChoiceQuestion(
+          type: ChoiceType.radio,
+          options: [
+            ChoiceOption(value: 'Vegetarian'),
+            ChoiceOption(value: 'Vegan'),
+            ChoiceOption(value: 'Kosher'),
+            ChoiceOption(value: 'Halal'),
+            ChoiceOption(value: 'Gluten-free'),
+            ChoiceOption(value: 'None'),
+            ChoiceOption(value: '', isOther: true),
+          ],
+        )),
+    _q('3', 'Any other comments and/or questions?', _paragraph),
   ],
 );
 
 // ── Education ─────────────────────────────────────────────────────────────────
 
 final _courseEvaluation = FormTemplate(
-  title: 'Course Evaluation',
+  title: 'Course evaluation',
   category: 'Education',
   imagePath: 'assets/template_image/course_evaluation.png',
   items: [
-    _q('1', 'Course name', _text, required: true),
-    _q('2', 'Instructor name', _text),
-    _q('3', 'How would you rate the course overall?',
-        _radio(['5 – Excellent', '4 – Good', '3 – Average', '2 – Below average', '1 – Poor']),
-        required: true),
-    _q('4', 'The course content was well organised',
-        _radio(['Strongly agree', 'Agree', 'Neutral', 'Disagree', 'Strongly disagree'])),
-    _q('5', 'The instructor explained concepts clearly',
-        _radio(['Strongly agree', 'Agree', 'Neutral', 'Disagree', 'Strongly disagree'])),
-    _q('6', 'What did you find most valuable?', _paragraph),
-    _q('7', 'What would you improve?', _paragraph),
+    _q('1', 'Class name', _text, required: true),
+    _q('2', 'Instructor', _text, required: true),
+    Item(
+      itemId: 'g1',
+      title: 'Level of effort',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg1r1', kind: const RowQuestion(title: 'Level of effort put into the course')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: 'Poor'),
+              ChoiceOption(value: 'Fair'),
+              ChoiceOption(value: 'Satisfactory'),
+              ChoiceOption(value: 'Very good'),
+              ChoiceOption(value: 'Excellent'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    Item(
+      itemId: 'g2',
+      title: 'Contribution to learning',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg2r1', kind: const RowQuestion(title: 'Level of skill/knowledge at start of course')),
+          Question(questionId: 'qg2r2', kind: const RowQuestion(title: 'Level of skill/knowledge gained')),
+          Question(questionId: 'qg2r3', kind: const RowQuestion(title: 'Level of skill/knowledge at end of course')),
+          Question(questionId: 'qg2r4', kind: const RowQuestion(title: 'Contribution of course to overall program')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: 'Poor'),
+              ChoiceOption(value: 'Fair'),
+              ChoiceOption(value: 'Satisfactory'),
+              ChoiceOption(value: 'Very good'),
+              ChoiceOption(value: 'Excellent'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    Item(
+      itemId: 'g3',
+      title: 'Skill and responsiveness of the instructor',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg3r1', kind: const RowQuestion(title: 'Instructor was knowledgeable about the subject')),
+          Question(questionId: 'qg3r2', kind: const RowQuestion(title: 'Presentations were clear and organized')),
+          Question(questionId: 'qg3r3', kind: const RowQuestion(title: 'Instructor stimulated interest in the subject')),
+          Question(questionId: 'qg3r4', kind: const RowQuestion(title: 'Instructor effectively answered questions')),
+          Question(questionId: 'qg3r5', kind: const RowQuestion(title: 'Instructor was available outside of class')),
+          Question(questionId: 'qg3r6', kind: const RowQuestion(title: 'Grading was prompt and fair')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: 'Strongly disagree'),
+              ChoiceOption(value: 'Disagree'),
+              ChoiceOption(value: 'Neutral'),
+              ChoiceOption(value: 'Agree'),
+              ChoiceOption(value: 'Strongly agree'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    Item(
+      itemId: 'g4',
+      title: 'Course content',
+      content: QuestionGroupItemContent(
+        questions: [
+          Question(questionId: 'qg4r1', kind: const RowQuestion(title: 'Learning objectives were clear')),
+          Question(questionId: 'qg4r2', kind: const RowQuestion(title: 'Course content was relevant to the objectives')),
+          Question(questionId: 'qg4r3', kind: const RowQuestion(title: 'Course workload was appropriate')),
+          Question(questionId: 'qg4r4', kind: const RowQuestion(title: 'Course organization was effective')),
+        ],
+        grid: Grid(
+          columns: ChoiceQuestion(
+            type: ChoiceType.radio,
+            options: [
+              ChoiceOption(value: 'Strongly disagree'),
+              ChoiceOption(value: 'Disagree'),
+              ChoiceOption(value: 'Neutral'),
+              ChoiceOption(value: 'Agree'),
+              ChoiceOption(value: 'Strongly agree'),
+            ],
+          ),
+        ),
+      ),
+    ),
+    _q('3', 'What aspects of this course were most useful or valuable?', _paragraph),
+    _q('4', 'How would you improve this course?', _paragraph),
+    _q('5', 'Why did you choose this course?',
+        _radio(['Degree requirement', 'Time offered', 'Interest'])),
   ],
 );
 
@@ -275,14 +529,11 @@ final _exitTicket = FormTemplate(
   category: 'Education',
   imagePath: 'assets/template_image/exit_ticket.png',
   items: [
-    _q('1', 'Student name', _text, required: true),
-    _q('2', 'Today\'s date', const DateQuestion(), required: true),
-    _q('3', 'What is the most important thing you learned today?', _paragraph, required: true),
-    _q('4', 'What question do you still have?', _paragraph),
-    _q('5', 'How confident do you feel about today\'s topic?',
-        _radio(['Very confident', 'Somewhat confident', 'Not very confident', 'Not confident at all'])),
-    _q('6', 'Rate today\'s lesson',
-        _radio(['Excellent', 'Good', 'OK', 'Needs improvement'])),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Email', _text),
+    _q('3', "What's one important thing you learned in class today?", _paragraph),
+    _q('4', "Did you feel prepared for today's lesson? Why or why not?", _paragraph),
+    _q('5', "What would help make today's lesson more effective?", _paragraph),
   ],
 );
 
@@ -290,12 +541,9 @@ final _blankQuiz = FormTemplate(
   title: 'Blank Quiz',
   category: 'Education',
   imagePath: 'assets/template_image/blank_quiz.png',
+  quizMode: true,
   items: [
-    _q('1', 'Student name', _text, required: true),
-    _q('2', 'Question 1', _radio(['Option A', 'Option B', 'Option C', 'Option D']), required: true),
-    _q('3', 'Question 2', _radio(['Option A', 'Option B', 'Option C', 'Option D']), required: true),
-    _q('4', 'Question 3', _radio(['True', 'False']), required: true),
-    _q('5', 'Short answer question', _text, required: true),
+    _q('1', 'Question 1', _radio(['Option A', 'Option B', 'Option C', 'Option D']), required: true),
   ],
 );
 
@@ -304,31 +552,70 @@ final _assessment = FormTemplate(
   category: 'Education',
   imagePath: 'assets/template_image/assessment.png',
   items: [
-    _q('1', 'Student name', _text, required: true),
-    _q('2', 'Student ID', _text),
-    _q('3', 'Date', const DateQuestion(), required: true),
-    _q('4', 'Assessment title', _text, required: true),
-    _q('5', 'Section 1: Multiple choice',
-        _radio(['Option A', 'Option B', 'Option C', 'Option D']), required: true),
-    _q('6', 'Section 2: True or False',
-        _radio(['True', 'False']), required: true),
-    _q('7', 'Section 3: Short answer', _text, required: true),
-    _q('8', 'Section 4: Extended response', _paragraph, required: true),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Email', _text, required: true),
+    Item(
+      itemId: 'ti1',
+      title: 'Quiz Questions',
+      content: const TextItemContent(),
+    ),
+    _q('3', 'Your first question?',
+        _radio(['Option 1', 'Correct answer', 'Option 3', 'Option 4']),
+        required: true),
+    _q('4', 'Your second question?',
+        _checkbox(['Option 1', 'Correct answer 1', 'Option 3', 'Correct answer 2', 'Correct answer 3']),
+        required: true),
+    _q('5', 'Your third question?', _text, required: true),
+    Item(
+      itemId: 'ti2',
+      title: 'Title',
+      description:
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non risus ipsum. '
+          'Nullam interdum semper erat, viverra tristique enim efficitur a. Praesent pretium diam enim. '
+          'Sed orci magna, fermentum in aliquam tristique, dictum ac metus. Maecenas quis eros enim. '
+          'Mauris ultrices orci mi, vitae tincidunt lorem efficitur a. Aenean pharetra, neque vel '
+          'facilisis feugiat, eros nunc interdum lorem, vel finibus justo sapien eget ipsum.\n\n'
+          'Aenean in dictum urna. Nullam pulvinar ex nec faucibus lobortis. Proin finibus nisi '
+          'tristique, suscipit mi ut, maximus turpis. Pellentesque eu pharetra neque, vitae ullamcorper '
+          'purus. Nullam mattis tellus magna, vitae suscipit dolor vulputate ac. Aenean imperdiet sapien '
+          'lectus, id viverra neque fringilla nec.\n\n'
+          'Praesent volutpat urna at nunc ullamcorper, id maximus felis suscipit. Mauris tincidunt, '
+          'ipsum non aliquam malesuada, urna nisi varius dolor, sed imperdiet enim neque ut nulla.',
+      content: const TextItemContent(),
+    ),
+    _q('6', 'Based on the text above, your fourth question.', _paragraph, required: true),
   ],
 );
 
 final _worksheet = FormTemplate(
-  title: 'Worksheet',
+  title: 'Worksheet title',
   category: 'Education',
   imagePath: 'assets/template_image/worksheet.png',
   items: [
-    _q('1', 'Student name', _text, required: true),
-    _q('2', 'Class / subject', _text),
-    _q('3', 'Date', const DateQuestion()),
-    _q('4', 'Question 1', _paragraph, required: true),
-    _q('5', 'Question 2', _paragraph, required: true),
-    _q('6', 'Question 3', _paragraph, required: true),
-    _q('7', 'Reflection: What did you learn?', _paragraph),
+    _q('1', 'Name', _text, required: true),
+    _q('2', 'Email', _text, required: true),
+    _q('3', 'Question about this topic',
+        _radio(['Option 1', 'Option 2', 'Option 3'])),
+    Item(
+      itemId: 'ti1',
+      title: 'Title',
+      description:
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non risus ipsum. '
+          'Nullam interdum semper erat, viverra tristique enim efficitur a. Praesent pretium diam enim. '
+          'Sed orci magna, fermentum in aliquam tristique, dictum ac metus. Maecenas quis eros enim. '
+          'Mauris ultrices orci mi, vitae tincidunt lorem efficitur a. Aenean pharetra, neque vel '
+          'facilisis feugiat, eros nunc interdum lorem, vel finibus justo sapien eget ipsum.\n\n'
+          'Aenean in dictum urna. Nullam pulvinar ex nec faucibus lobortis. Proin finibus nisi '
+          'tristique, suscipit mi ut, maximus turpis. Pellentesque eu pharetra neque, vitae ullamcorper '
+          'purus. Nullam mattis tellus magna, vitae suscipit dolor vulputate ac. Aenean imperdiet sapien '
+          'lectus, id viverra neque fringilla nec.\n\n'
+          'Praesent volutpat urna at nunc ullamcorper, id maximus felis suscipit. Mauris tincidunt, '
+          'ipsum non aliquam malesuada, urna nisi varius dolor, sed imperdiet enim neque ut nulla.',
+      content: const TextItemContent(),
+    ),
+    _q('4', 'Question about this topic',
+        _radio(['Option 1', 'Option 2', 'Option 3'])),
+    _q('5', 'Question about this topic', _paragraph),
   ],
 );
 
@@ -352,9 +639,10 @@ final List<FormTemplate> kFormTemplates = [
   // Education
   _courseEvaluation,
   _exitTicket,
-  _blankQuiz,
   _worksheet,
   _assessment,
 ];
+
+final FormTemplate kBlankQuizTemplate = _blankQuiz;
 
 final List<String> kTemplateCategories = ['Work', 'Personal', 'Education'];

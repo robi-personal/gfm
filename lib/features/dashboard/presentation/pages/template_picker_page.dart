@@ -90,7 +90,7 @@ class _TemplatePickerBody extends StatelessWidget {
             slivers: [
               const SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                sliver: SliverToBoxAdapter(child: _BlankFormCard()),
+                sliver: SliverToBoxAdapter(child: _BlankCardsRow()),
               ),
               const SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 28, 16, 6),
@@ -134,63 +134,42 @@ class _TemplatePickerBody extends StatelessWidget {
   }
 }
 
-class _BlankFormCard extends StatelessWidget {
-  const _BlankFormCard();
+class _BlankCardsRow extends StatelessWidget {
+  const _BlankCardsRow();
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => _createBlank(context),
-      borderRadius: BorderRadius.circular(14),
-      child: Ink(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0D6F5), width: 1.5),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F0FA),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.add, color: _purple, size: 26),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Blank form',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Start from scratch',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.black38),
-          ],
-        ),
-      ),
+    return Row(
+      children: [
+        Expanded(child: _BlankCard(
+          icon: Icons.add,
+          title: 'Blank form',
+          subtitle: 'Start from scratch',
+          onCreate: (context) => _create(context, quiz: false),
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: _BlankCard(
+          icon: Icons.quiz_outlined,
+          title: 'Blank quiz',
+          subtitle: 'Auto-graded quiz',
+          onCreate: (context) => _create(context, quiz: true),
+        )),
+      ],
     );
   }
 
-  void _createBlank(BuildContext context) async {
+  void _create(BuildContext context, {required bool quiz}) async {
     final cubit = context.read<DashboardCubit>();
     try {
-      await cubit.createForm(title: 'Untitled form');
+      if (quiz) {
+        await cubit.createForm(
+          title: 'Untitled quiz',
+          items: kBlankQuizTemplate.items,
+          enableQuiz: true,
+        );
+      } else {
+        await cubit.createForm(title: 'Untitled form');
+      }
     } catch (_) {
       if (!context.mounted) return;
       ErrorModal.show(
@@ -200,9 +179,71 @@ class _BlankFormCard extends StatelessWidget {
         secondaryLabel: 'Cancel',
         onSecondary: () {},
         primaryLabel: 'Retry',
-        onPrimary: () => _createBlank(context),
+        onPrimary: () => _create(context, quiz: quiz),
       );
     }
+  }
+}
+
+class _BlankCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final void Function(BuildContext) onCreate;
+
+  const _BlankCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onCreate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onCreate(context),
+      borderRadius: BorderRadius.circular(14),
+      child: Ink(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE0D6F5), width: 1.5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F0FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: _purple, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -301,7 +342,7 @@ class _TemplateCard extends StatelessWidget {
     final cubit = context.read<DashboardCubit>();
     try {
       await cubit.createForm(
-          title: template.title, items: template.items);
+          title: template.title, items: template.items, enableQuiz: template.quizMode);
     } catch (_) {
       if (!context.mounted) return;
       ErrorModal.show(

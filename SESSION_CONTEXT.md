@@ -37,6 +37,7 @@ Read this file at the start of every session before touching any code.
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
 | Analytics + Crashlytics | ✅ Done | Firebase Analytics + Crashlytics; DebugView confirmed working |
+| Template gallery | ✅ Done | 17 templates across Work/Personal/Education; data matches exact Google Forms content verified by screenshots; `FormTemplate.quizMode` field added; Blank Quiz creates with quiz mode enabled via `enableQuizMode()` in `FormsDataSource`; Blank Quiz moved to top beside Blank Form; all 4 Education thumbnails added |
 | Production readiness | 🔄 In progress | OAuth verification ✅, app signing, store submission |
 
 ---
@@ -159,6 +160,9 @@ lib/
 12. **`updateItem` temp IDs**: editing a newly created item before saving sent a temp `itemId`. Fix: substitute real server ID from `tempIdMap`.
 13. **400 errors retried for 12s**: non-revision 400 (bad request) hit the full backoff loop. Fix: throw immediately on non-revision 400.
 14. **Pure reorder not dirty**: `isDirty` only checked `pending`. Fix: `EditorLoaded.isDirty` also compares current item order vs `serverItemOrder`.
+15. **`ChoiceOption.value` null crash**: Google Forms API returns `null` for `value` on some options (e.g. "Other"). Fix: `json['value'] as String? ?? ''` in `choice_option.g.dart`.
+16. **`EditorCubit` emit-after-close**: cubit closed before async `loadForm`/`updateSettings`/`save` completed → "Bad state: Cannot emit new states after calling close". Fix: `if (isClosed) return` guards after each `await` before emit.
+17. **Template items not created for grid templates**: `_stripIds` only removed `questionId` from `questionItem.question`, not from `questionGroupItem.questions` rows. The Forms API rejected the whole batch; the `catch (_) {}` silently swallowed it. Fix: strip `questionId` from all rows in `questionGroupItem.questions`; add logging to the catch block.
 
 ## What NOT to do
 
@@ -213,4 +217,7 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
-3. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
+3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
+4. **IAP / RevenueCat** — `purchases_flutter` plugin, `SubscriptionCubit`, wire `PaywallPage` to real products, feature gating
+5. **UI polish** — thumb-zone audit, spacing, typography refinements
+6. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

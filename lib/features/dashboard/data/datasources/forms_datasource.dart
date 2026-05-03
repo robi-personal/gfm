@@ -62,6 +62,23 @@ class FormsDataSource {
     );
   }
 
+  Future<void> enableQuizMode(String formId) =>
+      _client.api.forms.batchUpdate(
+        forms_api.BatchUpdateFormRequest(
+          requests: [
+            forms_api.Request(
+              updateSettings: forms_api.UpdateSettingsRequest(
+                settings: forms_api.FormSettings(
+                  quizSettings: forms_api.QuizSettings(isQuiz: true),
+                ),
+                updateMask: 'quizSettings',
+              ),
+            ),
+          ],
+        ),
+        formId,
+      );
+
   Future<void> publishForm(String formId) =>
       _client.api.forms.setPublishSettings(
         forms_api.SetPublishSettingsRequest(
@@ -84,6 +101,13 @@ Map<String, dynamic> _stripIds(Map<String, dynamic> map) {
   if (clean['questionItem'] case Map<String, dynamic> qi) {
     if (qi['question'] case Map<String, dynamic> q) {
       q.remove('questionId');
+    }
+  }
+  if (clean['questionGroupItem'] case Map<String, dynamic> qgi) {
+    if (qgi['questions'] case List<dynamic> rows) {
+      for (final row in rows.whereType<Map<String, dynamic>>()) {
+        row.remove('questionId');
+      }
     }
   }
   return clean;

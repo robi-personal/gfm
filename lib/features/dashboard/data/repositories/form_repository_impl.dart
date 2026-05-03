@@ -45,6 +45,7 @@ class FormRepositoryImpl implements FormRepository {
   Future<Either<Failure, CreateFormResult>> createForm({
     String title = 'Untitled form',
     List<domain.Item>? items,
+    bool enableQuiz = false,
   }) async {
     final forms_api.Form created;
     try {
@@ -64,7 +65,15 @@ class FormRepositoryImpl implements FormRepository {
       } else {
         await _forms.addDefaultQuestion(formId);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      dev.log('[FormRepository] addTemplateItems error: $e', name: 'API', error: e, stackTrace: st);
+    }
+
+    if (enableQuiz) {
+      try {
+        await _forms.enableQuizMode(formId);
+      } catch (_) {}
+    }
 
     bool publishFailed = false;
     try {

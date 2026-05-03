@@ -44,6 +44,7 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> loadForm(String formId) async {
     emit(const EditorLoading());
     final result = await _loadForm(formId);
+    if (isClosed) return;
     result.fold(
       (failure) => emit(switch (failure) {
         NotFoundFailure() => const EditorError(
@@ -295,6 +296,7 @@ class EditorCubit extends Cubit<EditorState> {
     final result = await _updateSettings(
       UpdateSettingsParams(formId: formId, settings: settings),
     );
+    if (isClosed) return;
     result.fold(
       (failure) {
         dev.log(
@@ -435,6 +437,7 @@ class EditorCubit extends Cubit<EditorState> {
     } catch (e, st) {
       dev.log('[EditorCubit] save() failed: $e',
           name: 'API', error: e, stackTrace: st);
+      if (isClosed) return;
       if (e is RevisionMismatchFailure) {
         emit(snapshot.copyWith(isSaving: false, conflictPending: true));
       } else {
