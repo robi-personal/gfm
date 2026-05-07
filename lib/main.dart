@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'features/paywall/data/services/subscription_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -14,6 +15,8 @@ void main() async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (_) {}
+
+  await SubscriptionService.configure();
 
   // Route Flutter framework errors to Crashlytics.
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

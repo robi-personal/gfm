@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import '../api/drive_client.dart';
 import '../api/forms_client.dart';
 import '../auth/google_auth_datasource.dart';
+import '../../features/paywall/data/services/subscription_service.dart';
+import '../../features/paywall/presentation/cubit/subscription_cubit.dart';
 import '../../features/dashboard/data/datasources/drive_datasource.dart';
 import '../../features/dashboard/data/datasources/forms_datasource.dart';
 import '../../features/dashboard/data/repositories/form_repository_impl.dart';
@@ -69,6 +71,7 @@ void configureDependencies() {
       signOut: getIt(),
       formsClient: getIt(),
       driveClient: getIt(),
+      subscriptionService: getIt(),
     ),
   );
 
@@ -152,5 +155,12 @@ void configureDependencies() {
       refreshRevision: getIt(),
       updateSettings: getIt(),
     ),
+  );
+
+  // ── Paywall / subscription feature ────────────────────────────────────────
+  getIt.registerLazySingleton(() => SubscriptionService());
+
+  getIt.registerFactory(
+    () => SubscriptionCubit(getIt<SubscriptionService>()),
   );
 }

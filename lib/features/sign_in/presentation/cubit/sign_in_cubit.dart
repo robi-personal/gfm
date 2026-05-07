@@ -5,6 +5,7 @@ import '../../../../core/api/forms_client.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../paywall/data/services/subscription_service.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/sign_in_silently.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
@@ -18,6 +19,7 @@ class SignInCubit extends Cubit<SignInState> {
   final SignOut _signOut;
   final FormsClient _formsClient;
   final DriveClient _driveClient;
+  final SubscriptionService _subscriptionService;
 
   SignInCubit({
     required SignInWithGoogle signInWithGoogle,
@@ -25,11 +27,13 @@ class SignInCubit extends Cubit<SignInState> {
     required SignOut signOut,
     required FormsClient formsClient,
     required DriveClient driveClient,
+    required SubscriptionService subscriptionService,
   })  : _signInWithGoogle = signInWithGoogle,
         _signInSilently = signInSilently,
         _signOut = signOut,
         _formsClient = formsClient,
         _driveClient = driveClient,
+        _subscriptionService = subscriptionService,
         super(const SignInInitial());
 
   /// Called on app launch. Uses cached credentials — no UI prompt.
@@ -40,6 +44,7 @@ class SignInCubit extends Cubit<SignInState> {
       (_) => emit(const Unauthenticated()),
       (user) {
         AnalyticsService.setUser(user.email);
+        _subscriptionService.identifyUser(user.email).ignore();
         emit(Authenticated(user));
       },
     );
@@ -56,6 +61,7 @@ class SignInCubit extends Cubit<SignInState> {
       },
       (user) {
         AnalyticsService.setUser(user.email);
+        _subscriptionService.identifyUser(user.email).ignore();
         emit(Authenticated(user));
       },
     );
@@ -66,6 +72,7 @@ class SignInCubit extends Cubit<SignInState> {
     _formsClient.reset();
     _driveClient.reset();
     AnalyticsService.clearUser();
+    _subscriptionService.clearUser().ignore();
     emit(const Unauthenticated());
   }
 }
