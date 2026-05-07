@@ -33,6 +33,8 @@ Read this file at the start of every session before touching any code.
 | YouTube video insert | ✅ Done | Search dialog → `addVideoItem` → `VideoItemContent` → Forms API |
 | Image insert | ✅ Done | URL paste or gallery picker → Drive upload → public URL → `ImageItemContent` |
 | Polish — empty states | ✅ Done | All screens have icon + text empty states (dashboard, editor, responses) |
+| RevenueCat integration | ✅ Done | `purchases_flutter` wired, real products, CSV export gated behind `gfm_premium` entitlement, paywall UI polish |
+| **Phase 2 — AI Form Builder (planning)** | 🔄 In progress | Spec doc complete in `Tasks-Phase2.md` — 7 tasks queued, Task 1 (API Contract) is next. Implementation not started. |
 | 17 Duplicate form/question | ⬜ Out of scope for MVP | |
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
@@ -219,6 +221,7 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
-4. **IAP / RevenueCat** — `purchases_flutter` plugin, `SubscriptionCubit`, wire `PaywallPage` to real products, feature gating
-5. **UI polish** — thumb-zone audit, spacing, typography refinements
-6. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
+4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
+5. **Phase 2 — AI Form Builder** — see `Tasks-Phase2.md`. 7 spec tasks before code. Start with Task 1 (API Contract, Opus 4.7). Backend = Node+Express on Hostinger VPS, Postgres, Gemini 2.0 Flash.
+6. **UI polish** — thumb-zone audit, spacing, typography refinements
+7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
