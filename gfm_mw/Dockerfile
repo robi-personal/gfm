@@ -9,6 +9,7 @@ FROM node:20-alpine AS dev
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json tsconfig.json nodemon.json ./
+COPY migrations/ ./migrations/
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
@@ -31,6 +32,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
+COPY migrations/ ./migrations/
 
 USER gfm
 EXPOSE 3000

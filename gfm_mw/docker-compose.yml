@@ -29,9 +29,9 @@ services:
       POSTGRES_PASSWORD: gfm
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Auto-runs on first start (empty volume). Task 3 adds an explicit
-      # migration runner for production; this covers dev convenience.
-      - ../docs/db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      # Auto-runs on first start when the data volume is empty (dev convenience).
+      # Production migrations are run by the app's runMigrations() on startup.
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
     ports:
       - "5432:5432"             # expose for local DB tools (TablePlus, psql, etc.)
     healthcheck:

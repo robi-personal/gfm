@@ -12,10 +12,10 @@ Work in order; each task builds on the previous.
 |---|------|-------|------------|--------|
 | 1 | Project scaffold (TypeScript, Express, directory structure) | **Sonnet 4.6** | — | ✅ Done |
 | 2 | Dockerfile + Docker Compose (app, postgres, redis, nginx) | **Sonnet 4.6** | 1 | ✅ Done |
-| 3 | Database — connection pool + migration runner | **Sonnet 4.6** | 2 | ⬜ Pending |
-| 4 | Core middleware (requestId, pino logging, body parser, trust proxy) | **Sonnet 4.6** | 1 | ⬜ Pending |
-| 5 | Auth — Google ID token verification | **Sonnet 4.6** | 4 | ⬜ Pending |
-| 6 | Kill switches (env var parsing + middleware) | **Sonnet 4.6** | 4 | ⬜ Pending |
+| 3 | Database — connection pool + migration runner | **Sonnet 4.6** | 2 | ✅ Done |
+| 4 | Core middleware (requestId, pino logging, body parser, trust proxy) | **Sonnet 4.6** | 1 | ✅ Done |
+| 5 | Auth — Google ID token verification | **Sonnet 4.6** | 4 | ✅ Done |
+| 6 | Kill switches (env var parsing + middleware) | **Sonnet 4.6** | 4 | ✅ Done |
 | 7 | Rate limiting (Redis + rate-limiter-flexible, all buckets) | **Sonnet 4.6** | 3, 5 | ⬜ Pending |
 | 8 | Cost circuit breakers (per-user 24h + global daily) | **Sonnet 4.6** | 3, 5 | ⬜ Pending |
 | 9 | `GET /user/status` | **Sonnet 4.6** | 3, 5 | ⬜ Pending |

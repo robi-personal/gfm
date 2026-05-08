@@ -1,4 +1,8 @@
 import express, { Application } from "express";
+import { requestIdMiddleware } from "./presentation/middleware/request-id.middleware";
+import { loggingMiddleware } from "./presentation/middleware/logging.middleware";
+import { errorMiddleware } from "./presentation/middleware/error.middleware";
+import { aiGenerationDisabledMiddleware } from "./presentation/middleware/kill-switch.middleware";
 
 export function createApp(): Application {
   const app = express();
@@ -8,6 +12,10 @@ export function createApp(): Application {
   // req.ip is the real client IP from X-Forwarded-For. See rate-limiting-abuse.md §4.4.
   app.set("trust proxy", 1);
 
+  // ── Core middleware ────────────────────────────────────────────────────────
+  app.use(requestIdMiddleware);   // must be first — everything else needs req.id
+  app.use(loggingMiddleware);     // attaches req.log, fires request_complete on finish
+
   // Body parser — 8MB limit covers base64-encoded PDFs up to ~5MB decoded.
   // See rate-limiting-abuse.md §5.2.
   app.use(express.json({ limit: "8mb" }));
@@ -15,8 +23,11 @@ export function createApp(): Application {
   // Liveness probe — no auth, no DB. Used by Docker HEALTHCHECK and load balancers.
   app.get("/ping", (_req, res) => res.json({ ok: true }));
 
-  // Routes are registered here by later tasks:
-  //   Task 4  → core middleware (requestId, logging)
+  // Kill switch: AI_GENERATION_DISABLED — runs before auth on all /ai/* routes.
+  // denylistMiddleware and dailyBudgetMiddleware mount inside authed route handlers (Task 14).
+  app.use("/ai", aiGenerationDisabledMiddleware);
+
+  // Routes registered by later tasks:
   //   Task 5  → auth middleware
   //   Task 6  → kill-switch middleware
   //   Task 7  → rate-limit middleware
@@ -24,6 +35,9 @@ export function createApp(): Application {
   //   Task 10 → POST /webhooks/revenuecat
   //   Task 14 → POST /ai/generate
   //   Task 15 → GET /health, GET /metrics
+
+  // ── Error handler (must be last) ──────────────────────────────────────────
+  app.use(errorMiddleware);
 
   return app;
 }
