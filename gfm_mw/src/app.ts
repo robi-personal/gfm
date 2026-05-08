@@ -1,4 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from "express";
+import * as Sentry from "@sentry/node";
 import { requestIdMiddleware } from "./presentation/middleware/request-id.middleware";
 import { loggingMiddleware } from "./presentation/middleware/logging.middleware";
 import { errorMiddleware } from "./presentation/middleware/error.middleware";
@@ -11,6 +12,7 @@ import {
 import { userRouter } from "./presentation/routes/user.routes";
 import { webhookRouter } from "./presentation/routes/webhook.routes";
 import { aiRouter } from "./presentation/routes/ai.routes";
+import { healthRouter } from "./presentation/routes/health.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -47,15 +49,16 @@ export function createApp(): Application {
   app.use("/ai",       aiRouter);
   app.use("/user",     userRouter);
   app.use("/webhooks", webhookRouter);
-
-  // Routes registered by later tasks:
-  //   Task 15 → GET /health, GET /metrics
+  app.use("/",         healthRouter);   // GET /health, GET /metrics
 
   // ── 404 + catch-all rate limit ────────────────────────────────────────────
   // Default per-IP limiter throttles unrecognised-path probing before sending 404.
   app.all("*", defaultIpLimitMiddleware, (_req: Request, res: Response) => {
     res.status(404).json({ code: "not_found", message: "Route not found." });
   });
+
+  // ── Sentry error handler (must be before custom error middleware) ─────────
+  Sentry.setupExpressErrorHandler(app);
 
   // ── Error handler (must be last) ──────────────────────────────────────────
   app.use(errorMiddleware);

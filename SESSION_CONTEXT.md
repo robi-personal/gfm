@@ -222,6 +222,6 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
-5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks done. Backend implementation in `gfm_mw/`. Tasks 1–14 ✅ done (scaffold, Docker, DB, middleware, auth, kill switches, rate limits, cost breakers, `/user/status`, RC webhook, URL fetcher, Gemini client, Zod validation+repair, **`POST /ai/generate` full pipeline**). Tasks 15–18 (health/metrics, observability wiring, nginx, prod compose) next.
+5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks done. Backend implementation in `gfm_mw/`. **All 18 implementation tasks ✅ done.** Final deliverables: `/health`+`/metrics` endpoints (Task 15), full prom-client+Sentry observability wiring (Task 16), `nginx/nginx.prod.conf` with TLS (Task 17), `docker-compose.prod.yml`+`.env.example`+`docs/deployment-runbook.md` (Task 18). Backend is production-ready.
 6. **UI polish** — thumb-zone audit, spacing, typography refinements
 7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

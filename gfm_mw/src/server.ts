@@ -1,5 +1,15 @@
-import { createApp } from "./app";
+// Sentry must be initialized before any other imports that might throw.
+import * as Sentry from "@sentry/node";
 import { env } from "./config/env";
+
+Sentry.init({
+  dsn: env.SENTRY_DSN,
+  environment: env.NODE_ENV,
+  release: process.env["npm_package_version"],
+  tracesSampleRate: 0.05,
+});
+
+import { createApp } from "./app";
 import { logger } from "./infrastructure/logger";
 import { runMigrations } from "./infrastructure/db/migrate";
 import { pool } from "./infrastructure/db/postgres";

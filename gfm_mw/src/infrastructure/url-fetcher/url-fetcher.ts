@@ -4,6 +4,7 @@ import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import ipaddr from "ipaddr.js";
 import sanitizeHtml from "sanitize-html";
+import { urlFetchBlockedTotal } from "../metrics";
 
 // All limits per docs/rate-limiting-abuse.md §6.
 const MAX_REDIRECTS = 3;
@@ -446,6 +447,22 @@ async function fetchOneUrl(
   }
 }
 
+// ── Metric helper ─────────────────────────────────────────────────────────
+// Maps FetchError reasons to url_fetch_blocked_total label values.
+// Returns null for generic network errors that are not safety-related blocks.
+function fetchReasonToMetricLabel(reason: FetchErrorReason): string | null {
+  switch (reason) {
+    case "private_ip_resolved":     return "private_ip";
+    case "no_dns_records":          return "dns_failure";
+    case "too_many_redirects":      return "too_many_redirects";
+    case "unsupported_content_type":return "unsupported_content_type";
+    case "body_too_large":          return "body_too_large";
+    case "fetch_timeout":           return "timeout";
+    case "redirect_without_location":
+    case "fetch_failed":            return null; // generic; not a safety block
+  }
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export async function fetchUrls(
@@ -494,7 +511,12 @@ export async function fetchUrls(
     // rather than returning a half-populated array — mirrors §6.5's "partial
     // results are discarded" rule for timeouts.
     for (const err of errors) {
-      if (err) throw err;
+      if (err) {
+        // Map FetchError reasons to metric labels (only blocked/safety events).
+        const metricReason = fetchReasonToMetricLabel(err.reason);
+        if (metricReason) urlFetchBlockedTotal.inc({ reason: metricReason });
+        throw err;
+      }
     }
 
     return results.map((r) => r!);

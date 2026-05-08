@@ -21,6 +21,7 @@ import {
 } from "../../ai/request-schema";
 import { hashRequestBody } from "../../ai/canonicalize";
 import { runGeneration } from "../../ai/generator";
+import { quotaExceededTotal } from "../../infrastructure/metrics";
 
 const FREE_LIMIT    = 3;
 const PREMIUM_LIMIT = 50;
@@ -177,6 +178,7 @@ aiRouter.post(
       // ── 7. Quota gate ─────────────────────────────────────────────────────
       const quotaBefore = await getQuotaSnapshot(userRepo, req.user!.id);
       if (quotaBefore.used >= quotaBefore.limit) {
+        quotaExceededTotal.inc({ tier: quotaBefore.tier });
         throw new HttpError(429, "quota_exceeded",
           quotaBefore.tier === "free"
             ? `You've used all ${quotaBefore.limit} free generations this month.`

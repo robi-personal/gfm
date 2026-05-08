@@ -8,6 +8,11 @@ import {
 } from "@google/generative-ai";
 import { env } from "../../config/env";
 import { logger } from "../logger";
+import {
+  geminiRequestsTotal,
+  geminiInputTokensTotal,
+  geminiOutputTokensTotal,
+} from "../metrics";
 
 const MODEL = "gemini-2.0-flash";
 const DEFAULT_DEADLINE_MS = 30_000;
@@ -43,6 +48,14 @@ export interface GeminiResult {
 }
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+
+// Cached "did the last real Gemini call succeed" flag — used by /health.
+// Never set false on a retry (only set after all retries exhausted).
+let geminiLastHealth = { ok: true, checkedAt: new Date().toISOString() };
+
+export function getLastGeminiHealth(): { ok: boolean; checkedAt: string } {
+  return geminiLastHealth;
+}
 
 function isAbortError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
@@ -181,27 +194,63 @@ export async function callGemini(args: CallGeminiArgs): Promise<GeminiResult> {
 
   try {
     // Attempt 1
+    let result: GeminiResult | undefined;
     try {
-      return await doAttempt(model, contents, controller.signal, 1);
+      result = await doAttempt(model, contents, controller.signal, 1);
     } catch (err) {
       // GeminiError (timeout, 4xx, blocked, unknown) — propagate immediately
-      if (err instanceof GeminiError) throw err;
+      if (err instanceof GeminiError) {
+        recordGeminiMetric(err);
+        throw err;
+      }
 
       // Reached here only for 5xx from doAttempt. Check deadline before retry.
-      if (controller.signal.aborted) throw new GeminiError("gemini_timeout");
+      if (controller.signal.aborted) {
+        const e = new GeminiError("gemini_timeout");
+        recordGeminiMetric(e);
+        throw e;
+      }
 
       await abortSleep(RETRY_BACKOFF_MS, controller.signal);
     }
 
+    if (result) {
+      recordGeminiSuccess(result);
+      return result;
+    }
+
     // Attempt 2
     try {
-      return await doAttempt(model, contents, controller.signal, 2);
+      const result2 = await doAttempt(model, contents, controller.signal, 2);
+      recordGeminiSuccess(result2);
+      return result2;
     } catch (err) {
-      if (err instanceof GeminiError) throw err;
+      if (err instanceof GeminiError) {
+        recordGeminiMetric(err);
+        throw err;
+      }
       // 5xx on attempt 2 — give up
-      throw new GeminiError("gemini_unavailable");
+      const e = new GeminiError("gemini_unavailable");
+      recordGeminiMetric(e);
+      throw e;
     }
   } finally {
     clearTimeout(timer);
   }
+}
+
+function recordGeminiSuccess(result: GeminiResult): void {
+  geminiRequestsTotal.inc({ outcome: "success" });
+  geminiInputTokensTotal.inc(result.inputTokens);
+  geminiOutputTokensTotal.inc(result.outputTokens);
+  geminiLastHealth = { ok: true, checkedAt: new Date().toISOString() };
+}
+
+function recordGeminiMetric(err: GeminiError): void {
+  const outcome =
+    err.reason === "gemini_timeout"   ? "gemini_timeout"  :
+    err.reason === "gemini_blocked"   ? "fallback_detected" :
+    "gemini_error";
+  geminiRequestsTotal.inc({ outcome });
+  geminiLastHealth = { ok: false, checkedAt: new Date().toISOString() };
 }

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import * as Sentry from "@sentry/node";
 import { verifyGoogleIdToken } from "../../infrastructure/google-auth/google-token-verifier";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { pool } from "../../infrastructure/db/postgres";
@@ -34,6 +35,9 @@ export async function authMiddleware(
 
     // Re-bind the request logger to include user_id on all subsequent log calls.
     req.log = req.log.child({ user_id: user.id });
+
+    // Tag all subsequent Sentry events in this request with internal user_id.
+    Sentry.setUser({ id: String(user.id) });
 
     next();
   } catch (err) {

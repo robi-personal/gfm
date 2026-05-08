@@ -24,10 +24,10 @@ Work in order; each task builds on the previous.
 | 12 | Gemini client (structured output, retry, 30s timeout) | **Sonnet 4.6** | 4 | ✅ Done |
 | 13 | Zod validation + repair turn (all 9 question types, fallback detection) | **Sonnet 4.6** | 12 | ✅ Done |
 | 14 | `POST /ai/generate` (full pipeline) | **Opus 4.7** | 3, 5, 6, 7, 8, 11, 12, 13 | ✅ Done |
-| 15 | `/health` + `/metrics` endpoints | **Sonnet 4.6** | 3, 4 | ⬜ Pending |
-| 16 | Observability — pino fields, prom-client instruments, Sentry | **Sonnet 4.6** | 4, 14, 15 | ⬜ Pending |
-| 17 | Nginx reverse proxy config (TLS, body size, real IP) | **Sonnet 4.6** | 2 | ⬜ Pending |
-| 18 | Production compose + secrets + deployment runbook | **Sonnet 4.6** | 2, 17 | ⬜ Pending |
+| 15 | `/health` + `/metrics` endpoints | **Sonnet 4.6** | 3, 4 | ✅ Done |
+| 16 | Observability — pino fields, prom-client instruments, Sentry | **Sonnet 4.6** | 4, 14, 15 | ✅ Done |
+| 17 | Nginx reverse proxy config (TLS, body size, real IP) | **Sonnet 4.6** | 2 | ✅ Done |
+| 18 | Production compose + secrets + deployment runbook | **Sonnet 4.6** | 2, 17 | ✅ Done |
 
 ### Model rationale
 - **Opus 4.7** for tasks where a mistake is exploitable or hard to reverse: URL fetcher (SSRF defense is subtle — DNS rebinding, per-hop IP rechecks), `/ai/generate` pipeline (quota burn semantics, idempotency state machine, and all error codes wired together — bugs here affect every user).

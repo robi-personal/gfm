@@ -1,11 +1,13 @@
 import crypto from "node:crypto";
 import { Router } from "express";
+import * as Sentry from "@sentry/node";
 import { env } from "../../config/env";
 import { pool, withTransaction } from "../../infrastructure/db/postgres";
 import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
+import { rcWebhookTotal, rcWebhookLagMs } from "../../infrastructure/metrics";
 
 export const webhookRouter = Router();
 
@@ -124,6 +126,12 @@ webhookRouter.post(
       crypto.timingSafeEqual(computedBuf, providedBuf);
 
     if (!sigValid) {
+      req.log.error({ path: req.path }, "rc_hmac_mismatch");
+      Sentry.withScope((scope) => {
+        scope.setLevel("warning");
+        scope.setTag("route", "POST /webhooks/revenuecat");
+        Sentry.captureException(new Error("rc_webhook_hmac_mismatch"));
+      });
       res.status(401).json({
         code: "invalid_signature",
         message: "Webhook signature verification failed.",
@@ -142,19 +150,37 @@ webhookRouter.post(
       return;
     }
 
+    const purchasedAtMs =
+      typeof (payload as unknown as { event?: { purchased_at_ms?: unknown } }).event?.purchased_at_ms === "number"
+        ? ((payload as unknown as { event: { purchased_at_ms: number } }).event.purchased_at_ms)
+        : null;
+    const isSandbox = event.environment === "SANDBOX";
+
+    const recordWebhookMetric = (outcome: string): void => {
+      rcWebhookTotal.inc({ event_type: event.type, outcome });
+      if (purchasedAtMs) rcWebhookLagMs.observe(Date.now() - purchasedAtMs);
+    };
+
     // Step 3: Fast dedupe pre-check (authoritative guard is the UNIQUE constraint in Step 6)
     const webhookRepo = new PgWebhookEventRepository(pool);
     if (await webhookRepo.existsById(event.id)) {
-      req.log.info({ event_id: event.id, type: event.type }, "rc_webhook_duplicate_skipped");
+      req.log.info(
+        { event_id: event.id, type: event.type, is_duplicate: true, is_sandbox: isSandbox },
+        "rc_webhook_duplicate_skipped",
+      );
+      recordWebhookMetric("duplicate");
       res.json({ received: true });
       return;
     }
 
     // Step 4: Sandbox gate — store for audit but skip user updates in production (§4.3)
-    const isSandbox = event.environment === "SANDBOX";
     if (isSandbox && env.NODE_ENV === "production") {
       await webhookRepo.insertIfAbsent(event.id, event.type, null, payload);
-      req.log.info({ event_id: event.id, type: event.type }, "rc_webhook_sandbox_stored_noop");
+      req.log.info(
+        { event_id: event.id, type: event.type, is_sandbox: true },
+        "rc_webhook_sandbox_stored_noop",
+      );
+      recordWebhookMetric("sandbox_skipped");
       res.json({ received: true });
       return;
     }
@@ -169,6 +195,7 @@ webhookRouter.post(
         { event_id: event.id, type: event.type, app_user_id: event.app_user_id },
         "rc_webhook_unknown_user",
       );
+      recordWebhookMetric("unknown_user");
       res.json({ received: true });
       return;
     }
@@ -188,11 +215,13 @@ webhookRouter.post(
     } catch (err) {
       if (err instanceof DuplicateEventError) {
         req.log.info({ event_id: event.id }, "rc_webhook_duplicate_concurrent_skipped");
+        recordWebhookMetric("duplicate");
         res.json({ received: true });
         return;
       }
       // DB failure — return 5xx so RC retries (self-healing on transient outages §4.7)
       req.log.error({ err, event_id: event.id }, "rc_webhook_transaction_failed");
+      recordWebhookMetric("error");
       res.status(503).json({
         code: "database_unavailable",
         message: "Database is temporarily unavailable. Please retry.",
@@ -201,9 +230,18 @@ webhookRouter.post(
     }
 
     req.log.info(
-      { event_id: event.id, type: event.type, user_id: user.id },
+      {
+        event_id: event.id,
+        event_type: event.type,
+        user_id: user.id,
+        is_sandbox: isSandbox,
+        is_duplicate: false,
+        rc_event_at_ms: purchasedAtMs,
+        webhook_lag_ms: purchasedAtMs ? Date.now() - purchasedAtMs : null,
+      },
       "rc_webhook_processed",
     );
+    recordWebhookMetric("processed");
     res.json({ received: true });
   },
 );

@@ -3,6 +3,7 @@ import { RateLimiterRedis, RateLimiterMemory, RateLimiterRes } from "rate-limite
 import { redis } from "../../infrastructure/redis/redis-client";
 import { env } from "../../config/env";
 import { logger } from "../../infrastructure/logger";
+import { rateLimitExceededTotal } from "../../infrastructure/metrics";
 
 // ── Limiter factory ────────────────────────────────────────────────────────────
 // Redis primary + in-memory insurance. When Redis is down, the insurance limiter
@@ -66,6 +67,10 @@ function makeIpMiddleware(
         setRlExceededHeaders(res, limit, err);
         const retryAfter = Math.ceil(err.msBeforeNext / 1_000);
         req.log?.warn({ scope, retryAfter }, "rate_limit_exceeded");
+        const routeKey = req.route
+          ? `${req.method} ${req.route.path as string}`
+          : `${req.method} ${req.path}`;
+        rateLimitExceededTotal.inc({ scope, route: routeKey });
         res.status(status).json({
           code,
           message: status === 503
@@ -97,6 +102,10 @@ function makeUserMiddleware(
         setRlExceededHeaders(res, limit, err);
         const retryAfter = Math.ceil(err.msBeforeNext / 1_000);
         req.log?.warn({ scope, userId: req.user!.id, retryAfter }, "rate_limit_exceeded");
+        const routeKey = req.route
+          ? `${req.method} ${req.route.path as string}`
+          : `${req.method} ${req.path}`;
+        rateLimitExceededTotal.inc({ scope, route: routeKey });
         res.status(429).json({
           code: "rate_limited",
           message: "Too many requests. Please slow down.",

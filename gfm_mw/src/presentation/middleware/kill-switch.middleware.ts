@@ -2,6 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import { env } from "../../config/env";
 import { pool } from "../../infrastructure/db/postgres";
 import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
+import {
+  killSwitchTrippedTotal,
+  costBreakerTrippedTotal,
+  geminiSpendUsdToday,
+} from "../../infrastructure/metrics";
 
 // ── 1. AI_GENERATION_DISABLED ─────────────────────────────────────────────────
 // Runs before auth on /ai/* paths. Pure env var check — no DB, no tokens.
@@ -12,6 +17,7 @@ export function aiGenerationDisabledMiddleware(
 ): void {
   if (env.AI_GENERATION_DISABLED) {
     req.log.warn({ path: req.path }, "kill_switch_tripped_service_disabled");
+    killSwitchTrippedTotal.inc({ which: "ai_generation_disabled" });
     res.status(503).json({
       code: "service_disabled",
       message: "AI generation is temporarily disabled. Please try again later.",
@@ -31,6 +37,7 @@ export function denylistMiddleware(
   const sub = req.user?.googleSub;
   if (sub && env.USER_DENYLIST.has(sub)) {
     req.log.warn({ googleSub: sub, user_id: req.user?.id }, "kill_switch_tripped_user_blocked");
+    killSwitchTrippedTotal.inc({ which: "user_blocked" });
     res.status(403).json({
       code: "user_blocked",
       message: "Your account has been suspended.",
@@ -64,6 +71,7 @@ export async function perUserBudgetMiddleware(
         { userId: req.user!.id, spendUsd: spend, capUsd: cap },
         "cost_breaker_tripped_per_user",
       );
+      costBreakerTrippedTotal.inc({ scope: "per-user" });
       res.status(503).json({
         code: "daily_budget_exceeded",
         message: "You have reached the daily usage limit. Please try again tomorrow.",
@@ -106,12 +114,15 @@ export async function dailyBudgetMiddleware(
         { spendUsd: globalSpendCache.value, capUsd: env.MAX_DAILY_GEMINI_SPEND_USD },
         "kill_switch_tripped_daily_budget_exceeded",
       );
+      killSwitchTrippedTotal.inc({ which: "daily_budget_exceeded" });
+      geminiSpendUsdToday.set(globalSpendCache.value);
       res.status(503).json({
         code: "daily_budget_exceeded",
         message: "Service is temporarily unavailable. Please try again tomorrow.",
       });
       return;
     }
+    geminiSpendUsdToday.set(globalSpendCache.value);
 
     next();
   } catch (err) {

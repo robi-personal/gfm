@@ -1,5 +1,6 @@
 import type { Content } from "@google/generative-ai";
 import type { Logger } from "pino";
+import * as Sentry from "@sentry/node";
 import { callGemini, GeminiError } from "../infrastructure/gemini/gemini-client";
 import { fetchUrls, FetchError } from "../infrastructure/url-fetcher/url-fetcher";
 import { HttpError } from "../presentation/middleware/error.middleware";
@@ -12,6 +13,7 @@ import { buildContents } from "./build-contents";
 import { GEMINI_RESPONSE_SCHEMA } from "./response-schema";
 import { SYSTEM_PROMPT_V1, PROMPT_VERSION } from "./system-prompt";
 import type { GenerateRequest } from "./request-schema";
+import { geminiRequestsTotal } from "../infrastructure/metrics";
 
 interface GenerateArgs {
   user: { id: number; tier: "free" | "premium" };
@@ -60,7 +62,7 @@ function geminiErrorToHttp(e: GeminiError): HttpError {
 }
 
 export async function runGeneration(args: GenerateArgs): Promise<GenerationOutcome> {
-  const { body, log, aiRepo, rowId } = args;
+  const { body, log, aiRepo, rowId, generationId } = args;
 
   // ── Step A: Fetch URLs (only for inputType=urls) ──────────────────────────
   let fetchedUrls: { url: string; text: string }[] | undefined;
@@ -115,6 +117,17 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
         inputTokens,
         outputTokens,
       });
+      if (e.reason === "gemini_unavailable") {
+        Sentry.withScope((scope) => {
+          scope.setLevel("warning");
+          scope.setTag("route", "POST /ai/generate");
+          scope.setTag("input_type", body.inputType);
+          scope.setTag("quota_tier", args.user.tier);
+          scope.setExtra("generation_id", generationId);
+          scope.setExtra("gemini_attempts", 1);
+          Sentry.captureException(e);
+        });
+      }
       throw geminiErrorToHttp(e);
     }
     throw e;
@@ -131,8 +144,9 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
 
   // ── Step D: Fatal? → reject without a repair turn ─────────────────────────
   if (isFatal(zod1.error, candidate1)) {
+    const fallback = isFallbackForm(candidate1);
     log.warn(
-      { autoRepairs: rules1, zodIssueCount: zod1.error.issues.length, isFallback: isFallbackForm(candidate1) },
+      { autoRepairs: rules1, zodIssueCount: zod1.error.issues.length, isFallback: fallback },
       "gen_fatal_first_attempt",
     );
     await aiRepo.updateFailure(rowId, {
@@ -148,6 +162,18 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
       },
       inputTokens: attempt1.inputTokens,
       outputTokens: attempt1.outputTokens,
+    });
+    geminiRequestsTotal.inc({ outcome: fallback ? "fallback_detected" : "validation_error" });
+    Sentry.withScope((scope) => {
+      scope.setLevel("warning");
+      scope.setTag("route", "POST /ai/generate");
+      scope.setTag("input_type", body.inputType);
+      scope.setTag("quota_tier", args.user.tier);
+      scope.setExtra("generation_id", generationId);
+      scope.setExtra("gemini_attempts", 1);
+      scope.setExtra("validation_error", formatZodErrors(zod1.error));
+      scope.setExtra("raw_output_1", attempt1.rawText.slice(0, 5_000));
+      Sentry.captureException(new Error("gemini_validation_error_fatal"));
     });
     throw new HttpError(503, "validation_error", "The AI produced an unexpected result. Please try again, or try rephrasing your input.");
   }
@@ -198,6 +224,17 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
         inputTokens:  attempt1.inputTokens  + (inputTokens  ?? 0),
         outputTokens: attempt1.outputTokens + (outputTokens ?? 0),
       });
+      if (e.reason === "gemini_unavailable") {
+        Sentry.withScope((scope) => {
+          scope.setLevel("warning");
+          scope.setTag("route", "POST /ai/generate");
+          scope.setTag("input_type", body.inputType);
+          scope.setTag("quota_tier", args.user.tier);
+          scope.setExtra("generation_id", generationId);
+          scope.setExtra("gemini_attempts", 2);
+          Sentry.captureException(e);
+        });
+      }
       throw geminiErrorToHttp(e);
     }
     throw e;
@@ -237,6 +274,19 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
     },
     inputTokens:  totalTokens.inputTokens,
     outputTokens: totalTokens.outputTokens,
+  });
+  geminiRequestsTotal.inc({ outcome: "validation_error" });
+  Sentry.withScope((scope) => {
+    scope.setLevel("warning");
+    scope.setTag("route", "POST /ai/generate");
+    scope.setTag("input_type", body.inputType);
+    scope.setTag("quota_tier", args.user.tier);
+    scope.setExtra("generation_id", generationId);
+    scope.setExtra("gemini_attempts", 2);
+    scope.setExtra("validation_error", formatZodErrors(zod2.error));
+    scope.setExtra("raw_output_1", attempt1.rawText.slice(0, 3_000));
+    scope.setExtra("raw_output_2", attempt2.rawText.slice(0, 3_000));
+    Sentry.captureException(new Error("gemini_validation_error_repair_failed"));
   });
   throw new HttpError(503, "validation_error", "The AI produced an unexpected result. Please try again, or try rephrasing your input.");
 }
