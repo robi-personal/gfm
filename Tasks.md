@@ -11,7 +11,7 @@ Work in order; each task builds on the previous.
 | # | Task | Model | Depends on | Status |
 |---|------|-------|------------|--------|
 | 1 | Project scaffold (TypeScript, Express, directory structure) | **Sonnet 4.6** | — | ✅ Done |
-| 2 | Dockerfile + Docker Compose (app, postgres, redis, nginx) | **Sonnet 4.6** | 1 | ⬜ Pending |
+| 2 | Dockerfile + Docker Compose (app, postgres, redis, nginx) | **Sonnet 4.6** | 1 | ✅ Done |
 | 3 | Database — connection pool + migration runner | **Sonnet 4.6** | 2 | ⬜ Pending |
 | 4 | Core middleware (requestId, pino logging, body parser, trust proxy) | **Sonnet 4.6** | 1 | ⬜ Pending |
 | 5 | Auth — Google ID token verification | **Sonnet 4.6** | 4 | ⬜ Pending |

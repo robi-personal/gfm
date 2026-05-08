@@ -1,0 +1,76 @@
+services:
+
+  app:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - ./src:/app/src          # hot reload — nodemon watches /app/src
+    ports:
+      - "3000:3000"             # direct access for testing without nginx
+    env_file: .env
+    environment:
+      # Override DB/Redis URLs to use Docker service names instead of localhost
+      DATABASE_URL: postgres://gfm:gfm@postgres:5432/gfm
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gfm_network
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gfm
+      POSTGRES_USER: gfm
+      POSTGRES_PASSWORD: gfm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Auto-runs on first start (empty volume). Task 3 adds an explicit
+      # migration runner for production; this covers dev convenience.
+      - ../docs/db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    ports:
+      - "5432:5432"             # expose for local DB tools (TablePlus, psql, etc.)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gfm -d gfm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - gfm_network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"             # expose for local Redis tools
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - gfm_network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - gfm_network
+
+networks:
+  gfm_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
