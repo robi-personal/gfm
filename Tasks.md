@@ -22,7 +22,7 @@ Work in order; each task builds on the previous.
 | 10 | RevenueCat webhook (HMAC, dedupe, all 7 event handlers) | **Sonnet 4.6** | 3 | ✅ Done |
 | 11 | URL fetcher (SSRF guards, redirects, content-type, timeouts) | **Opus 4.7** | 4 | ✅ Done |
 | 12 | Gemini client (structured output, retry, 30s timeout) | **Sonnet 4.6** | 4 | ✅ Done |
-| 13 | Zod validation + repair turn (all 9 question types, fallback detection) | **Sonnet 4.6** | 12 | ⬜ Pending |
+| 13 | Zod validation + repair turn (all 9 question types, fallback detection) | **Sonnet 4.6** | 12 | ✅ Done |
 | 14 | `POST /ai/generate` (full pipeline) | **Opus 4.7** | 3, 5, 6, 7, 8, 11, 12, 13 | ⬜ Pending |
 | 15 | `/health` + `/metrics` endpoints | **Sonnet 4.6** | 3, 4 | ⬜ Pending |
 | 16 | Observability — pino fields, prom-client instruments, Sentry | **Sonnet 4.6** | 4, 14, 15 | ⬜ Pending |
