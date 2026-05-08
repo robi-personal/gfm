@@ -20,7 +20,7 @@ Work in order; each task builds on the previous.
 | 8 | Cost circuit breakers (per-user 24h + global daily) | **Sonnet 4.6** | 3, 5 | ✅ Done |
 | 9 | `GET /user/status` | **Sonnet 4.6** | 3, 5 | ✅ Done |
 | 10 | RevenueCat webhook (HMAC, dedupe, all 7 event handlers) | **Sonnet 4.6** | 3 | ✅ Done |
-| 11 | URL fetcher (SSRF guards, redirects, content-type, timeouts) | **Opus 4.7** | 4 | ⬜ Pending |
+| 11 | URL fetcher (SSRF guards, redirects, content-type, timeouts) | **Opus 4.7** | 4 | ✅ Done |
 | 12 | Gemini client (structured output, retry, 30s timeout) | **Sonnet 4.6** | 4 | ⬜ Pending |
 | 13 | Zod validation + repair turn (all 9 question types, fallback detection) | **Sonnet 4.6** | 12 | ⬜ Pending |
 | 14 | `POST /ai/generate` (full pipeline) | **Opus 4.7** | 3, 5, 6, 7, 8, 11, 12, 13 | ⬜ Pending |
