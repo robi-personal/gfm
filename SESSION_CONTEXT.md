@@ -34,7 +34,7 @@ Read this file at the start of every session before touching any code.
 | Image insert | ✅ Done | URL paste or gallery picker → Drive upload → public URL → `ImageItemContent` |
 | Polish — empty states | ✅ Done | All screens have icon + text empty states (dashboard, editor, responses) |
 | RevenueCat integration | ✅ Done | `purchases_flutter` wired, real products, CSV export gated behind `gfm_premium` entitlement, paywall UI polish |
-| **Phase 2 — AI Form Builder (planning)** | 🔄 In progress | Spec doc complete in `Tasks-Phase2.md` — 7 tasks queued, Task 1 (API Contract) is next. Implementation not started. |
+| **Phase 2 — AI Form Builder (planning)** | 🔄 In progress | Spec doc in `Tasks-Phase2.md` — 7 tasks. **Task 1 ✅ Done** → `docs/phase2/api-contract.md`. **Task 2 (DB Schema, Sonnet 4.6) is next.** Implementation not started. |
 | 17 Duplicate form/question | ⬜ Out of scope for MVP | |
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |

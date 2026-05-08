@@ -8,9 +8,9 @@ Generate these documents **before writing any code**. Work through them in order
 
 | # | Document | Model | Depends on | Status |
 |---|----------|-------|------------|--------|
-| 1 | API Contract | **Opus 4.7** | — | ⬜ Pending |
-| 2 | Database Schema (SQL migrations) | **Sonnet 4.6** | 1 | ⬜ Pending |
-| 3 | AI Prompt Spec | **Opus 4.7** | 1 | ⬜ Pending |
+| 1 | API Contract | **Opus 4.7** | — | ✅ Done — `docs/phase2/api-contract.md` |
+| 2 | Database Schema (SQL migrations) | **Sonnet 4.6** | 1 | ✅ Done — `gfm_mw/db/migrations/001_init.sql`, `gfm_mw/db/scripts/cleanup_expired_generations.sql` |
+| 3 | AI Prompt Spec | **Opus 4.7** | 1 | 🔄 Next |
 | 4 | Feature Spec (Flutter UI/flows) | **Sonnet 4.6** | 1 | ⬜ Pending |
 | 5 | RevenueCat Webhook Map | **Sonnet 4.6** | 2 | ⬜ Pending |
 | 6 | Rate Limiting & Abuse Strategy | **Opus 4.7** | 1 | ⬜ Pending |
@@ -32,10 +32,11 @@ Generate these documents **before writing any code**. Work through them in order
 **Accept when:**
 - [ ] Every error in the draft (400/401/403/409/429/503) has a documented response body shape with `code` and `message`
 - [ ] `/ai/generate` request schema validates each `inputType` variant (text vs pdf vs youtube vs urls)
-- [ ] Idempotency-Key behavior documented (replay returns cached response, conflict returns 409)
-- [ ] Quota-exceeded 429 includes `resetsAt` timestamp
+- [ ] Idempotency-Key behavior documented (replay returns cached response, conflict returns 409). Only **successful** responses are cached; failures are not replayed (a retry re-runs the generation).
+- [ ] Quota-exceeded 429 body includes `resetsAt`, `used`, `limit`, and `tier` — saves the client a `/user/status` round-trip when rendering the upsell modal
 - [ ] `/user/status` response matches the shape in this doc
-- [ ] `/ai/generate` response includes `generationId` and a `status` field — future-proofs for async without forcing it now (no v2 needed when we move to a queue)
+- [ ] `/ai/generate` 200 response includes `generationId` and a `status` field — future-proofs for async without forcing it now (no v2 needed when we move to a queue)
+- [ ] Error responses do **not** include `generationId`. Rationale: failures don't burn quota (see "Quota Burn Semantics" in Decisions Made), so there's no user-facing receipt to surface.
 
 ### Task 2 — Database Schema  *(Sonnet 4.6)*
 **Scope:** Real SQL migration files (`001_init.sql`, etc.) for `users`, `webhook_events`, `ai_generations`. Indexes, FKs, NOT NULL constraints, default values. Cleanup job for expired generation rows.
@@ -55,8 +56,8 @@ Generate these documents **before writing any code**. Work through them in order
 **Accept when:**
 - [ ] System prompt produces output matching the Google Forms `batchUpdate` item shape (no unsupported types like `FileUploadQuestion`)
 - [ ] Strict JSON Schema written for the form output; validated server-side with **Zod** (or Ajv) before any Forms API call
-- [ ] On validation failure: 1 repair attempt — feed the validator error back to Gemini with a "fix this" instruction, then re-validate. If 2nd attempt fails → `validation_error` status logged with both attempts in `error_payload`, client gets 503.
-- [ ] Validation rejects (does not auto-repair): unsupported question types, >50 questions, missing required fields. These are fatal and counted as a quota burn (decision documented).
+- [ ] On validation failure: 1 repair attempt — feed the validator error back to Gemini with a "fix this" instruction, then re-validate. If 2nd attempt fails → `validation_error` status logged with both attempts in `error_payload`, client gets 503. **Quota is not burned** (see "Quota Burn Semantics" in Decisions Made); abuse exposure is bounded by Task 6 rate limits + circuit breakers.
+- [ ] Validation rejects (does not auto-repair): unsupported question types, >50 questions, missing required fields. These are fatal — client gets 503 `validation_error`. Failure row is still written to `ai_generations` for debug; quota counter is not incremented.
 - [ ] Validation auto-repairs: malformed enum casing, missing optional fields, trailing commas — handled in code, not via re-prompt.
 - [ ] At least 2 few-shot examples per input type (text, pdf, youtube, urls)
 - [ ] Question count target documented (10–15) with override behavior
@@ -87,7 +88,8 @@ Generate these documents **before writing any code**. Work through them in order
 - [ ] Maximum request body size enforced at Nginx + Express
 - [ ] PDF/URL fetch budgets capped (no SSRF, no recursive fetch)
 - [ ] URL fetcher safeguards: blocks RFC1918 + link-local + loopback (resolve DNS first, then check IP); follows max 3 redirects with private-IP check on each hop; `Content-Type` allowlist (`text/html`, `text/plain`, `application/xhtml+xml`); 5s connect + 10s total timeout; 5MB body cap; user-agent identifies the service
-- [ ] Cost-per-user circuit breaker if Gemini spend exceeds threshold (computed from `ai_generations.input_tokens + output_tokens` rolling 24h)
+- [ ] Cost-per-user circuit breaker if Gemini spend exceeds threshold (computed from `ai_generations.input_tokens + output_tokens` rolling 24h, **including failed rows** — failures don't burn user quota but they still cost us money)
+- [ ] Per-user attempt rate limit (e.g., 10/hour) sized to bound the cost of users whose generations always fail validation. Since validation failures no longer consume quota, rate limits are the primary defense against grind-attacks.
 - [ ] **Kill switches** wired into config (env vars):
   - `AI_GENERATION_DISABLED=true` → all `/ai/generate` returns 503 with `code=service_disabled`
   - `MAX_DAILY_GEMINI_SPEND_USD=10` → tracked from token logs; when exceeded, 503 with `code=daily_budget_exceeded`
@@ -128,6 +130,22 @@ Generate these documents **before writing any code**. Work through them in order
 | Premium (`gfm_premium`) | 50 / month (resets on RC `RENEWAL`) | Text + PDF + YouTube URL + Website/blog links |
 
 > Decision: free quota is monthly, not lifetime. Lifetime caps drive harder conversion but also drive uninstalls before users can fairly evaluate the feature. Revisit after 30 days of usage data.
+
+### Quota Burn Semantics
+
+**Quota is consumed only on successful generation.** A success is: Gemini returned valid JSON, schema validation passed (auto-repair counts), and the client received a `form` object.
+
+**Does NOT burn quota:**
+- 4xx errors (bad input, auth, premium gate) — never reached Gemini
+- 503 `gemini_unavailable` — Gemini 5xx after 1 retry
+- 503 `validation_error` — Gemini output failed schema after 1 repair attempt
+- Idempotency replay of a previously cached success (already burned on first call)
+
+**Rationale:** without customer service, "we charged you for nothing" is a one-way door to uninstall. Quota is the user-facing promise ("you bought 3, you get 3"); it should not be coupled to our tooling's reliability. Cost exposure from honest failures is negligible (~$0.0025/user/month at 5% Gemini failure rate). Cost exposure from grind-attacks is bounded by Task 6 rate limits + circuit breakers — that's the right place to handle abuse.
+
+**Bookkeeping:** failed attempts still write a row to `ai_generations` (with `status='gemini_error'` or `'validation_error'` and full `error_payload`) so we can debug from logs and watch failure rates. They just don't increment `ai_free_used` / `ai_premium_used`.
+
+**Idempotency cache scope:** only successful responses are cached for replay. Retrying a failure re-runs the generation; if it succeeds the second time, *that* call burns quota.
 
 ### Authentication
 - App sends **Google ID token** in `Authorization: Bearer <token>` header
