@@ -77,6 +77,41 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
     return mapRow(rows[0]);
   }
 
+  async tryCreate(params: CreateGenerationParams): Promise<AiGeneration | null> {
+    // ON CONFLICT DO NOTHING handles the concurrent-retry race without an
+    // explicit lock. Caller re-fetches the existing row to choose the right
+    // recovery path (cached success / in-flight / take-over failed).
+    const { rows } = await this.db.query(
+      `INSERT INTO ai_generations
+         (generation_id, user_id, idempotency_key, request_hash, input_type, input_size, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'processing')
+       ON CONFLICT (user_id, idempotency_key) DO NOTHING
+       RETURNING *`,
+      [
+        params.generationId,
+        params.userId,
+        params.idempotencyKey,
+        params.requestHash,
+        params.inputType,
+        params.inputSize ?? null,
+      ],
+    );
+    return rows[0] ? mapRow(rows[0]) : null;
+  }
+
+  async claimFailedForRetry(id: number): Promise<boolean> {
+    // Conditional take-over. If two retries race, only one UPDATE matches
+    // the failure status and returns rowCount=1; the loser sees rowCount=0
+    // and the route returns 409 idempotency_in_flight.
+    const result = await this.db.query(
+      `UPDATE ai_generations
+         SET status = 'processing', error_payload = NULL
+       WHERE id = $1 AND status IN ('gemini_error', 'validation_error')`,
+      [id],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async updateStatus(id: number, status: GenerationStatus): Promise<void> {
     await this.db.query(
       "UPDATE ai_generations SET status = $2 WHERE id = $1",

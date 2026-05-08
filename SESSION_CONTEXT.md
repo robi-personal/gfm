@@ -222,6 +222,6 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
-5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks before code. All 7 spec tasks done. **Implementation started** — backend in `gfm_mw/`. Task 1 (scaffold) ✅ done. Task 2 (Docker) next. Backend = Node+Express on Hostinger VPS, Postgres, Gemini 2.0 Flash. **Backend directory not yet created** — ask user to name/create it before any backend code lands.
+5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks done. Backend implementation in `gfm_mw/`. Tasks 1–14 ✅ done (scaffold, Docker, DB, middleware, auth, kill switches, rate limits, cost breakers, `/user/status`, RC webhook, URL fetcher, Gemini client, Zod validation+repair, **`POST /ai/generate` full pipeline**). Tasks 15–18 (health/metrics, observability wiring, nginx, prod compose) next.
 6. **UI polish** — thumb-zone audit, spacing, typography refinements
 7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

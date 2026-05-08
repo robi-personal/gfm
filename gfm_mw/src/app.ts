@@ -10,6 +10,7 @@ import {
 } from "./presentation/middleware/rate-limit.middleware";
 import { userRouter } from "./presentation/routes/user.routes";
 import { webhookRouter } from "./presentation/routes/webhook.routes";
+import { aiRouter } from "./presentation/routes/ai.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -43,11 +44,11 @@ export function createApp(): Application {
   app.use("/ai", aiIpLimitMiddleware);
 
   // ── Routes ────────────────────────────────────────────────────────────────
+  app.use("/ai",       aiRouter);
   app.use("/user",     userRouter);
   app.use("/webhooks", webhookRouter);
 
   // Routes registered by later tasks:
-  //   Task 14 → POST /ai/generate (+ per-user rate limits, budget breakers, quota gate)
   //   Task 15 → GET /health, GET /metrics
 
   // ── 404 + catch-all rate limit ────────────────────────────────────────────
