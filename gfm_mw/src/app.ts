@@ -1,8 +1,15 @@
-import express, { Application } from "express";
+import express, { Application, Request, Response, NextFunction } from "express";
 import { requestIdMiddleware } from "./presentation/middleware/request-id.middleware";
 import { loggingMiddleware } from "./presentation/middleware/logging.middleware";
 import { errorMiddleware } from "./presentation/middleware/error.middleware";
 import { aiGenerationDisabledMiddleware } from "./presentation/middleware/kill-switch.middleware";
+import {
+  aiGlobalLimitMiddleware,
+  aiIpLimitMiddleware,
+  defaultIpLimitMiddleware,
+} from "./presentation/middleware/rate-limit.middleware";
+import { userRouter } from "./presentation/routes/user.routes";
+import { webhookRouter } from "./presentation/routes/webhook.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -13,28 +20,41 @@ export function createApp(): Application {
   app.set("trust proxy", 1);
 
   // ── Core middleware ────────────────────────────────────────────────────────
-  app.use(requestIdMiddleware);   // must be first — everything else needs req.id
-  app.use(loggingMiddleware);     // attaches req.log, fires request_complete on finish
+  app.use(requestIdMiddleware);  // must be first — everything else needs req.id
+  app.use(loggingMiddleware);    // attaches req.log, fires request_complete on finish
 
   // Body parser — 8MB limit covers base64-encoded PDFs up to ~5MB decoded.
-  // See rate-limiting-abuse.md §5.2.
-  app.use(express.json({ limit: "8mb" }));
+  // verify captures raw bytes before parsing for HMAC verification on /webhooks/revenuecat.
+  // See rate-limiting-abuse.md §5.2 and revenuecat-webhook-map.md §2.1.
+  app.use(express.json({
+    limit: "8mb",
+    verify: (req: Request, _res: Response, buf: Buffer) => {
+      req.rawBody = buf;
+    },
+  }));
 
   // Liveness probe — no auth, no DB. Used by Docker HEALTHCHECK and load balancers.
   app.get("/ping", (_req, res) => res.json({ ok: true }));
 
-  // Kill switch: AI_GENERATION_DISABLED — runs before auth on all /ai/* routes.
-  // denylistMiddleware and dailyBudgetMiddleware mount inside authed route handlers (Task 14).
+  // ── Kill switch + coarse rate limits on /ai/* (before auth) ───────────────
+  // Order per rate-limiting-abuse.md §12: kill switch → global RL → per-IP RL → auth.
   app.use("/ai", aiGenerationDisabledMiddleware);
+  app.use("/ai", aiGlobalLimitMiddleware);
+  app.use("/ai", aiIpLimitMiddleware);
+
+  // ── Routes ────────────────────────────────────────────────────────────────
+  app.use("/user",     userRouter);
+  app.use("/webhooks", webhookRouter);
 
   // Routes registered by later tasks:
-  //   Task 5  → auth middleware
-  //   Task 6  → kill-switch middleware
-  //   Task 7  → rate-limit middleware
-  //   Task 9  → GET /user/status
-  //   Task 10 → POST /webhooks/revenuecat
-  //   Task 14 → POST /ai/generate
+  //   Task 14 → POST /ai/generate (+ per-user rate limits, budget breakers, quota gate)
   //   Task 15 → GET /health, GET /metrics
+
+  // ── 404 + catch-all rate limit ────────────────────────────────────────────
+  // Default per-IP limiter throttles unrecognised-path probing before sending 404.
+  app.all("*", defaultIpLimitMiddleware, (_req: Request, res: Response) => {
+    res.status(404).json({ code: "not_found", message: "Route not found." });
+  });
 
   // ── Error handler (must be last) ──────────────────────────────────────────
   app.use(errorMiddleware);

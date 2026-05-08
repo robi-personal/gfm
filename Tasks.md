@@ -16,10 +16,10 @@ Work in order; each task builds on the previous.
 | 4 | Core middleware (requestId, pino logging, body parser, trust proxy) | **Sonnet 4.6** | 1 | ✅ Done |
 | 5 | Auth — Google ID token verification | **Sonnet 4.6** | 4 | ✅ Done |
 | 6 | Kill switches (env var parsing + middleware) | **Sonnet 4.6** | 4 | ✅ Done |
-| 7 | Rate limiting (Redis + rate-limiter-flexible, all buckets) | **Sonnet 4.6** | 3, 5 | ⬜ Pending |
-| 8 | Cost circuit breakers (per-user 24h + global daily) | **Sonnet 4.6** | 3, 5 | ⬜ Pending |
-| 9 | `GET /user/status` | **Sonnet 4.6** | 3, 5 | ⬜ Pending |
-| 10 | RevenueCat webhook (HMAC, dedupe, all 7 event handlers) | **Sonnet 4.6** | 3 | ⬜ Pending |
+| 7 | Rate limiting (Redis + rate-limiter-flexible, all buckets) | **Sonnet 4.6** | 3, 5 | ✅ Done |
+| 8 | Cost circuit breakers (per-user 24h + global daily) | **Sonnet 4.6** | 3, 5 | ✅ Done |
+| 9 | `GET /user/status` | **Sonnet 4.6** | 3, 5 | ✅ Done |
+| 10 | RevenueCat webhook (HMAC, dedupe, all 7 event handlers) | **Sonnet 4.6** | 3 | ✅ Done |
 | 11 | URL fetcher (SSRF guards, redirects, content-type, timeouts) | **Opus 4.7** | 4 | ⬜ Pending |
 | 12 | Gemini client (structured output, retry, 30s timeout) | **Sonnet 4.6** | 4 | ⬜ Pending |
 | 13 | Zod validation + repair turn (all 9 question types, fallback detection) | **Sonnet 4.6** | 12 | ⬜ Pending |

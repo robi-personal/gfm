@@ -10,6 +10,9 @@ declare global {
       // Set by loggingMiddleware; updated by authMiddleware to include user_id
       log: Logger;
 
+      // Set by express.json verify callback for HMAC verification on /webhooks/revenuecat
+      rawBody?: Buffer;
+
       // Set by authMiddleware (Task 5); undefined on unauthenticated routes
       user?: {
         id: number;

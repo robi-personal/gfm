@@ -40,7 +40,45 @@ export function denylistMiddleware(
   next();
 }
 
-// ── 3. MAX_DAILY_GEMINI_SPEND_USD ─────────────────────────────────────────────
+// ── 3. Per-user 24h cost circuit breaker ──────────────────────────────────────
+// Runs after auth on /ai/generate. One DB query per request (index: user_id + created_at).
+// Includes both successful and failed rows per rate-limiting-abuse.md §8.1.
+export async function perUserBudgetMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const cap = env.MAX_USER_DAILY_GEMINI_USD;
+  if (cap === 0) {
+    next();
+    return;
+  }
+
+  try {
+    const since24hMs = Date.now() - 24 * 60 * 60 * 1_000;
+    const repo = new PgAiGenerationRepository(pool);
+    const spend = await repo.getTotalSpendUsd(req.user!.id, since24hMs);
+
+    if (spend >= cap) {
+      req.log.warn(
+        { userId: req.user!.id, spendUsd: spend, capUsd: cap },
+        "cost_breaker_tripped_per_user",
+      );
+      res.status(503).json({
+        code: "daily_budget_exceeded",
+        message: "You have reached the daily usage limit. Please try again tomorrow.",
+      });
+      return;
+    }
+
+    next();
+  } catch (err) {
+    req.log.error({ err }, "per_user_budget_check_failed");
+    next(); // fail open — don't block everyone when DB is slow
+  }
+}
+
+// ── 4. MAX_DAILY_GEMINI_SPEND_USD ─────────────────────────────────────────────
 // Runs after auth. 60s in-memory cached DB query. See rate-limiting-abuse.md §8.2.
 let globalSpendCache = { value: 0, fetchedAt: 0 };
 
