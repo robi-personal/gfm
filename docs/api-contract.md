@@ -3,7 +3,7 @@
 **Status:** Draft (Task 1 of Phase 2)
 **Owner:** Backend (Node + Express on Hostinger VPS)
 **Consumers:** Flutter app, RevenueCat webhook delivery
-**Source of truth:** This document. Anything in `Tasks-Phase2.md` that conflicts with this doc is older and should be updated.
+**Source of truth:** This document. Anything in `Tasks.md` that conflicts with this doc is older and should be updated.
 
 ---
 
@@ -586,7 +586,7 @@ On Gemini 5xx, the server retries **once** after 500ms. If the second attempt al
 
 #### Quota burn
 
-Quota is consumed **only on a successful 200 response with `status: "completed"`**. See "Quota Burn Semantics" in `Tasks-Phase2.md` for the rationale. All failure modes (4xx, 503) leave the user's counter untouched but still write a row to `ai_generations` for debugging and abuse monitoring.
+Quota is consumed **only on a successful 200 response with `status: "completed"`**. See "Quota Burn Semantics" in `Tasks.md` for the rationale. All failure modes (4xx, 503) leave the user's counter untouched but still write a row to `ai_generations` for debugging and abuse monitoring.
 
 #### Forward-compatibility for async
 
@@ -606,7 +606,7 @@ Clients should already store `generationId` and treat the `status` field as auth
 1. **Verify HMAC** (raw body, constant-time compare). Fail → 401, no DB writes.
 2. **Dedupe.** `INSERT INTO webhook_events (event_id, ...)` with `ON CONFLICT (event_id) DO NOTHING`. If 0 rows inserted, the event is a duplicate — return 200 immediately and skip user updates.
 3. **Resolve user.** Match RC `app_user_id` → `users.google_sub`. If unknown, log and return 200 (don't 4xx — RC will retry forever; orphaned events are a config drift problem, not a transient one).
-4. **Apply event.** Update `users` table per the event-type table in `Tasks-Phase2.md` §RevenueCat Events. All updates are within a single transaction with the `webhook_events` insert.
+4. **Apply event.** Update `users` table per the event-type table in `Tasks.md` §RevenueCat Events. All updates are within a single transaction with the `webhook_events` insert.
 5. **Return 200.** Body: `{ "received": true }`.
 
 #### Failure modes
@@ -743,6 +743,7 @@ Every `code` value the server can emit. Stable across versions.
 | 503 | `gemini_timeout` | `/ai/generate` | Yes | — | 30s budget exceeded |
 | 503 | `validation_error` | `/ai/generate` | Yes | — | Gemini output failed schema after 1 repair attempt. Quota not consumed. |
 | 503 | `service_disabled` | `/ai/generate` | Maybe later | — | `AI_GENERATION_DISABLED` kill switch active |
+| 503 | `service_busy` | `/ai/generate` | Yes (after `Retry-After`) | `retryAfter` (seconds) | Global rate limit hit. Distinct from 429 `rate_limited` (per-user / per-IP). See `docs/rate-limiting-abuse.md` §4.1. |
 | 503 | `daily_budget_exceeded` | `/ai/generate` | At UTC midnight | — | `MAX_DAILY_GEMINI_SPEND_USD` cap hit |
 | 503 | `database_unavailable` | any | Yes | — | Postgres connection failed |
 

@@ -34,7 +34,7 @@ Read this file at the start of every session before touching any code.
 | Image insert | ✅ Done | URL paste or gallery picker → Drive upload → public URL → `ImageItemContent` |
 | Polish — empty states | ✅ Done | All screens have icon + text empty states (dashboard, editor, responses) |
 | RevenueCat integration | ✅ Done | `purchases_flutter` wired, real products, CSV export gated behind `gfm_premium` entitlement, paywall UI polish |
-| **Phase 2 — AI Form Builder (planning)** | 🔄 In progress | Spec doc in `Tasks-Phase2.md` — 7 tasks. **Task 1 ✅ Done** → `docs/phase2/api-contract.md`. **Task 2 (DB Schema, Sonnet 4.6) is next.** Implementation not started. |
+| **Phase 2 — AI Form Builder (planning)** | 🔄 In progress | Spec doc in `Tasks.md` — 7 tasks. **All 7 spec tasks ✅ Done** → `docs/api-contract.md`, `docs/db/migrations/001_init.sql` + `docs/db/scripts/cleanup_expired_generations.sql`, `docs/ai-prompt-spec.md`, `docs/feature-spec-flutter.md`, `docs/revenuecat-webhook-map.md`, `docs/rate-limiting-abuse.md`, `docs/observability.md`. **Implementation not started — ready to begin.** |
 | 17 Duplicate form/question | ⬜ Out of scope for MVP | |
 | 18 Offline queue | ⬜ Out of scope for MVP | |
 | 19 IAP / paywall wiring | ⬜ Out of scope for MVP | |
@@ -222,6 +222,6 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
-5. **Phase 2 — AI Form Builder** — see `Tasks-Phase2.md`. 7 spec tasks before code. Start with Task 1 (API Contract, Opus 4.7). Backend = Node+Express on Hostinger VPS, Postgres, Gemini 2.0 Flash.
+5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks before code. All 7 spec tasks done. Implementation not started — ready to begin. Backend = Node+Express on Hostinger VPS, Postgres, Gemini 2.0 Flash. **Backend directory not yet created** — ask user to name/create it before any backend code lands.
 6. **UI polish** — thumb-zone audit, spacing, typography refinements
 7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

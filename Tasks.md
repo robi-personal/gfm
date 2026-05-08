@@ -8,13 +8,13 @@ Generate these documents **before writing any code**. Work through them in order
 
 | # | Document | Model | Depends on | Status |
 |---|----------|-------|------------|--------|
-| 1 | API Contract | **Opus 4.7** | — | ✅ Done — `docs/phase2/api-contract.md` |
-| 2 | Database Schema (SQL migrations) | **Sonnet 4.6** | 1 | ✅ Done — `gfm_mw/db/migrations/001_init.sql`, `gfm_mw/db/scripts/cleanup_expired_generations.sql` |
-| 3 | AI Prompt Spec | **Opus 4.7** | 1 | 🔄 Next |
-| 4 | Feature Spec (Flutter UI/flows) | **Sonnet 4.6** | 1 | ⬜ Pending |
-| 5 | RevenueCat Webhook Map | **Sonnet 4.6** | 2 | ⬜ Pending |
-| 6 | Rate Limiting & Abuse Strategy | **Opus 4.7** | 1 | ⬜ Pending |
-| 7 | Observability (logs, metrics, error tracking) | **Sonnet 4.6** | 1, 2 | ⬜ Pending |
+| 1 | API Contract | **Opus 4.7** | — | ✅ Done — `docs/api-contract.md` |
+| 2 | Database Schema (SQL migrations) | **Sonnet 4.6** | 1 | ✅ Done — `docs/db/migrations/001_init.sql`, `docs/db/scripts/cleanup_expired_generations.sql` |
+| 3 | AI Prompt Spec | **Opus 4.7** | 1 | ✅ Done — `docs/ai-prompt-spec.md` |
+| 4 | Feature Spec (Flutter UI/flows) | **Sonnet 4.6** | 1 | ✅ Done — `docs/feature-spec-flutter.md` |
+| 5 | RevenueCat Webhook Map | **Sonnet 4.6** | 2 | ✅ Done — `docs/revenuecat-webhook-map.md` |
+| 6 | Rate Limiting & Abuse Strategy | **Opus 4.7** | 1 | ✅ Done — `docs/rate-limiting-abuse.md` |
+| 7 | Observability (logs, metrics, error tracking) | **Sonnet 4.6** | 1, 2 | ✅ Done — `docs/observability.md` |
 
 ### Model rationale
 - **Opus 4.7** for tasks where wrong choices are expensive or hard to reverse: API contract (clients depend on it), prompt design (drives output quality of every generation), security/abuse (exploitable mistakes).
