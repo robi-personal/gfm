@@ -10,17 +10,17 @@ Work in order; each task builds on the previous.
 
 | # | Task | Model | Depends on | Status |
 |---|------|-------|------------|--------|
-| 1 | Domain entities — `GeneratedForm`, `UserStatus`, `QuotaSnapshot` | **Sonnet 4.6** | — | ⬜ |
-| 2 | Repository interface + use cases (`GetUserStatus`, `GenerateForm`, `CreateFormFromAi`) | **Sonnet 4.6** | 1 | ⬜ |
-| 3 | `AiFormDataSource` — HTTP layer (`GET /user/status`, `POST /ai/generate`, all 5 input types, ID token auth) | **Sonnet 4.6** | 1 | ⬜ |
-| 4 | `AiFormRepositoryImpl` + DI wiring in `injection.dart` | **Sonnet 4.6** | 2, 3 | ⬜ |
-| 5 | Cubit + sealed state machine (all 6 states, idempotency key lifecycle, retry logic, side-effect events) | **Opus 4.7** | 4 | ⬜ |
-| 6 | `AiFormBuilderPage` — free-tier UI (text input, quota counter, generate button, loading phases) | **Sonnet 4.6** | 5 | ⬜ |
+| 1 | Domain entities — `GeneratedForm`, `UserStatus`, `QuotaSnapshot` | **Sonnet 4.6** | — | ✅ |
+| 2 | Repository interface + use cases (`GetUserStatus`, `GenerateForm`, `CreateFormFromAi`) | **Sonnet 4.6** | 1 | ✅ |
+| 3 | `AiFormDataSource` — HTTP layer (`GET /user/status`, `POST /ai/generate`, all 5 input types, ID token auth) | **Sonnet 4.6** | 1 | ✅ |
+| 4 | `AiFormRepositoryImpl` + DI wiring in `injection.dart` | **Sonnet 4.6** | 2, 3 | ✅ |
+| 5 | Cubit + sealed state machine (all 6 states, idempotency key lifecycle, retry logic, side-effect events) | **Opus 4.7** | 4 | ✅ |
+| 6 | `AiFormBuilderPage` — free-tier UI (text input, quota counter, generate button, loading phases) | **Sonnet 4.6** | 5 | ✅ |
 | 7 | `AiFormBuilderPage` — premium additions (input type picker, PDF file picker, YouTube URL, URLs list, Book) | **Opus 4.7** | 6 | ⬜ |
 | 8 | Error handling — all 20+ error codes → `ErrorModal` or `PaywallPage.show()` (full §4 table) | **Sonnet 4.6** | 5 | ⬜ |
-| 9 | `AiFormPreviewPage` — show generated questions, "Create Form" button | **Sonnet 4.6** | 5 | ⬜ |
-| 10 | `CreateFormFromAi` use case — `forms.create` → `setPublishSettings` → `batchUpdate` with AI→Forms API mapping for all 9 question types | **Opus 4.7** | 2, 9 | ⬜ |
-| 11 | Dashboard entry point — add AI builder trigger (FAB long-press or app bar icon) | **Sonnet 4.6** | 6 | ⬜ |
+| 9 | `AiFormPreviewPage` — show generated questions, "Create Form" button | **Sonnet 4.6** | 5 | ✅ |
+| 10 | `CreateFormFromAi` use case — `forms.create` → `setPublishSettings` → `batchUpdate` with AI→Forms API mapping for all 9 question types | **Opus 4.7** | 2, 9 | ✅ |
+| 11 | Dashboard entry point — add AI builder trigger (FAB long-press or app bar icon) | **Sonnet 4.6** | 6 | ✅ |
 
 ---
 

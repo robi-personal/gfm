@@ -7,6 +7,7 @@ import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
+import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
@@ -69,19 +70,22 @@ class _DashboardViewState extends State<_DashboardView> {
           appBar: _buildAppBar(context, state),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
-          floatingActionButton: FloatingActionButton(
-            onPressed: isCreating ? null : () => _onNewForm(context),
-            backgroundColor: _purple,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            child: isCreating
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.white),
-                  )
-                : const Icon(Icons.add, size: 28),
+          floatingActionButton: GestureDetector(
+            onLongPress: isCreating ? null : () => _openAiBuilder(context),
+            child: FloatingActionButton(
+              onPressed: isCreating ? null : () => _onNewForm(context),
+              backgroundColor: _purple,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              child: isCreating
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : const Icon(Icons.add, size: 28),
+            ),
           ),
         );
       },
@@ -96,6 +100,15 @@ class _DashboardViewState extends State<_DashboardView> {
         child: const TemplatePickerPage(),
       ),
     ));
+  }
+
+  Future<void> _openAiBuilder(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => const AiFormBuilderPage(),
+    ));
+    if (context.mounted) {
+      context.read<DashboardCubit>().loadForms();
+    }
   }
 
   void _handleCreateNavigation(
@@ -174,6 +187,11 @@ class _DashboardViewState extends State<_DashboardView> {
         ),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.auto_awesome, color: _purple),
+          tooltip: 'AI Form Builder',
+          onPressed: () => _openAiBuilder(context),
+        ),
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black54),
           onPressed: () => setState(() => _searchOpen = true),

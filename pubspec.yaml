@@ -69,6 +69,9 @@ dependencies:
   # Image picker
   image_picker: ^1.1.2
 
+  # File picker (PDF/Book inputs for AI Form Builder)
+  file_picker: ^8.1.4
+
   # SVG rendering
   flutter_svg: ^2.0.17
   google_fonts: ^8.1.0

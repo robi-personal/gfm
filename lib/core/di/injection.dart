@@ -32,6 +32,13 @@ import '../../features/responses/domain/repositories/responses_repository.dart';
 import '../../features/responses/domain/usecases/get_responses.dart';
 import '../../features/responses/presentation/cubit/responses_cubit.dart';
 import '../../features/sign_in/presentation/cubit/sign_in_cubit.dart';
+import '../../features/ai_form_builder/data/datasources/ai_form_datasource.dart';
+import '../../features/ai_form_builder/data/repositories/ai_form_repository_impl.dart';
+import '../../features/ai_form_builder/domain/repositories/ai_form_repository.dart';
+import '../../features/ai_form_builder/domain/usecases/create_form_from_ai.dart';
+import '../../features/ai_form_builder/domain/usecases/generate_form.dart';
+import '../../features/ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../features/ai_form_builder/presentation/cubit/ai_form_builder_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -154,6 +161,36 @@ void configureDependencies() {
       executeBatch: getIt(),
       refreshRevision: getIt(),
       updateSettings: getIt(),
+    ),
+  );
+
+  // ── AI Form Builder feature ───────────────────────────────────────────────
+  getIt.registerLazySingleton(
+    () => AiFormDataSource(auth: getIt<GoogleAuthDataSource>()),
+  );
+
+  getIt.registerLazySingleton<AiFormRepository>(
+    () => AiFormRepositoryImpl(
+      aiDataSource: getIt<AiFormDataSource>(),
+      formsDataSource: getIt<FormsDataSource>(),
+    ),
+  );
+
+  getIt.registerLazySingleton(
+    () => GetUserStatus(getIt<AiFormRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GenerateForm(getIt<AiFormRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => CreateFormFromAi(getIt<AiFormRepository>()),
+  );
+
+  getIt.registerFactory(
+    () => AiFormBuilderCubit(
+      getUserStatus: getIt<GetUserStatus>(),
+      generateForm: getIt<GenerateForm>(),
+      createFormFromAi: getIt<CreateFormFromAi>(),
     ),
   );
 

@@ -8,35 +8,43 @@ class FormsDataSource {
 
   FormsDataSource(this._client);
 
-  Future<forms_api.Form> createForm(String title) =>
+  Future<forms_api.Form> createForm(String title, {String? description}) =>
       _client.api.forms.create(
         forms_api.Form(
-          info: forms_api.Info(title: title, documentTitle: title),
+          info: forms_api.Info(
+            title: title,
+            documentTitle: title,
+            description: description?.isNotEmpty == true ? description : null,
+          ),
         ),
       );
 
-  Future<void> addDefaultQuestion(String formId) =>
+  /// Sends a `forms.batchUpdate` with the given requests. Single low-level
+  /// entry point used by every batch-write path (template items, AI questions,
+  /// quiz-mode toggle, default question).
+  Future<void> batchUpdate(
+          String formId, List<forms_api.Request> requests) =>
       _client.api.forms.batchUpdate(
-        forms_api.BatchUpdateFormRequest(
-          requests: [
-            forms_api.Request(
-              createItem: forms_api.CreateItemRequest(
-                item: forms_api.Item(
-                  title: 'Question 1',
-                  questionItem: forms_api.QuestionItem(
-                    question: forms_api.Question(
-                      required: false,
-                      textQuestion: forms_api.TextQuestion(paragraph: false),
-                    ),
-                  ),
-                ),
-                location: forms_api.Location(index: 0),
-              ),
-            ),
-          ],
-        ),
+        forms_api.BatchUpdateFormRequest(requests: requests),
         formId,
       );
+
+  Future<void> addDefaultQuestion(String formId) => batchUpdate(formId, [
+        forms_api.Request(
+          createItem: forms_api.CreateItemRequest(
+            item: forms_api.Item(
+              title: 'Question 1',
+              questionItem: forms_api.QuestionItem(
+                question: forms_api.Question(
+                  required: false,
+                  textQuestion: forms_api.TextQuestion(paragraph: false),
+                ),
+              ),
+            ),
+            location: forms_api.Location(index: 0),
+          ),
+        ),
+      ]);
 
   /// Adds template items to a freshly created form via batchUpdate.
   /// Uses an empty revisionId (no write-control) since the form is brand new.
@@ -56,28 +64,19 @@ class FormsDataSource {
       );
     }).toList();
 
-    await _client.api.forms.batchUpdate(
-      forms_api.BatchUpdateFormRequest(requests: requests),
-      formId,
-    );
+    await batchUpdate(formId, requests);
   }
 
-  Future<void> enableQuizMode(String formId) =>
-      _client.api.forms.batchUpdate(
-        forms_api.BatchUpdateFormRequest(
-          requests: [
-            forms_api.Request(
-              updateSettings: forms_api.UpdateSettingsRequest(
-                settings: forms_api.FormSettings(
-                  quizSettings: forms_api.QuizSettings(isQuiz: true),
-                ),
-                updateMask: 'quizSettings',
-              ),
+  Future<void> enableQuizMode(String formId) => batchUpdate(formId, [
+        forms_api.Request(
+          updateSettings: forms_api.UpdateSettingsRequest(
+            settings: forms_api.FormSettings(
+              quizSettings: forms_api.QuizSettings(isQuiz: true),
             ),
-          ],
+            updateMask: 'quizSettings',
+          ),
         ),
-        formId,
-      );
+      ]);
 
   Future<void> publishForm(String formId) =>
       _client.api.forms.setPublishSettings(

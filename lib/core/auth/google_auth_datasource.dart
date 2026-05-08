@@ -48,6 +48,18 @@ class GoogleAuthDataSource {
 
   Future<void> signOut() => _googleSignIn.signOut();
 
+  /// Returns the Google ID token for the current user.
+  /// Used by the AI middleware (Bearer auth), which verifies JWTs server-side.
+  /// Throws [AuthFailure] if the user is not signed in or token is unavailable.
+  Future<String> getIdToken() async {
+    final user = _googleSignIn.currentUser;
+    if (user == null) throw const AuthFailure('Not signed in.');
+    final auth = await user.authentication;
+    final token = auth.idToken;
+    if (token == null) throw const AuthFailure('Could not retrieve ID token.');
+    return token;
+  }
+
   /// Returns an [http.Client] whose every request is signed with the current
   /// user's OAuth token. Token refresh is handled automatically by the plugin.
   http.Client buildAuthClient() => _GoogleAuthClient(_googleSignIn);
