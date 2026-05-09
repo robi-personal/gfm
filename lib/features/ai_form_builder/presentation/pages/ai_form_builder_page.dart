@@ -927,8 +927,10 @@ class _ReadyBodyState extends State<_ReadyBody> {
   }
 
   String _loadingLabel(Duration elapsed) {
-    if (elapsed.inSeconds < 8) return 'Generating your form…';
-    if (elapsed.inSeconds < 20) return 'This is taking a moment…';
+    final isYoutube = widget.selectedType == AiInputType.youtube;
+    if (elapsed.inSeconds < 8)  return 'Generating your form…';
+    if (elapsed.inSeconds < 30) return 'This is taking a moment…';
+    if (isYoutube && elapsed.inSeconds < 120) return 'Analysing video content…';
     return 'Almost there…';
   }
 }

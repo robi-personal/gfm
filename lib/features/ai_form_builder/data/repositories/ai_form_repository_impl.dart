@@ -68,8 +68,17 @@ class AiFormRepositoryImpl implements AiFormRepository {
       // Step 2: Publish the form (required since March 31 2026)
       await _formsDataSource.publishForm(formId);
 
-      // Step 3: Build requests — description + questions — then batchUpdate once.
+      // Step 3: Build requests — title + description + questions — then batchUpdate once.
       final requests = <forms_api.Request>[];
+
+      // forms.create sets the Drive document title but not the form's displayed
+      // title shown to respondents. A separate updateFormInfo is required.
+      requests.add(forms_api.Request(
+        updateFormInfo: forms_api.UpdateFormInfoRequest(
+          info: forms_api.Info(title: generatedForm.title),
+          updateMask: 'title',
+        ),
+      ));
 
       if (generatedForm.description?.isNotEmpty == true) {
         requests.add(forms_api.Request(

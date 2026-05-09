@@ -16,6 +16,9 @@ import { SYSTEM_PROMPT_V1, PROMPT_VERSION } from "./system-prompt";
 import type { GenerateRequest } from "./request-schema";
 import { geminiRequestsTotal } from "../infrastructure/metrics";
 
+// YouTube requires Gemini to download and process video content — give it more time.
+const YOUTUBE_DEADLINE_MS = 180_000;
+
 interface GenerateArgs {
   user: { id: number; tier: "free" | "premium" };
   body: GenerateRequest;
@@ -97,6 +100,7 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
   }
 
   const contents = buildContents({ body, fetchedUrls });
+  const deadlineMs = body.inputType === "youtube" ? YOUTUBE_DEADLINE_MS : undefined;
 
   // ── Step B: First AI attempt ──────────────────────────────────────────────
   let attempt1: GeminiAttempt;
@@ -105,6 +109,7 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
       contents,
       systemInstruction: SYSTEM_PROMPT_V1,
       responseSchema: SIMPLE_RESPONSE_SCHEMA,
+      deadlineMs,
     });
   } catch (e) {
     if (e instanceof AiError) {
@@ -227,6 +232,7 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
       contents: repairContents,
       systemInstruction: SYSTEM_PROMPT_V1,
       responseSchema: SIMPLE_RESPONSE_SCHEMA,
+      deadlineMs,
     });
   } catch (e) {
     if (e instanceof AiError) {
