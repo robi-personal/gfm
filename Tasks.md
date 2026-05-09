@@ -34,9 +34,12 @@
 - Wire admin router in `app.ts`
 
 ### 2c. Admin UI — `sonnet`
-- `GET /admin` serves a vanilla HTML page (no build step)
-- Sections: Kill switches, Budget caps (with current spend readout), Rate limits
-- Auth: prompts for `ADMIN_TOKEN`, stores in `sessionStorage`
+- `admin/` directory at repo root — standalone Vite + React + TypeScript project (own `package.json`)
+- Multi-stage Dockerfile: Stage 1 builds `admin/` → `dist/`; Stage 2 (Express) copies `dist/` into image
+- Express serves built assets at `/admin` via `express.static`
+- React Router for navigation; `ADMIN_TOKEN` stored in `sessionStorage`, sent as `Authorization: Bearer`
+- Initial sections: Kill switches, Budget caps (with current spend readout), Rate limits
+- Designed to grow: Analytics, App settings, User management, etc.
 
 ### 2d. Middleware refactor — `sonnet`
 - Kill-switch and budget-cap middleware read from `ConfigService` instead of `env` directly

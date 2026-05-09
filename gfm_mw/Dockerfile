@@ -1,4 +1,4 @@
-# ── Stage 1: dependencies ─────────────────────────────────────────────────────
+# ── Stage 1: backend dependencies ─────────────────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
@@ -13,7 +13,15 @@ COPY migrations/ ./migrations/
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
-# ── Stage 3: builder ──────────────────────────────────────────────────────────
+# ── Stage 3: admin UI builder ──────────────────────────────────────────────────
+FROM node:20-alpine AS admin-builder
+WORKDIR /admin
+COPY admin/package*.json ./
+RUN npm ci
+COPY admin/ ./
+RUN npm run build
+
+# ── Stage 4: backend builder ───────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,7 +29,7 @@ COPY package*.json tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
-# ── Stage 4: production runtime ───────────────────────────────────────────────
+# ── Stage 5: production runtime ───────────────────────────────────────────────
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
@@ -31,7 +39,8 @@ RUN addgroup -S gfm && adduser -S gfm -G gfm
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder      /app/dist      ./dist
+COPY --from=admin-builder /admin/dist   ./admin-dist
 COPY migrations/ ./migrations/
 
 USER gfm

@@ -5,7 +5,10 @@ import { logger } from "../logger";
 
 const MIGRATIONS_DIR = join(process.cwd(), "migrations");
 
-const MIGRATIONS = [{ id: "001", filename: "001_init.sql" }];
+const MIGRATIONS = [
+  { id: "001", filename: "001_init.sql",          seededTable: "users" },
+  { id: "002", filename: "002_server_config.sql", seededTable: "server_config" },
+];
 
 export async function runMigrations(): Promise<void> {
   await pool.query(`
@@ -15,7 +18,7 @@ export async function runMigrations(): Promise<void> {
     )
   `);
 
-  for (const { id, filename } of MIGRATIONS) {
+  for (const { id, filename, seededTable } of MIGRATIONS) {
     const { rowCount } = await pool.query(
       "SELECT 1 FROM schema_migrations WHERE id = $1",
       [id],
@@ -27,7 +30,8 @@ export async function runMigrations(): Promise<void> {
 
     // If the table already exists (e.g. seeded by docker-entrypoint-initdb.d), mark as applied.
     const { rowCount: tableExists } = await pool.query(
-      "SELECT 1 FROM information_schema.tables WHERE table_name = 'users' AND table_schema = 'public'",
+      "SELECT 1 FROM information_schema.tables WHERE table_name = $1 AND table_schema = 'public'",
+      [seededTable],
     );
     if (tableExists && tableExists > 0) {
       await pool.query("INSERT INTO schema_migrations (id) VALUES ($1)", [id]);

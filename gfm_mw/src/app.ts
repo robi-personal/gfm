@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import * as Sentry from "@sentry/node";
+import { join } from "path";
 import { requestIdMiddleware } from "./presentation/middleware/request-id.middleware";
 import { loggingMiddleware } from "./presentation/middleware/logging.middleware";
 import { errorMiddleware } from "./presentation/middleware/error.middleware";
@@ -13,6 +14,7 @@ import { userRouter } from "./presentation/routes/user.routes";
 import { webhookRouter } from "./presentation/routes/webhook.routes";
 import { aiRouter } from "./presentation/routes/ai.routes";
 import { healthRouter } from "./presentation/routes/health.routes";
+import { adminRouter } from "./presentation/routes/admin.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -49,6 +51,12 @@ export function createApp(): Application {
   app.use("/ai",       aiRouter);
   app.use("/user",     userRouter);
   app.use("/webhooks", webhookRouter);
+  app.use("/admin",    adminRouter);
+  // Static admin UI — served after API routes so /admin/config is handled by adminRouter first.
+  // SPA fallback: any unmatched /admin/* path serves index.html for React Router.
+  const adminDist = join(__dirname, "../admin-dist");
+  app.use("/admin", express.static(adminDist));
+  app.get("/admin/*", (_req, res) => res.sendFile(join(adminDist, "index.html")));
   app.use("/",         healthRouter);   // GET /health, GET /metrics
 
   // ── 404 + catch-all rate limit ────────────────────────────────────────────

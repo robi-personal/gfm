@@ -41,6 +41,11 @@ const schema = z.object({
   // Observability
   HEALTH_TOKEN: z.string().min(32),
 
+  // Admin panel
+  ADMIN_TOKEN:    z.string().min(32),
+  ADMIN_EMAIL:    z.string().email(),
+  ADMIN_PASSWORD: z.string().min(8),
+
   // Kill switches
   AI_GENERATION_DISABLED: z
     .string()

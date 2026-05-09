@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { env } from "../../config/env";
+import { configService } from "../../config/config-service";
 import { pool } from "../../infrastructure/db/postgres";
 import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
 import {
@@ -15,7 +16,7 @@ export function aiGenerationDisabledMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  if (env.AI_GENERATION_DISABLED) {
+  if (configService.get<boolean>("AI_GENERATION_DISABLED", env.AI_GENERATION_DISABLED)) {
     req.log.warn({ path: req.path }, "kill_switch_tripped_service_disabled");
     killSwitchTrippedTotal.inc({ which: "ai_generation_disabled" });
     res.status(503).json({
@@ -59,9 +60,9 @@ export async function perUserBudgetMiddleware(
   const MS_PER_DAY = 24 * 60 * 60 * 1_000;
 
   const caps = [
-    { window: "daily",   sinceMs: now - MS_PER_DAY,       cap: env.MAX_USER_DAILY_GEMINI_USD },
-    { window: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: env.MAX_USER_WEEKLY_GEMINI_USD },
-    { window: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: env.MAX_USER_MONTHLY_GEMINI_USD },
+    { window: "daily",   sinceMs: now - MS_PER_DAY,       cap: configService.get<number>("MAX_USER_DAILY_GEMINI_USD",   env.MAX_USER_DAILY_GEMINI_USD) },
+    { window: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: configService.get<number>("MAX_USER_WEEKLY_GEMINI_USD",  env.MAX_USER_WEEKLY_GEMINI_USD) },
+    { window: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: configService.get<number>("MAX_USER_MONTHLY_GEMINI_USD", env.MAX_USER_MONTHLY_GEMINI_USD) },
   ].filter((c) => c.cap > 0);
 
   if (caps.length === 0) {
@@ -127,9 +128,9 @@ export async function globalBudgetMiddleware(
   const now = Date.now();
 
   const windows = [
-    { label: "daily",   sinceMs: now - MS_PER_DAY,       cap: env.MAX_DAILY_GEMINI_SPEND_USD,   cache: globalDailyCache,   set: (c: SpendCache) => { globalDailyCache = c; } },
-    { label: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: env.MAX_WEEKLY_GEMINI_SPEND_USD,  cache: globalWeeklyCache,  set: (c: SpendCache) => { globalWeeklyCache = c; } },
-    { label: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: env.MAX_MONTHLY_GEMINI_SPEND_USD, cache: globalMonthlyCache, set: (c: SpendCache) => { globalMonthlyCache = c; } },
+    { label: "daily",   sinceMs: now - MS_PER_DAY,       cap: configService.get<number>("MAX_DAILY_GEMINI_SPEND_USD",   env.MAX_DAILY_GEMINI_SPEND_USD),   cache: globalDailyCache,   set: (c: SpendCache) => { globalDailyCache = c; } },
+    { label: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: configService.get<number>("MAX_WEEKLY_GEMINI_SPEND_USD",  env.MAX_WEEKLY_GEMINI_SPEND_USD),  cache: globalWeeklyCache,  set: (c: SpendCache) => { globalWeeklyCache = c; } },
+    { label: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: configService.get<number>("MAX_MONTHLY_GEMINI_SPEND_USD", env.MAX_MONTHLY_GEMINI_SPEND_USD), cache: globalMonthlyCache, set: (c: SpendCache) => { globalMonthlyCache = c; } },
   ].filter((w) => w.cap > 0);
 
   if (windows.length === 0) {

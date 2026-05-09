@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { RateLimiterRedis, RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 import { redis } from "../../infrastructure/redis/redis-client";
 import { env } from "../../config/env";
+import { configService, ConfigKey } from "../../config/config-service";
 import { logger } from "../../infrastructure/logger";
 import { rateLimitExceededTotal } from "../../infrastructure/metrics";
 
@@ -9,25 +10,48 @@ import { rateLimitExceededTotal } from "../../infrastructure/metrics";
 // Redis primary + in-memory insurance. When Redis is down, the insurance limiter
 // takes over automatically — per-process accuracy only, but acceptable (§4.2).
 
-function makeLimiter(keyPrefix: string, points: number, duration: number): RateLimiterRedis {
-  return new RateLimiterRedis({
+type LimiterRegistration = {
+  limiter:   RateLimiterRedis;
+  insurance: RateLimiterMemory;
+  configKey: ConfigKey;
+};
+
+const LIMITER_REGISTRY: LimiterRegistration[] = [];
+
+function makeLimiter(keyPrefix: string, configKey: ConfigKey, duration: number): RateLimiterRedis {
+  const initialPoints = configService.get<number>(configKey, env[configKey] as number);
+  const insurance = new RateLimiterMemory({ keyPrefix, points: initialPoints, duration });
+  const limiter = new RateLimiterRedis({
     storeClient: redis,
     keyPrefix,
-    points,
+    points:   initialPoints,
     duration,
-    insuranceLimiter: new RateLimiterMemory({ keyPrefix, points, duration }),
+    insuranceLimiter: insurance,
   });
+  LIMITER_REGISTRY.push({ limiter, insurance, configKey });
+  return limiter;
 }
 
 // ── Limiter instances ──────────────────────────────────────────────────────────
 
-const globalAiLimiter      = makeLimiter("rl:ai:global", env.RL_AI_GLOBAL_HOURLY,  3_600);
-const ipAiLimiter          = makeLimiter("rl:ai:ip",     env.RL_AI_IP_HOURLY,      3_600);
-const userAiHourlyLimiter  = makeLimiter("rl:ai:u:h",   env.RL_AI_USER_HOURLY,    3_600);
-const userAiDailyLimiter   = makeLimiter("rl:ai:u:d",   env.RL_AI_USER_DAILY,    86_400);
-const statusUserLimiter    = makeLimiter("rl:status:u",  env.RL_STATUS_USER_MIN,      60);
-const rcIpLimiter          = makeLimiter("rl:rc:ip",     env.RL_RC_IP_MIN,            60);
-const defaultIpLimiter     = makeLimiter("rl:def:ip",    env.RL_DEFAULT_IP_MIN,       60);
+const globalAiLimiter      = makeLimiter("rl:ai:global", "RL_AI_GLOBAL_HOURLY",  3_600);
+const ipAiLimiter          = makeLimiter("rl:ai:ip",     "RL_AI_IP_HOURLY",      3_600);
+const userAiHourlyLimiter  = makeLimiter("rl:ai:u:h",    "RL_AI_USER_HOURLY",    3_600);
+const userAiDailyLimiter   = makeLimiter("rl:ai:u:d",    "RL_AI_USER_DAILY",    86_400);
+const statusUserLimiter    = makeLimiter("rl:status:u",  "RL_STATUS_USER_MIN",       60);
+const rcIpLimiter          = makeLimiter("rl:rc:ip",     "RL_RC_IP_MIN",             60);
+const defaultIpLimiter     = makeLimiter("rl:def:ip",    "RL_DEFAULT_IP_MIN",        60);
+
+// Patch limiter capacity in-place whenever the runtime config reloads.
+configService.onRefresh(() => {
+  for (const { limiter, insurance, configKey } of LIMITER_REGISTRY) {
+    const newPoints = configService.get<number>(configKey, limiter.points);
+    if (newPoints === limiter.points) continue;
+    limiter.points = newPoints;
+    insurance.points = newPoints;
+    logger.info({ configKey, points: newPoints }, "rate_limiter_points_updated");
+  }
+});
 
 // ── Header helpers ─────────────────────────────────────────────────────────────
 
@@ -51,7 +75,6 @@ type RlResult = RateLimiterRedis;
 
 function makeIpMiddleware(
   limiter: RlResult,
-  limit: number,
   code: "service_busy" | "rate_limited",
   status: 503 | 429,
   scope: string,
@@ -60,11 +83,11 @@ function makeIpMiddleware(
     const key = req.ip ?? "unknown";
     try {
       const rlRes = await limiter.consume(key);
-      setRlHeaders(res, limit, rlRes);
+      setRlHeaders(res, limiter.points, rlRes);
       next();
     } catch (err) {
       if (err instanceof RateLimiterRes) {
-        setRlExceededHeaders(res, limit, err);
+        setRlExceededHeaders(res, limiter.points, err);
         const retryAfter = Math.ceil(err.msBeforeNext / 1_000);
         req.log?.warn({ scope, retryAfter }, "rate_limit_exceeded");
         const routeKey = req.route
@@ -88,18 +111,17 @@ function makeIpMiddleware(
 
 function makeUserMiddleware(
   limiter: RlResult,
-  limit: number,
   scope: string,
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
   return async (req, res, next) => {
     const key = String(req.user!.id);
     try {
       const rlRes = await limiter.consume(key);
-      setRlHeaders(res, limit, rlRes);
+      setRlHeaders(res, limiter.points, rlRes);
       next();
     } catch (err) {
       if (err instanceof RateLimiterRes) {
-        setRlExceededHeaders(res, limit, err);
+        setRlExceededHeaders(res, limiter.points, err);
         const retryAfter = Math.ceil(err.msBeforeNext / 1_000);
         req.log?.warn({ scope, userId: req.user!.id, retryAfter }, "rate_limit_exceeded");
         const routeKey = req.route
@@ -123,31 +145,31 @@ function makeUserMiddleware(
 
 // For /ai/* — mount before auth (§12 steps 5–6)
 export const aiGlobalLimitMiddleware = makeIpMiddleware(
-  globalAiLimiter, env.RL_AI_GLOBAL_HOURLY, "service_busy", 503, "global",
+  globalAiLimiter, "service_busy", 503, "global",
 );
 export const aiIpLimitMiddleware = makeIpMiddleware(
-  ipAiLimiter, env.RL_AI_IP_HOURLY, "rate_limited", 429, "per-ip",
+  ipAiLimiter, "rate_limited", 429, "per-ip",
 );
 
 // For POST /ai/generate — used inside route handler after auth (Task 14)
 export const aiUserHourlyLimitMiddleware = makeUserMiddleware(
-  userAiHourlyLimiter, env.RL_AI_USER_HOURLY, "per-user-hourly",
+  userAiHourlyLimiter, "per-user-hourly",
 );
 export const aiUserDailyLimitMiddleware = makeUserMiddleware(
-  userAiDailyLimiter, env.RL_AI_USER_DAILY, "per-user-daily",
+  userAiDailyLimiter, "per-user-daily",
 );
 
 // For GET /user/status — used inside route handler after auth
 export const statusUserLimitMiddleware = makeUserMiddleware(
-  statusUserLimiter, env.RL_STATUS_USER_MIN, "per-user-min",
+  statusUserLimiter, "per-user-min",
 );
 
 // For POST /webhooks/revenuecat — mount before HMAC verification
 export const rcIpLimitMiddleware = makeIpMiddleware(
-  rcIpLimiter, env.RL_RC_IP_MIN, "rate_limited", 429, "per-ip",
+  rcIpLimiter, "rate_limited", 429, "per-ip",
 );
 
 // Catch-all — mounted last in app.ts
 export const defaultIpLimitMiddleware = makeIpMiddleware(
-  defaultIpLimiter, env.RL_DEFAULT_IP_MIN, "rate_limited", 429, "per-ip",
+  defaultIpLimiter, "rate_limited", 429, "per-ip",
 );

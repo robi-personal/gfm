@@ -13,9 +13,11 @@ import { createApp } from "./app";
 import { logger } from "./infrastructure/logger";
 import { runMigrations } from "./infrastructure/db/migrate";
 import { pool } from "./infrastructure/db/postgres";
+import { configService } from "./config/config-service";
 
 async function start() {
   await runMigrations();
+  await configService.load();
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {
