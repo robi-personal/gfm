@@ -3,6 +3,8 @@ import * as https from "node:https";
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import ipaddr from "ipaddr.js";
+import { JSDOM } from "jsdom";
+import { Readability } from "@mozilla/readability";
 import sanitizeHtml from "sanitize-html";
 import { urlFetchBlockedTotal } from "../metrics";
 
@@ -336,10 +338,13 @@ function extractText(buf: Buffer, contentType: string): string {
   if (contentType.startsWith("text/plain")) {
     text = decoded;
   } else {
-    text = sanitizeHtml(decoded, {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
+    try {
+      const dom = new JSDOM(decoded, { url: "https://placeholder.invalid" });
+      const article = new Readability(dom.window.document).parse();
+      text = article?.textContent ?? sanitizeHtml(decoded, { allowedTags: [], allowedAttributes: {} });
+    } catch {
+      text = sanitizeHtml(decoded, { allowedTags: [], allowedAttributes: {} });
+    }
   }
   const collapsed = text.replace(/\s+/g, " ").trim();
   return collapsed.length > TEXT_CHAR_LIMIT
