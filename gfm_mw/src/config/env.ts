@@ -50,6 +50,9 @@ const schema = z.object({
   YOUTUBE_API_KEY:         z.string().optional(),
   YOUTUBE_MONTHLY_MINUTES: z.coerce.number().int().min(0).default(300),
 
+  // Document settings
+  PDF_PAGES_PER_QUOTA: z.coerce.number().int().min(1).default(50),
+
   // Kill switches
   AI_GENERATION_DISABLED: z
     .string()

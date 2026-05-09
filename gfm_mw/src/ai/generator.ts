@@ -16,14 +16,16 @@ import { SYSTEM_PROMPT_V1, PROMPT_VERSION } from "./system-prompt";
 import type { GenerateRequest } from "./request-schema";
 import { geminiRequestsTotal } from "../infrastructure/metrics";
 
-// YouTube requires Gemini to download and process video content — give it more time.
+// File-based inputs (YouTube, PDF, book) require Gemini to ingest binary content — give them more time.
 const YOUTUBE_DEADLINE_MS = 180_000;
+const FILE_DEADLINE_MS    = 120_000;
 
 interface GenerateArgs {
   user: { id: number; tier: "free" | "premium" };
   body: GenerateRequest;
   rowId: number;            // ai_generations.id (already 'processing' — caller owns it)
   generationId: string;
+  quotaCost: number;        // quota units to deduct on success (>1 for large PDFs/books)
   aiRepo: AiGenerationRepository;
   userRepo: UserRepository;
   log: Logger;
@@ -100,7 +102,10 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
   }
 
   const contents = buildContents({ body, fetchedUrls });
-  const deadlineMs = body.inputType === "youtube" ? YOUTUBE_DEADLINE_MS : undefined;
+  const deadlineMs =
+    body.inputType === "youtube" ? YOUTUBE_DEADLINE_MS :
+    body.inputType === "pdf" || body.inputType === "book" ? FILE_DEADLINE_MS :
+    undefined;
 
   // ── Step B: First AI attempt ──────────────────────────────────────────────
   let attempt1: GeminiAttempt;
@@ -342,7 +347,7 @@ async function finalize(
   form: GeneratedForm,
   tokens: GeminiAttempt,
 ): Promise<GenerationOutcome> {
-  const { aiRepo, userRepo, user, rowId, generationId } = args;
+  const { aiRepo, userRepo, user, rowId, generationId, quotaCost } = args;
 
   await aiRepo.updateSuccess(rowId, {
     outputJson: form,
@@ -351,10 +356,11 @@ async function finalize(
   });
 
   // Quota burns only on successful completion (api-contract.md §4.1).
+  // PDF/book types may cost more than 1 quota unit based on page count.
   if (user.tier === "free") {
-    await userRepo.incrementFreeUsed(user.id);
+    await userRepo.incrementFreeUsed(user.id, quotaCost);
   } else {
-    await userRepo.incrementPremiumUsed(user.id);
+    await userRepo.incrementPremiumUsed(user.id, quotaCost);
   }
 
   return {

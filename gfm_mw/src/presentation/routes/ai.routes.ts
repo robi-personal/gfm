@@ -22,6 +22,7 @@ import {
 } from "../../ai/request-schema";
 import { hashRequestBody } from "../../ai/canonicalize";
 import { runGeneration } from "../../ai/generator";
+import { countPdfPages, pdfQuotaCost } from "../../ai/pdf-pages";
 import { quotaExceededTotal } from "../../infrastructure/metrics";
 import { youtubeMinutesMiddleware } from "../middleware/youtube-minutes.middleware";
 import { configService } from "../../config/config-service";
@@ -89,6 +90,31 @@ function inputSizeBytes(body: GenerateRequest): number | undefined {
 
 export const aiRouter = Router();
 
+// ── Pre-flight: count pages + quota cost for pdf/book inputs ──────────────────
+aiRouter.post(
+  "/pdf-page-count",
+  authMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { fileBase64, inputType } = req.body as { fileBase64?: unknown; inputType?: unknown };
+      if (typeof fileBase64 !== "string" || !fileBase64) {
+        throw new HttpError(400, "invalid_input", "fileBase64 is required.");
+      }
+      if (inputType !== "pdf" && inputType !== "book") {
+        throw new HttpError(400, "invalid_input", "inputType must be pdf or book.");
+      }
+
+      const pages       = await countPdfPages(fileBase64);
+      const pagesPerQuota = configService.get<number>("PDF_PAGES_PER_QUOTA", env.PDF_PAGES_PER_QUOTA);
+      const quotaCost   = pdfQuotaCost(pages, pagesPerQuota);
+
+      res.json({ pages, quotaCost, pagesPerQuota });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 aiRouter.post(
   "/generate",
   authMiddleware,
@@ -134,6 +160,7 @@ aiRouter.post(
       const body = parsed.data;
 
       // ── 3. File size cap (decoded bytes) for pdf/book ─────────────────────
+      let quotaCost = 1;
       if (body.inputType === "pdf" || body.inputType === "book") {
         const bytes = decodedBase64Bytes(body.fileBase64);
         if (bytes > MAX_DECODED_BYTES) {
@@ -141,6 +168,19 @@ aiRouter.post(
             maxBytes: MAX_DECODED_BYTES,
             actualBytes: bytes,
           });
+        }
+        const pages         = await countPdfPages(body.fileBase64);
+        const pagesPerQuota = configService.get<number>("PDF_PAGES_PER_QUOTA", env.PDF_PAGES_PER_QUOTA);
+        quotaCost           = pdfQuotaCost(pages, pagesPerQuota);
+
+        // Verify the client confirmed the exact cost shown in the pre-flight dialog.
+        // Mismatch means the config changed between pre-flight and generate — reject
+        // so the user can re-confirm rather than being silently overcharged.
+        if (body.confirmedQuotaCost !== quotaCost) {
+          throw new HttpError(409, "quota_cost_changed",
+            `The quota cost changed (was ${body.confirmedQuotaCost}, now ${quotaCost}). Please try again.`,
+            { confirmedQuotaCost: body.confirmedQuotaCost, actualQuotaCost: quotaCost },
+          );
         }
       }
 
@@ -196,17 +236,19 @@ aiRouter.post(
 
       // ── 7. Quota gate ─────────────────────────────────────────────────────
       const quotaBefore = await getQuotaSnapshot(userRepo, req.user!.id);
-      if (quotaBefore.used >= quotaBefore.limit) {
+      if (quotaBefore.used + quotaCost > quotaBefore.limit) {
         quotaExceededTotal.inc({ tier: quotaBefore.tier });
+        const remaining = Math.max(0, quotaBefore.limit - quotaBefore.used);
         throw new HttpError(429, "quota_exceeded",
           quotaBefore.tier === "free"
             ? `You've used all ${quotaBefore.limit} free generations this month.`
-            : `You've used all ${quotaBefore.limit} generations this period.`,
+            : `This request costs ${quotaCost} quota but you only have ${remaining} remaining.`,
           {
-            tier:     quotaBefore.tier,
-            used:     quotaBefore.used,
-            limit:    quotaBefore.limit,
-            resetsAt: quotaBefore.resetsAt,
+            tier:      quotaBefore.tier,
+            used:      quotaBefore.used,
+            limit:     quotaBefore.limit,
+            quotaCost,
+            resetsAt:  quotaBefore.resetsAt,
           },
         );
       }
@@ -276,6 +318,7 @@ aiRouter.post(
         body,
         rowId,
         generationId,
+        quotaCost,
         aiRepo,
         userRepo,
         log: req.log,
@@ -297,6 +340,7 @@ aiRouter.post(
         status:       "completed",
         form:         outcome.form,
         tokensUsed:   { input: outcome.inputTokens, output: outcome.outputTokens },
+        quotaCost,
         quota:        quotaAfter,
       });
     } catch (err) {

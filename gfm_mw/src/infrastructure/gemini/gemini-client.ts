@@ -14,7 +14,7 @@ import {
   geminiOutputTokensTotal,
 } from "../metrics";
 
-const MODEL = "gemini-3-flash-preview";
+const MODEL = "gemini-2.5-flash-lite";
 const DEFAULT_DEADLINE_MS = 60_000;
 const RETRY_BACKOFF_MS = 500;
 

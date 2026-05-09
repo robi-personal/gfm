@@ -7,9 +7,9 @@ import {
 } from "../../../domain/repositories/ai-generation.repository";
 import { DbClient } from "../postgres";
 
-// Gemini 2.0 Flash paid-tier pricing. See rate-limiting-abuse.md §8.3.
-const INPUT_USD_PER_TOKEN  = 0.075  / 1_000_000;
-const OUTPUT_USD_PER_TOKEN = 0.300  / 1_000_000;
+// gemini-2.5-flash-lite standard tier pricing. See ai.google.dev/gemini-api/docs/pricing.
+const INPUT_USD_PER_TOKEN  = 0.10 / 1_000_000;
+const OUTPUT_USD_PER_TOKEN = 0.40 / 1_000_000;
 
 function mapRow(row: Record<string, unknown>): AiGeneration {
   return {

@@ -4,8 +4,8 @@ export interface UserRepository {
   findByGoogleSub(googleSub: string): Promise<User | null>;
   findById(id: number): Promise<User | null>;
   upsert(googleSub: string, email: string): Promise<User>;
-  incrementFreeUsed(userId: number): Promise<void>;
-  incrementPremiumUsed(userId: number): Promise<void>;
+  incrementFreeUsed(userId: number, by?: number): Promise<void>;
+  incrementPremiumUsed(userId: number, by?: number): Promise<void>;
   resetFreeQuotaIfExpired(userId: number): Promise<void>;
 
   // YouTube minute cap

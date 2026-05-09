@@ -29,6 +29,8 @@ const KEY_TYPES = {
   AI_GENERATION_DISABLED:       "boolean",
   // YouTube
   YOUTUBE_MONTHLY_MINUTES:      "number",
+  // Document settings
+  PDF_PAGES_PER_QUOTA:          "number",
 } as const satisfies Record<string, ScalarType>;
 
 export type ConfigKey = keyof typeof KEY_TYPES;

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
+import '../../data/datasources/ai_form_datasource.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
@@ -160,6 +161,13 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
           title: 'YouTube limit reached',
           body: 'You\'ve used your monthly YouTube video minutes. Your limit resets in 30 days.',
           primaryLabel: 'OK',
+          onPrimary: dismissError,
+        );
+      case AiErrorKind.quotaCostChanged:
+        return _ModalParams(
+          title: 'Quota cost changed',
+          body: 'The quota cost for this document changed since the confirmation step. Please try generating again.',
+          primaryLabel: 'Try again',
           onPrimary: dismissError,
         );
       case AiErrorKind.invalidToken:
@@ -349,11 +357,15 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
 
   // ── Submission ────────────────────────────────────────────────────────────
 
-  void _submitText(AiFormBuilderCubit cubit) {
+  void _submitText(AiFormBuilderCubit cubit, int? questionCountHint) {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) return;
     _promptDirty = false;
-    cubit.submit({'inputType': 'text', 'prompt': prompt});
+    cubit.submit({
+      'inputType': 'text',
+      'prompt': prompt,
+      if (questionCountHint != null) 'questionCountHint': questionCountHint,
+    });
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -455,7 +467,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       onPromptChanged: () {
         _promptDirty = true;
       },
-      onSubmitText: isSubmitting ? null : () => _submitText(cubit),
+      onSubmitText: isSubmitting ? null : (hint) => _submitText(cubit, hint),
       onUpgrade: () => _showPaywall(cubit),
     );
   }
@@ -471,7 +483,7 @@ class _ReadyBody extends StatefulWidget {
   final Duration elapsed;
   final TextEditingController promptController;
   final VoidCallback onPromptChanged;
-  final VoidCallback? onSubmitText;
+  final void Function(int? questionCountHint)? onSubmitText;
   final VoidCallback onUpgrade;
 
   const _ReadyBody({
@@ -502,6 +514,9 @@ class _ReadyBodyState extends State<_ReadyBody> {
   String? _fileName;
   String? _fileBase64;
   String? _fileError;
+
+  // Question count hint (null sends no hint, AI uses default 10-15)
+  int? _questionCountHint = 10;
 
   @override
   void initState() {
@@ -609,25 +624,25 @@ class _ReadyBodyState extends State<_ReadyBody> {
   void _onGeneratePressed() {
     switch (widget.selectedType) {
       case AiInputType.text:
-        widget.onSubmitText?.call();
+        widget.onSubmitText?.call(_questionCountHint);
       case AiInputType.pdf:
         if (_fileBase64 == null || _fileName == null) return;
-        final pdfDesc = _descriptionController.text.trim();
-        widget.cubit.submit({
-          'inputType': 'pdf',
-          'fileBase64': _fileBase64!,
-          'fileName': _fileName!,
-          if (pdfDesc.isNotEmpty) 'description': pdfDesc,
-        });
+        _submitWithPdfConfirmation(
+          inputType: 'pdf',
+          fileBase64: _fileBase64!,
+          fileName: _fileName!,
+          description: _descriptionController.text.trim(),
+          questionCountHint: _questionCountHint,
+        );
       case AiInputType.book:
         if (_fileBase64 == null || _fileName == null) return;
-        final bookDesc = _descriptionController.text.trim();
-        widget.cubit.submit({
-          'inputType': 'book',
-          'fileBase64': _fileBase64!,
-          'fileName': _fileName!,
-          if (bookDesc.isNotEmpty) 'description': bookDesc,
-        });
+        _submitWithPdfConfirmation(
+          inputType: 'book',
+          fileBase64: _fileBase64!,
+          fileName: _fileName!,
+          description: _descriptionController.text.trim(),
+          questionCountHint: _questionCountHint,
+        );
       case AiInputType.youtube:
         final url = _youtubeController.text.trim();
         if (url.isEmpty) return;
@@ -636,6 +651,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
           'inputType': 'youtube',
           'youtubeUrl': url,
           if (ytDesc.isNotEmpty) 'description': ytDesc,
+          if (_questionCountHint != null) 'questionCountHint': _questionCountHint,
         });
       case AiInputType.urls:
         final urls = _urlControllers
@@ -648,7 +664,113 @@ class _ReadyBodyState extends State<_ReadyBody> {
           'inputType': 'urls',
           'urls': urls,
           if (urlsDesc.isNotEmpty) 'description': urlsDesc,
+          if (_questionCountHint != null) 'questionCountHint': _questionCountHint,
         });
+    }
+  }
+
+  Future<void> _submitWithPdfConfirmation({
+    required String inputType,
+    required String fileBase64,
+    required String fileName,
+    required String description,
+    required int? questionCountHint,
+  }) async {
+    final context = this.context;
+
+    // Show a loading indicator while fetching page count
+    if (!context.mounted) return;
+
+    PdfPageInfo info;
+    try {
+      final dataSource = getIt<AiFormDataSource>();
+      info = await dataSource.getPdfPageCount(
+        fileBase64: fileBase64,
+        inputType: inputType,
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Unable to check document'),
+          content: const Text(
+            'Could not calculate the quota cost for this document. '
+            'Please check your connection and try again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    final remaining = widget.status.effectiveRemaining;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Generation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This ${inputType == 'book' ? 'book' : 'PDF'} has ${info.pages} pages.'),
+            const SizedBox(height: 8),
+            RichText(
+              text: TextSpan(
+                style: Theme.of(ctx).textTheme.bodyMedium,
+                children: [
+                  const TextSpan(text: 'Quota cost: '),
+                  TextSpan(
+                    text: '${info.quotaCost} quota',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: ' (${info.pagesPerQuota} pages per quota unit)'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'You have $remaining quota remaining.',
+              style: TextStyle(
+                color: remaining < info.quotaCost
+                    ? Colors.red
+                    : Theme.of(ctx).textTheme.bodySmall?.color,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: remaining >= info.quotaCost
+                ? () => Navigator.of(ctx).pop(true)
+                : null,
+            child: const Text('Generate'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      widget.cubit.submit({
+        'inputType': inputType,
+        'fileBase64': fileBase64,
+        'fileName': fileName,
+        'confirmedQuotaCost': info.quotaCost,
+        if (description.isNotEmpty) 'description': description,
+        if (questionCountHint != null) 'questionCountHint': questionCountHint,
+      });
     }
   }
 
@@ -694,7 +816,15 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
           // Per-type input area
           _inputArea(theme),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Question count picker
+          _QuestionCountPicker(
+            value: _questionCountHint,
+            enabled: !widget.isSubmitting,
+            onChanged: (v) => setState(() => _questionCountHint = v),
+          ),
+          const SizedBox(height: 16),
 
           // Loading phase text (while submitting)
           if (widget.isSubmitting) ...[
@@ -932,6 +1062,158 @@ class _ReadyBodyState extends State<_ReadyBody> {
     if (elapsed.inSeconds < 30) return 'This is taking a moment…';
     if (isYoutube && elapsed.inSeconds < 120) return 'Analysing video content…';
     return 'Almost there…';
+  }
+}
+
+// ── Question count picker ─────────────────────────────────────────────────────
+
+class _QuestionCountPicker extends StatefulWidget {
+  final int? value;
+  final bool enabled;
+  final ValueChanged<int?> onChanged;
+
+  const _QuestionCountPicker({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  State<_QuestionCountPicker> createState() => _QuestionCountPickerState();
+}
+
+class _QuestionCountPickerState extends State<_QuestionCountPicker> {
+  late final TextEditingController _controller;
+
+  static const _min = 3;
+  static const _max = 50;
+  static const _default = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.value != null ? '${widget.value}' : '$_default',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int get _current => widget.value ?? _default;
+
+  void _increment() {
+    final next = (_current + 1).clamp(_min, _max);
+    _controller.text = '$next';
+    widget.onChanged(next);
+  }
+
+  void _decrement() {
+    final next = (_current - 1).clamp(_min, _max);
+    _controller.text = '$next';
+    widget.onChanged(next);
+  }
+
+  void _onFieldSubmitted(String raw) {
+    final n = int.tryParse(raw);
+    if (n == null) {
+      _controller.text = '$_current';
+      return;
+    }
+    final clamped = n.clamp(_min, _max);
+    _controller.text = '$clamped';
+    widget.onChanged(clamped);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          'Number of questions',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const Spacer(),
+        _CounterButton(
+          icon: Icons.remove,
+          enabled: widget.enabled && _current > _min,
+          onTap: _decrement,
+        ),
+        const SizedBox(width: 4),
+        SizedBox(
+          width: 48,
+          child: TextField(
+            controller: _controller,
+            enabled: widget.enabled,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: _purple.withValues(alpha: 0.4)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: _purple),
+              ),
+            ),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            onSubmitted: _onFieldSubmitted,
+            onTapOutside: (_) => _onFieldSubmitted(_controller.text),
+          ),
+        ),
+        const SizedBox(width: 4),
+        _CounterButton(
+          icon: Icons.add,
+          enabled: widget.enabled && _current < _max,
+          onTap: _increment,
+        ),
+      ],
+    );
+  }
+}
+
+class _CounterButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _CounterButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: enabled ? _purpleLight : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled ? _purple.withValues(alpha: 0.4) : Colors.grey.shade300,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? _purple : Colors.grey.shade400,
+        ),
+      ),
+    );
   }
 }
 

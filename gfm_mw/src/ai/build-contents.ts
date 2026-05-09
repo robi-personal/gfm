@@ -31,7 +31,7 @@ function pdfTurn(req: Extract<GenerateRequest, { inputType: "pdf" }>): Part[] {
     (req.fileName ? `FILE_NAME: ${req.fileName}\n` : "") +
     (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Build a form based on the attached PDF.`;
+    `Read the attached PDF carefully. Generate a form with questions that are directly based on the SPECIFIC content of this document. Do NOT generate generic questions.`;
   return [
     { text: scaffold },
     { inlineData: { mimeType: "application/pdf", data: req.fileBase64 } },
@@ -41,9 +41,12 @@ function pdfTurn(req: Extract<GenerateRequest, { inputType: "pdf" }>): Part[] {
 function bookTurn(req: Extract<GenerateRequest, { inputType: "book" }>): Part[] {
   const scaffold =
     `INPUT_TYPE: book\n` +
+    (req.fileName ? `FILE_NAME: ${req.fileName}\n` : "") +
     (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Build a comprehension form based on the attached chapter.`;
+    `Read the attached book/document carefully. Generate a comprehension quiz with questions that test knowledge of the SPECIFIC content, concepts, facts, and ideas found in this document. ` +
+    `Every question must come directly from the material — do NOT generate generic questions. ` +
+    `If the document covers multiple topics, spread the questions across them.`;
   return [
     { text: scaffold },
     { inlineData: { mimeType: "application/pdf", data: req.fileBase64 } },

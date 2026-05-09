@@ -341,6 +341,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
           'url_fetch_failed' => AiErrorKind.urlFetchFailed,
           'youtube_unavailable'       => AiErrorKind.youtubeUnavailable,
           'youtube_minutes_exceeded'  => AiErrorKind.youtubeMinutesExceeded,
+          'quota_cost_changed'        => AiErrorKind.quotaCostChanged,
           _ => AiErrorKind.generic5xx,
         },
       PermissionFailure() => AiErrorKind.generic4xx,

@@ -49,21 +49,21 @@ export class PgUserRepository implements UserRepository {
     return mapRow(rows[0]);
   }
 
-  async incrementFreeUsed(userId: number): Promise<void> {
+  async incrementFreeUsed(userId: number, by = 1): Promise<void> {
     // Set free_month_reset_at on first use (rolling 30-day window). See api-contract.md §4.3.
     await this.db.query(
       `UPDATE users SET
-         ai_free_used        = ai_free_used + 1,
+         ai_free_used        = ai_free_used + $2,
          free_month_reset_at = COALESCE(free_month_reset_at, NOW() + INTERVAL '30 days')
        WHERE id = $1`,
-      [userId],
+      [userId, by],
     );
   }
 
-  async incrementPremiumUsed(userId: number): Promise<void> {
+  async incrementPremiumUsed(userId: number, by = 1): Promise<void> {
     await this.db.query(
-      "UPDATE users SET ai_premium_used = ai_premium_used + 1 WHERE id = $1",
-      [userId],
+      "UPDATE users SET ai_premium_used = ai_premium_used + $2 WHERE id = $1",
+      [userId, by],
     );
   }
 

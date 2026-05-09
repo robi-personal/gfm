@@ -11,6 +11,13 @@ import '../../domain/repositories/ai_form_repository.dart';
 
 const String _kBaseUrl = 'http://192.168.68.109:3000';
 
+class PdfPageInfo {
+  final int pages;
+  final int quotaCost;
+  final int pagesPerQuota;
+  const PdfPageInfo({required this.pages, required this.quotaCost, required this.pagesPerQuota});
+}
+
 class AiFormDataSource {
   final GoogleAuthDataSource _auth;
   final http.Client _httpClient;
@@ -87,6 +94,30 @@ class AiFormDataSource {
     _throwFromResponse(response);
   }
 
+  Future<PdfPageInfo> getPdfPageCount({
+    required String fileBase64,
+    required String inputType,
+  }) async {
+    final idToken = await _getIdToken();
+    final uri = Uri.parse('$_kBaseUrl/ai/pdf-page-count');
+
+    final response = await _httpClient.post(
+      uri,
+      headers: _authHeaders(idToken),
+      body: jsonEncode({'fileBase64': fileBase64, 'inputType': inputType}),
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return PdfPageInfo(
+        pages: (json['pages'] as num).toInt(),
+        quotaCost: (json['quotaCost'] as num).toInt(),
+        pagesPerQuota: (json['pagesPerQuota'] as num).toInt(),
+      );
+    }
+    _throwFromResponse(response);
+  }
+
   /// Parses the error envelope and throws the appropriate [Failure].
   Never _throwFromResponse(http.Response response) {
     Map<String, dynamic>? errorJson;
@@ -113,6 +144,9 @@ class AiFormDataSource {
       case 409:
         if (code == 'idempotency_in_flight') {
           throw const IdempotencyInFlightFailure();
+        }
+        if (code == 'quota_cost_changed') {
+          throw AiServiceFailure(code: 'quota_cost_changed');
         }
         throw const IdempotencyConflictFailure();
       case 429:

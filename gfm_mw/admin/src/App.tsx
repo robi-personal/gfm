@@ -5,6 +5,7 @@ import KillSwitchesPage from "./pages/KillSwitchesPage";
 import BudgetCapsPage from "./pages/BudgetCapsPage";
 import RateLimitsPage from "./pages/RateLimitsPage";
 import YouTubePage from "./pages/YouTubePage";
+import DocumentsPage from "./pages/DocumentsPage";
 
 const NAV = [
   {
@@ -14,6 +15,7 @@ const NAV = [
       { to: "/admin/budget-caps",   icon: "💰", label: "Budget Caps"   },
       { to: "/admin/rate-limits",   icon: "🚦", label: "Rate Limits"   },
       { to: "/admin/youtube",       icon: "▶",  label: "YouTube"       },
+      { to: "/admin/documents",     icon: "📄", label: "Documents"     },
     ],
   },
 ];
@@ -63,6 +65,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/budget-caps":   "Budget Caps",
   "/admin/rate-limits":   "Rate Limits",
   "/admin/youtube":       "YouTube",
+  "/admin/documents":     "Documents",
 };
 
 function Layout() {
@@ -83,6 +86,7 @@ function Layout() {
             <Route path="/admin/budget-caps"   element={<BudgetCapsPage />} />
             <Route path="/admin/rate-limits"   element={<RateLimitsPage />} />
             <Route path="/admin/youtube"       element={<YouTubePage />} />
+            <Route path="/admin/documents"     element={<DocumentsPage />} />
             <Route path="*"                    element={<Navigate to="/admin/kill-switches" replace />} />
           </Routes>
         </div>

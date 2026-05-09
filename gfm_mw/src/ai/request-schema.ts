@@ -40,6 +40,7 @@ export const PdfRequest = z
     fileName: z.string().max(255).optional(),
     description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
+    confirmedQuotaCost: z.number().int().min(1),
   })
   .strict();
 
@@ -65,8 +66,10 @@ export const BookRequest = z
   .object({
     inputType: z.literal("book"),
     fileBase64: Base64Pdf,
+    fileName: z.string().max(255).optional(),
     description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
+    confirmedQuotaCost: z.number().int().min(1),
   })
   .strict();
 
