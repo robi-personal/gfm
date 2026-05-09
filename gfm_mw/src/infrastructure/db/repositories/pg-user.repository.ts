@@ -13,7 +13,9 @@ function mapRow(row: Record<string, unknown>): User {
     aiPremiumUsed:    row["ai_premium_used"] as number,
     freeMonthResetAt: row["free_month_reset_at"] as Date | null,
     premiumResetAt:   row["premium_reset_at"] as Date | null,
-    gracePeriodUntil: row["grace_period_until"] as Date | null,
+    gracePeriodUntil:      row["grace_period_until"]       as Date | null,
+    youtubeMinutesUsed:    (row["youtube_minutes_used"]    as number) ?? 0,
+    youtubeMinutesResetAt: row["youtube_minutes_reset_at"] as Date | null,
   };
 }
 
@@ -116,6 +118,28 @@ export class PgUserRepository implements UserRepository {
          grace_period_until = GREATEST(grace_period_until, $2)
        WHERE id = $1`,
       [userId, gracePeriodUntil],
+    );
+  }
+
+  async incrementYoutubeMinutes(userId: number, minutes: number): Promise<void> {
+    await this.db.query(
+      `UPDATE users SET
+         youtube_minutes_used     = youtube_minutes_used + $2,
+         youtube_minutes_reset_at = COALESCE(youtube_minutes_reset_at, NOW() + INTERVAL '30 days')
+       WHERE id = $1`,
+      [userId, minutes],
+    );
+  }
+
+  async resetYoutubeMinutesIfNeeded(userId: number): Promise<void> {
+    await this.db.query(
+      `UPDATE users SET
+         youtube_minutes_used     = 0,
+         youtube_minutes_reset_at = NULL
+       WHERE id = $1
+         AND youtube_minutes_reset_at IS NOT NULL
+         AND youtube_minutes_reset_at < NOW()`,
+      [userId],
     );
   }
 

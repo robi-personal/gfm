@@ -8,6 +8,7 @@ const MIGRATIONS_DIR = join(process.cwd(), "migrations");
 const MIGRATIONS = [
   { id: "001", filename: "001_init.sql",          seededTable: "users" },
   { id: "002", filename: "002_server_config.sql", seededTable: "server_config" },
+  { id: "003", filename: "003_youtube_minutes.sql", seededTable: "youtube_minutes_sentinel" },
 ];
 
 export async function runMigrations(): Promise<void> {

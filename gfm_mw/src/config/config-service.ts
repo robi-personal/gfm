@@ -27,6 +27,8 @@ const KEY_TYPES = {
   MAX_USER_MONTHLY_GEMINI_USD:  "number",
   // Kill switch
   AI_GENERATION_DISABLED:       "boolean",
+  // YouTube
+  YOUTUBE_MONTHLY_MINUTES:      "number",
 } as const satisfies Record<string, ScalarType>;
 
 export type ConfigKey = keyof typeof KEY_TYPES;

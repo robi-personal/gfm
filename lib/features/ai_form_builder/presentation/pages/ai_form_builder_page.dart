@@ -155,6 +155,13 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
           primaryLabel: 'OK',
           onPrimary: dismissError,
         );
+      case AiErrorKind.youtubeMinutesExceeded:
+        return _ModalParams(
+          title: 'YouTube limit reached',
+          body: 'You\'ve used your monthly YouTube video minutes. Your limit resets in 30 days.',
+          primaryLabel: 'OK',
+          onPrimary: dismissError,
+        );
       case AiErrorKind.invalidToken:
         return _ModalParams(
           title: 'Session expired',
@@ -799,6 +806,8 @@ class _ReadyBodyState extends State<_ReadyBody> {
   }
 
   Widget _youtubeInputArea(ThemeData theme) {
+    final remaining = widget.status.youtubeMinutesRemaining;
+    final limit     = widget.status.youtubeMinutesLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -813,6 +822,15 @@ class _ReadyBodyState extends State<_ReadyBody> {
             hintText: 'https://www.youtube.com/watch?v=…',
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.play_circle_outline),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$remaining / $limit minutes remaining this month',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: remaining < 10
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurfaceVariant,
           ),
         ),
         _descriptionField(theme),

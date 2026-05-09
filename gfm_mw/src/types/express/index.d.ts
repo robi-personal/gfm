@@ -23,6 +23,9 @@ declare global {
       // Set by the /ai/generate handler (Task 14) after a Gemini call
       geminiInputTokens?: number;
       geminiOutputTokens?: number;
+
+      // Set by youtubeMinutesMiddleware — minutes to deduct after successful generation
+      videoDurationMinutes?: number;
     }
   }
 }

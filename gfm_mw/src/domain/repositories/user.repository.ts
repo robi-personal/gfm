@@ -8,6 +8,10 @@ export interface UserRepository {
   incrementPremiumUsed(userId: number): Promise<void>;
   resetFreeQuotaIfExpired(userId: number): Promise<void>;
 
+  // YouTube minute cap
+  incrementYoutubeMinutes(userId: number, minutes: number): Promise<void>;
+  resetYoutubeMinutesIfNeeded(userId: number): Promise<void>;
+
   // RevenueCat event handlers
   setPremium(userId: number, premiumResetAt: Date): Promise<void>;
   renewPremium(userId: number, premiumResetAt: Date): Promise<void>;

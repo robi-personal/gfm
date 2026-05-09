@@ -9,4 +9,6 @@ export interface User {
   freeMonthResetAt: Date | null;
   premiumResetAt: Date | null;
   gracePeriodUntil: Date | null;
+  youtubeMinutesUsed: number;
+  youtubeMinutesResetAt: Date | null;
 }

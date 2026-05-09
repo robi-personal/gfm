@@ -17,6 +17,7 @@ enum AiErrorKind {
   unsupportedInputType,
   urlFetchFailed,
   youtubeUnavailable,
+  youtubeMinutesExceeded,
   invalidToken,
   userBlocked,
   idempotencyConflict,

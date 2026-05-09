@@ -23,6 +23,8 @@ import {
 import { hashRequestBody } from "../../ai/canonicalize";
 import { runGeneration } from "../../ai/generator";
 import { quotaExceededTotal } from "../../infrastructure/metrics";
+import { youtubeMinutesMiddleware } from "../middleware/youtube-minutes.middleware";
+import { configService } from "../../config/config-service";
 
 const FREE_LIMIT    = 3;
 const PREMIUM_LIMIT = 50;
@@ -34,6 +36,9 @@ interface QuotaSnapshot {
   used: number;
   limit: number;
   resetsAt: string;
+  youtubeMinutesUsed: number;
+  youtubeMinutesLimit: number;
+  youtubeMinutesResetsAt: string | null;
 }
 
 async function getQuotaSnapshot(
@@ -42,15 +47,21 @@ async function getQuotaSnapshot(
 ): Promise<QuotaSnapshot> {
   const user = await userRepo.findById(userId);
   if (!user) {
-    // Should never happen — auth just upserted this user.
     throw new HttpError(401, "invalid_token", "User not found.");
   }
+  const ytLimit = configService.get<number>("YOUTUBE_MONTHLY_MINUTES", env.YOUTUBE_MONTHLY_MINUTES);
+  const base = {
+    youtubeMinutesUsed:    user.youtubeMinutesUsed,
+    youtubeMinutesLimit:   ytLimit,
+    youtubeMinutesResetsAt: user.youtubeMinutesResetAt?.toISOString() ?? null,
+  };
   if (env.RC_BYPASS_PREMIUM || user.isPremium) {
     return {
       tier: "premium",
       used: user.aiPremiumUsed,
       limit: PREMIUM_LIMIT,
       resetsAt: (user.premiumResetAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000)).toISOString(),
+      ...base,
     };
   }
   return {
@@ -58,6 +69,7 @@ async function getQuotaSnapshot(
     used: user.aiFreeUsed,
     limit: FREE_LIMIT,
     resetsAt: (user.freeMonthResetAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000)).toISOString(),
+    ...base,
   };
 }
 
@@ -85,6 +97,7 @@ aiRouter.post(
   aiUserDailyLimitMiddleware,
   globalBudgetMiddleware,
   perUserBudgetMiddleware,
+  youtubeMinutesMiddleware,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // ── 1. Idempotency-Key header validation ──────────────────────────────
@@ -272,7 +285,12 @@ aiRouter.post(
       req.geminiInputTokens  = outcome.inputTokens;
       req.geminiOutputTokens = outcome.outputTokens;
 
-      // ── 10. Respond with success + fresh quota snapshot ────────────────────
+      // ── 10. Deduct YouTube minutes if applicable ──────────────────────────
+      if (req.videoDurationMinutes) {
+        await userRepo.incrementYoutubeMinutes(req.user!.id, req.videoDurationMinutes);
+      }
+
+      // ── 11. Respond with success + fresh quota snapshot ───────────────────
       const quotaAfter = await getQuotaSnapshot(userRepo, req.user!.id);
       res.json({
         generationId: outcome.generationId,

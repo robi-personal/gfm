@@ -5,6 +5,7 @@ import { statusUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { pool } from "../../infrastructure/db/postgres";
 import { env } from "../../config/env";
+import { configService } from "../../config/config-service";
 
 // Quota constants — source of truth is api-contract.md §4.1 / §4.3
 const FREE_LIMIT    = 3;
@@ -23,8 +24,8 @@ userRouter.get(
     try {
       const userRepo = new PgUserRepository(pool);
 
-      // Auto-reset free quota if the rolling 30-day window has expired (api-contract.md §4.3)
       await userRepo.resetFreeQuotaIfExpired(req.user!.id);
+      await userRepo.resetYoutubeMinutesIfNeeded(req.user!.id);
 
       const user = await userRepo.findById(req.user!.id);
       if (!user) {
@@ -32,15 +33,19 @@ userRouter.get(
         return;
       }
 
+      const ytLimit = configService.get<number>("YOUTUBE_MONTHLY_MINUTES", env.YOUTUBE_MONTHLY_MINUTES);
       res.json({
-        isPremium:        env.RC_BYPASS_PREMIUM || user.isPremium,
-        aiFreeUsed:       user.aiFreeUsed,
-        aiFreeLimit:      FREE_LIMIT,
-        freeResetsAt:     user.freeMonthResetAt?.toISOString() ?? null,
-        aiPremiumUsed:    user.aiPremiumUsed,
-        aiPremiumLimit:   PREMIUM_LIMIT,
-        premiumResetsAt:  user.premiumResetAt?.toISOString() ?? null,
-        gracePeriodUntil: user.gracePeriodUntil?.toISOString() ?? null,
+        isPremium:               env.RC_BYPASS_PREMIUM || user.isPremium,
+        aiFreeUsed:              user.aiFreeUsed,
+        aiFreeLimit:             FREE_LIMIT,
+        freeResetsAt:            user.freeMonthResetAt?.toISOString() ?? null,
+        aiPremiumUsed:           user.aiPremiumUsed,
+        aiPremiumLimit:          PREMIUM_LIMIT,
+        premiumResetsAt:         user.premiumResetAt?.toISOString() ?? null,
+        gracePeriodUntil:        user.gracePeriodUntil?.toISOString() ?? null,
+        youtubeMinutesUsed:      user.youtubeMinutesUsed,
+        youtubeMinutesLimit:     ytLimit,
+        youtubeMinutesResetsAt:  user.youtubeMinutesResetAt?.toISOString() ?? null,
       });
     } catch (err) {
       next(err);

@@ -46,6 +46,10 @@ const schema = z.object({
   ADMIN_EMAIL:    z.string().email(),
   ADMIN_PASSWORD: z.string().min(8),
 
+  // YouTube
+  YOUTUBE_API_KEY:         z.string().optional(),
+  YOUTUBE_MONTHLY_MINUTES: z.coerce.number().int().min(0).default(300),
+
   // Kill switches
   AI_GENERATION_DISABLED: z
     .string()
