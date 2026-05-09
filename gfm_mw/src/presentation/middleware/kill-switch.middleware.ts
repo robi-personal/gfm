@@ -5,7 +5,7 @@ import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/p
 import {
   killSwitchTrippedTotal,
   costBreakerTrippedTotal,
-  geminiSpendUsdToday,
+  geminiSpendUsd,
 } from "../../infrastructure/metrics";
 
 // ── 1. AI_GENERATION_DISABLED ─────────────────────────────────────────────────
@@ -47,36 +47,47 @@ export function denylistMiddleware(
   next();
 }
 
-// ── 3. Per-user 24h cost circuit breaker ──────────────────────────────────────
-// Runs after auth on /ai/generate. One DB query per request (index: user_id + created_at).
+// ── 3. Per-user cost circuit breaker (daily / weekly / monthly) ───────────────
+// Runs after auth on /ai/generate. Three parallel DB queries per request.
 // Includes both successful and failed rows per rate-limiting-abuse.md §8.1.
 export async function perUserBudgetMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const cap = env.MAX_USER_DAILY_GEMINI_USD;
-  if (cap === 0) {
+  const now = Date.now();
+  const MS_PER_DAY = 24 * 60 * 60 * 1_000;
+
+  const caps = [
+    { window: "daily",   sinceMs: now - MS_PER_DAY,       cap: env.MAX_USER_DAILY_GEMINI_USD },
+    { window: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: env.MAX_USER_WEEKLY_GEMINI_USD },
+    { window: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: env.MAX_USER_MONTHLY_GEMINI_USD },
+  ].filter((c) => c.cap > 0);
+
+  if (caps.length === 0) {
     next();
     return;
   }
 
   try {
-    const since24hMs = Date.now() - 24 * 60 * 60 * 1_000;
     const repo = new PgAiGenerationRepository(pool);
-    const spend = await repo.getTotalSpendUsd(req.user!.id, since24hMs);
+    const spends = await Promise.all(caps.map((c) => repo.getTotalSpendUsd(req.user!.id, c.sinceMs)));
 
-    if (spend >= cap) {
-      req.log.warn(
-        { userId: req.user!.id, spendUsd: spend, capUsd: cap },
-        "cost_breaker_tripped_per_user",
-      );
-      costBreakerTrippedTotal.inc({ scope: "per-user" });
-      res.status(503).json({
-        code: "daily_budget_exceeded",
-        message: "You have reached the daily usage limit. Please try again tomorrow.",
-      });
-      return;
+    for (let i = 0; i < caps.length; i++) {
+      const { window, cap } = caps[i];
+      const spend = spends[i];
+      if (spend >= cap) {
+        req.log.warn(
+          { userId: req.user!.id, window, spendUsd: spend, capUsd: cap },
+          "cost_breaker_tripped_per_user",
+        );
+        costBreakerTrippedTotal.inc({ scope: "per-user" });
+        res.status(503).json({
+          code: `${window}_budget_exceeded`,
+          message: `You have reached the ${window} usage limit. Please try again later.`,
+        });
+        return;
+      }
     }
 
     next();
@@ -86,48 +97,71 @@ export async function perUserBudgetMiddleware(
   }
 }
 
-// ── 4. MAX_DAILY_GEMINI_SPEND_USD ─────────────────────────────────────────────
-// Runs after auth. 60s in-memory cached DB query. See rate-limiting-abuse.md §8.2.
-let globalSpendCache = { value: 0, fetchedAt: 0 };
+// ── 4. Global spend caps (daily / weekly / monthly) ───────────────────────────
+// Runs after auth. Each window has a separate 60s in-process cache.
+// See rate-limiting-abuse.md §8.2.
+const MS_PER_DAY = 24 * 60 * 60 * 1_000;
 
-export async function dailyBudgetMiddleware(
+type SpendCache = { value: number; fetchedAt: number };
+let globalDailyCache:   SpendCache = { value: 0, fetchedAt: 0 };
+let globalWeeklyCache:  SpendCache = { value: 0, fetchedAt: 0 };
+let globalMonthlyCache: SpendCache = { value: 0, fetchedAt: 0 };
+
+const TTL_MS = 60_000;
+
+async function refreshIfStale(
+  cache: SpendCache,
+  sinceMs: number,
+  repo: PgAiGenerationRepository,
+): Promise<SpendCache> {
+  if (Date.now() - cache.fetchedAt < TTL_MS) return cache;
+  const value = await repo.getGlobalSpendUsd(sinceMs);
+  return { value, fetchedAt: Date.now() };
+}
+
+export async function globalBudgetMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  if (env.MAX_DAILY_GEMINI_SPEND_USD === 0) {
-    // Cap of 0 means disabled — never block.
+  const now = Date.now();
+
+  const windows = [
+    { label: "daily",   sinceMs: now - MS_PER_DAY,       cap: env.MAX_DAILY_GEMINI_SPEND_USD,   cache: globalDailyCache,   set: (c: SpendCache) => { globalDailyCache = c; } },
+    { label: "weekly",  sinceMs: now - 7 * MS_PER_DAY,   cap: env.MAX_WEEKLY_GEMINI_SPEND_USD,  cache: globalWeeklyCache,  set: (c: SpendCache) => { globalWeeklyCache = c; } },
+    { label: "monthly", sinceMs: now - 30 * MS_PER_DAY,  cap: env.MAX_MONTHLY_GEMINI_SPEND_USD, cache: globalMonthlyCache, set: (c: SpendCache) => { globalMonthlyCache = c; } },
+  ].filter((w) => w.cap > 0);
+
+  if (windows.length === 0) {
     next();
     return;
   }
 
   try {
-    const now = Date.now();
-    if (now - globalSpendCache.fetchedAt >= 60_000) {
-      const repo = new PgAiGenerationRepository(pool);
-      const spend = await repo.getGlobalDailySpendUsd();
-      globalSpendCache = { value: spend, fetchedAt: now };
-    }
+    const repo = new PgAiGenerationRepository(pool);
 
-    if (globalSpendCache.value >= env.MAX_DAILY_GEMINI_SPEND_USD) {
-      req.log.warn(
-        { spendUsd: globalSpendCache.value, capUsd: env.MAX_DAILY_GEMINI_SPEND_USD },
-        "kill_switch_tripped_daily_budget_exceeded",
-      );
-      killSwitchTrippedTotal.inc({ which: "daily_budget_exceeded" });
-      geminiSpendUsdToday.set(globalSpendCache.value);
-      res.status(503).json({
-        code: "daily_budget_exceeded",
-        message: "Service is temporarily unavailable. Please try again tomorrow.",
-      });
-      return;
+    for (const w of windows) {
+      const fresh = await refreshIfStale(w.cache, w.sinceMs, repo);
+      w.set(fresh);
+      geminiSpendUsd.labels(w.label).set(fresh.value);
+
+      if (fresh.value >= w.cap) {
+        req.log.warn(
+          { window: w.label, spendUsd: fresh.value, capUsd: w.cap },
+          "kill_switch_tripped_global_budget_exceeded",
+        );
+        killSwitchTrippedTotal.inc({ which: `${w.label}_budget_exceeded` });
+        res.status(503).json({
+          code: "daily_budget_exceeded",
+          message: "Service is temporarily unavailable. Please try again later.",
+        });
+        return;
+      }
     }
-    geminiSpendUsdToday.set(globalSpendCache.value);
 
     next();
   } catch (err) {
-    // DB unavailable — fail open (let the request through rather than blocking everyone).
-    req.log.error({ err }, "daily_budget_check_failed");
-    next();
+    req.log.error({ err }, "global_budget_check_failed");
+    next(); // fail open
   }
 }

@@ -43,19 +43,23 @@ export const geminiOutputTokensTotal = new Counter({
   registers: [register],
 });
 
-export const geminiSpendUsdToday = new Gauge({
-  name: "gemini_spend_usd_today",
-  help: "Estimated Gemini spend today (UTC day), in USD",
+export const geminiSpendUsd = new Gauge({
+  name: "gemini_spend_usd",
+  help: "Estimated Gemini spend in USD for a rolling time window",
+  labelNames: ["window"] as const,
   registers: [register],
 });
 
 // Set at boot from env; used in §5.4 alert expressions.
 export const geminiSpendCapUsd = new Gauge({
   name: "gemini_spend_cap_usd",
-  help: "MAX_DAILY_GEMINI_SPEND_USD hard cap, in USD",
+  help: "Hard-cap in USD for a rolling time window",
+  labelNames: ["window"] as const,
   registers: [register],
 });
-geminiSpendCapUsd.set(env.MAX_DAILY_GEMINI_SPEND_USD);
+geminiSpendCapUsd.labels("daily").set(env.MAX_DAILY_GEMINI_SPEND_USD);
+geminiSpendCapUsd.labels("weekly").set(env.MAX_WEEKLY_GEMINI_SPEND_USD);
+geminiSpendCapUsd.labels("monthly").set(env.MAX_MONTHLY_GEMINI_SPEND_USD);
 
 // ── Quota ───────────────────────────────────────────────────────────────────
 

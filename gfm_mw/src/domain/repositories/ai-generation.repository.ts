@@ -36,5 +36,5 @@ export interface AiGenerationRepository {
   updateSuccess(id: number, params: UpdateGenerationSuccessParams): Promise<void>;
   updateFailure(id: number, params: UpdateGenerationFailureParams): Promise<void>;
   getTotalSpendUsd(userId: number, sinceMs: number): Promise<number>;
-  getGlobalDailySpendUsd(): Promise<number>;
+  getGlobalSpendUsd(sinceMs: number): Promise<number>;
 }

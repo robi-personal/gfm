@@ -7,7 +7,7 @@ import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/p
 import {
   register,
   healthDegraded,
-  geminiSpendUsdToday,
+  geminiSpendUsd,
 } from "../../infrastructure/metrics";
 import { aiProvider } from "../../infrastructure/ai";
 
@@ -64,11 +64,20 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
   healthDegraded.set({ dep: "redis" },    rd.ok ? 0 : 1);
   healthDegraded.set({ dep: "gemini" },   aiHealth.ok ? 0 : 1);
 
-  let todayUsd: number | null = null;
+  const MS_PER_DAY = 24 * 60 * 60 * 1_000;
+  const nowMs = Date.now();
+  let spendByWindow: Record<string, number | null> = { daily: null, weekly: null, monthly: null };
   try {
     const repo = new PgAiGenerationRepository(pool);
-    todayUsd = await repo.getGlobalDailySpendUsd();
-    geminiSpendUsdToday.set(todayUsd);
+    const [daily, weekly, monthly] = await Promise.all([
+      repo.getGlobalSpendUsd(nowMs - MS_PER_DAY),
+      repo.getGlobalSpendUsd(nowMs - 7 * MS_PER_DAY),
+      repo.getGlobalSpendUsd(nowMs - 30 * MS_PER_DAY),
+    ]);
+    spendByWindow = { daily, weekly, monthly };
+    geminiSpendUsd.labels("daily").set(daily);
+    geminiSpendUsd.labels("weekly").set(weekly);
+    geminiSpendUsd.labels("monthly").set(monthly);
   } catch {
     // DB unavailable for spend computation — already reported via pg.ok
   }
@@ -94,13 +103,16 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
     uptimeSeconds: Math.floor(process.uptime()),
     version: process.env["npm_package_version"] ?? "unknown",
     killSwitches: {
-      aiGenerationDisabled:   env.AI_GENERATION_DISABLED,
-      userDenylistCount:      env.USER_DENYLIST.size,
-      maxDailyGeminiSpendUsd: cap,
+      aiGenerationDisabled:     env.AI_GENERATION_DISABLED,
+      userDenylistCount:        env.USER_DENYLIST.size,
+      maxDailyGeminiSpendUsd:   env.MAX_DAILY_GEMINI_SPEND_USD,
+      maxWeeklyGeminiSpendUsd:  env.MAX_WEEKLY_GEMINI_SPEND_USD,
+      maxMonthlyGeminiSpendUsd: env.MAX_MONTHLY_GEMINI_SPEND_USD,
     },
     spend: {
-      todayUsd,
-      capUsd: cap,
+      daily:   { spendUsd: spendByWindow["daily"],   capUsd: env.MAX_DAILY_GEMINI_SPEND_USD },
+      weekly:  { spendUsd: spendByWindow["weekly"],  capUsd: env.MAX_WEEKLY_GEMINI_SPEND_USD },
+      monthly: { spendUsd: spendByWindow["monthly"], capUsd: env.MAX_MONTHLY_GEMINI_SPEND_USD },
       windowResetsAt,
     },
     deps: {

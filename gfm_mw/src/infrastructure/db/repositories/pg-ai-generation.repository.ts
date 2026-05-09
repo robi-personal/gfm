@@ -168,14 +168,14 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
     return parseFloat(rows[0]["spend_usd"] as string);
   }
 
-  async getGlobalDailySpendUsd(): Promise<number> {
+  async getGlobalSpendUsd(sinceMs: number): Promise<number> {
     const { rows } = await this.db.query(
       `SELECT
          COALESCE(SUM(input_tokens),  0)::numeric * $1
        + COALESCE(SUM(output_tokens), 0)::numeric * $2 AS spend_usd
        FROM ai_generations
-       WHERE created_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')`,
-      [INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN],
+       WHERE created_at > to_timestamp($3 / 1000.0)`,
+      [INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN, sinceMs],
     );
     return parseFloat(rows[0]["spend_usd"] as string);
   }

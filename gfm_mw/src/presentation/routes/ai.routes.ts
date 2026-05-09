@@ -4,7 +4,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import {
   denylistMiddleware,
   perUserBudgetMiddleware,
-  dailyBudgetMiddleware,
+  globalBudgetMiddleware,
 } from "../middleware/kill-switch.middleware";
 import {
   aiUserHourlyLimitMiddleware,
@@ -83,7 +83,7 @@ aiRouter.post(
   denylistMiddleware,
   aiUserHourlyLimitMiddleware,
   aiUserDailyLimitMiddleware,
-  dailyBudgetMiddleware,
+  globalBudgetMiddleware,
   perUserBudgetMiddleware,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
