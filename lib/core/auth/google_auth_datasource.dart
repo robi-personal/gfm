@@ -16,7 +16,10 @@ class GoogleAuthDataSource {
     'https://www.googleapis.com/auth/forms.responses.readonly',
   ];
 
-  final _googleSignIn = GoogleSignIn(scopes: _scopes);
+  final _googleSignIn = GoogleSignIn(
+    scopes: _scopes,
+    serverClientId: '410943078794-kpfdg4g2je4jgtmh1s018csnf02ak8i0.apps.googleusercontent.com',
+  );
 
   bool get isSignedIn => _googleSignIn.currentUser != null;
 

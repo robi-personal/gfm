@@ -118,8 +118,8 @@ async function doAttempt(
       throw new GeminiError("gemini_timeout");
     }
     if (is4xx(err)) {
-      const status = (err as GoogleGenerativeAIFetchError).status;
-      logger.info({ attemptNumber, latencyMs, outcome: "4xx", status }, "gemini_attempt_end");
+      const e = err as GoogleGenerativeAIFetchError;
+      logger.info({ attemptNumber, latencyMs, outcome: "4xx", status: e.status, message: e.message, body: e.errorDetails }, "gemini_attempt_end");
       throw new GeminiError("gemini_unavailable");
     }
     if (is5xx(err)) {

@@ -158,8 +158,8 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
   async getTotalSpendUsd(userId: number, sinceMs: number): Promise<number> {
     const { rows } = await this.db.query(
       `SELECT
-         COALESCE(SUM(input_tokens),  0) * $3
-       + COALESCE(SUM(output_tokens), 0) * $4 AS spend_usd
+         COALESCE(SUM(input_tokens),  0)::numeric * $3
+       + COALESCE(SUM(output_tokens), 0)::numeric * $4 AS spend_usd
        FROM ai_generations
        WHERE user_id    = $1
          AND created_at > to_timestamp($2 / 1000.0)`,
@@ -171,8 +171,8 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
   async getGlobalDailySpendUsd(): Promise<number> {
     const { rows } = await this.db.query(
       `SELECT
-         COALESCE(SUM(input_tokens),  0) * $1
-       + COALESCE(SUM(output_tokens), 0) * $2 AS spend_usd
+         COALESCE(SUM(input_tokens),  0)::numeric * $1
+       + COALESCE(SUM(output_tokens), 0)::numeric * $2 AS spend_usd
        FROM ai_generations
        WHERE created_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')`,
       [INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN],

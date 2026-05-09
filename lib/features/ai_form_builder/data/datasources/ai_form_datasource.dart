@@ -9,11 +9,7 @@ import '../../domain/entities/quota_snapshot.dart';
 import '../../domain/entities/user_status.dart';
 import '../../domain/repositories/ai_form_repository.dart';
 
-// Configurable via `--dart-define=AI_API_BASE_URL=https://api.example.com`
-const String _kBaseUrl = String.fromEnvironment(
-  'AI_API_BASE_URL',
-  defaultValue: 'https://api.example.com',
-);
+const String _kBaseUrl = 'http://192.168.68.109:3000';
 
 class AiFormDataSource {
   final GoogleAuthDataSource _auth;
