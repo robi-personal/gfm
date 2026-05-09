@@ -9,7 +9,7 @@ import {
   healthDegraded,
   geminiSpendUsdToday,
 } from "../../infrastructure/metrics";
-import { getLastGeminiHealth } from "../../infrastructure/gemini/gemini-client";
+import { aiProvider } from "../../infrastructure/ai";
 
 export const healthRouter = Router();
 
@@ -57,12 +57,12 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
   if (!checkBearerToken(req, res)) return;
 
   const [pg, rd] = await Promise.all([checkPostgres(), checkRedis()]);
-  const geminiHealth = getLastGeminiHealth();
+  const aiHealth = aiProvider.getLastHealth();
 
   // Update Prometheus gauges so alerting rules fire on the same data.
   healthDegraded.set({ dep: "postgres" }, pg.ok ? 0 : 1);
   healthDegraded.set({ dep: "redis" },    rd.ok ? 0 : 1);
-  healthDegraded.set({ dep: "gemini" },   geminiHealth.ok ? 0 : 1);
+  healthDegraded.set({ dep: "gemini" },   aiHealth.ok ? 0 : 1);
 
   let todayUsd: number | null = null;
   try {
@@ -85,7 +85,7 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
   let status: "ok" | "degraded" | "down" = "ok";
   if (!pg.ok) {
     status = "down";
-  } else if (!rd.ok || !geminiHealth.ok) {
+  } else if (!rd.ok || !aiHealth.ok) {
     status = "degraded";
   }
 
@@ -104,9 +104,9 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
       windowResetsAt,
     },
     deps: {
-      postgres: { ok: pg.ok,          latencyMs: pg.latencyMs },
-      redis:    { ok: rd.ok,          latencyMs: rd.latencyMs },
-      gemini:   { ok: geminiHealth.ok, checkedAt: geminiHealth.checkedAt },
+      postgres: { ok: pg.ok,    latencyMs: pg.latencyMs },
+      redis:    { ok: rd.ok,    latencyMs: rd.latencyMs },
+      gemini:   { ok: aiHealth.ok, checkedAt: aiHealth.checkedAt, provider: aiProvider.name },
     },
   });
 });

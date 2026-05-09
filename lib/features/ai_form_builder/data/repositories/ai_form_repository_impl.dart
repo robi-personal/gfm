@@ -61,24 +61,31 @@ class AiFormRepositoryImpl implements AiFormRepository {
   Future<Either<Failure, String>> createFormFromAi(
       GeneratedForm generatedForm) async {
     try {
-      // Step 1: Create blank form with AI-generated title
-      final created = await _formsDataSource.createForm(
-        generatedForm.title,
-        description: generatedForm.description,
-      );
+      // Step 1: Create blank form — API only accepts info.title on create.
+      final created = await _formsDataSource.createForm(generatedForm.title);
       final formId = created.formId!;
 
       // Step 2: Publish the form (required since March 31 2026)
       await _formsDataSource.publishForm(formId);
 
-      // Step 3: Add AI questions via batchUpdate
-      if (generatedForm.questions.isNotEmpty) {
-        final requests = generatedForm.questions
-            .asMap()
-            .entries
-            .map((e) => _buildCreateItemRequest(e.value, e.key))
-            .toList();
+      // Step 3: Build requests — description + questions — then batchUpdate once.
+      final requests = <forms_api.Request>[];
 
+      if (generatedForm.description?.isNotEmpty == true) {
+        requests.add(forms_api.Request(
+          updateFormInfo: forms_api.UpdateFormInfoRequest(
+            info: forms_api.Info(description: generatedForm.description),
+            updateMask: 'description',
+          ),
+        ));
+      }
+
+      requests.addAll(generatedForm.questions
+          .asMap()
+          .entries
+          .map((e) => _buildCreateItemRequest(e.value, e.key)));
+
+      if (requests.isNotEmpty) {
         await _formsDataSource.batchUpdate(formId, requests);
       }
 

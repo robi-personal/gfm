@@ -47,7 +47,18 @@ export interface GeminiResult {
   finishReason: string;
 }
 
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+// Lazy so the module can be loaded when AI_PROVIDER=openrouter without a
+// GEMINI_API_KEY in env. Throws only on actual call.
+let genAI: GoogleGenerativeAI | null = null;
+function getGenAI(): GoogleGenerativeAI {
+  if (!genAI) {
+    if (!env.GEMINI_API_KEY) {
+      throw new GeminiError("gemini_unavailable", { reason: "missing_gemini_api_key" });
+    }
+    genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+  }
+  return genAI;
+}
 
 // Cached "did the last real Gemini call succeed" flag — used by /health.
 // Never set false on a retry (only set after all retries exhausted).
@@ -180,7 +191,7 @@ export async function callGemini(args: CallGeminiArgs): Promise<GeminiResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), deadlineMs);
 
-  const model = genAI.getGenerativeModel({
+  const model = getGenAI().getGenerativeModel({
     model: MODEL,
     systemInstruction,
     generationConfig: {

@@ -367,10 +367,12 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
             ),
           ));
         } else if (state is AiFormBuilderEditorHandoff) {
-          Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-            builder: (_) =>
-                EditorPage(formId: state.formId, formName: ''),
-          ));
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute<void>(
+              builder: (_) => EditorPage(formId: state.formId, formName: ''),
+            ),
+            (route) => route.isFirst,
+          );
         }
       },
       builder: (context, state) {

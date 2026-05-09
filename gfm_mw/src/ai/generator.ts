@@ -1,7 +1,7 @@
 import type { Content } from "@google/generative-ai";
 import type { Logger } from "pino";
 import * as Sentry from "@sentry/node";
-import { callGemini, GeminiError } from "../infrastructure/gemini/gemini-client";
+import { aiProvider, AiError } from "../infrastructure/ai";
 import { fetchUrls, FetchError } from "../infrastructure/url-fetcher/url-fetcher";
 import { HttpError } from "../presentation/middleware/error.middleware";
 import { AiGenerationRepository } from "../domain/repositories/ai-generation.repository";
@@ -46,13 +46,16 @@ function sumTokens(a: GeminiAttempt, b: GeminiAttempt): GeminiAttempt {
   };
 }
 
-function geminiErrorToHttp(e: GeminiError): HttpError {
+// Wire-level error codes are kept as `gemini_*` for Flutter compatibility
+// (lib/features/ai_form_builder/data/datasources/ai_form_datasource.dart keys
+// off these strings) regardless of the underlying AI provider.
+function aiErrorToHttp(e: AiError): HttpError {
   switch (e.reason) {
-    case "gemini_timeout":
+    case "ai_timeout":
       return new HttpError(503, "gemini_timeout", "The AI is taking longer than expected.");
-    case "gemini_unavailable":
+    case "ai_unavailable":
       return new HttpError(503, "gemini_unavailable", "The AI service is temporarily unavailable.");
-    case "gemini_blocked":
+    case "ai_blocked":
       // Safety filter triggered. The user input itself was rejected, not a
       // schema-validation problem — but `validation_error` is the closest
       // catalog entry the Flutter client renders ("try rephrasing"). See
@@ -94,16 +97,16 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
 
   const contents = buildContents({ body, fetchedUrls });
 
-  // ── Step B: First Gemini attempt ──────────────────────────────────────────
+  // ── Step B: First AI attempt ──────────────────────────────────────────────
   let attempt1: GeminiAttempt;
   try {
-    attempt1 = await callGemini({
+    attempt1 = await aiProvider.call({
       contents,
       systemInstruction: SYSTEM_PROMPT_V1,
       responseSchema: GEMINI_RESPONSE_SCHEMA,
     });
   } catch (e) {
-    if (e instanceof GeminiError) {
+    if (e instanceof AiError) {
       const inputTokens  = typeof e.details["inputTokens"]  === "number" ? e.details["inputTokens"]  : undefined;
       const outputTokens = typeof e.details["outputTokens"] === "number" ? e.details["outputTokens"] : undefined;
       await aiRepo.updateFailure(rowId, {
@@ -113,22 +116,24 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
           details: e.details,
           attempt: 1,
           promptVersion: PROMPT_VERSION,
+          provider: aiProvider.name,
         },
         inputTokens,
         outputTokens,
       });
-      if (e.reason === "gemini_unavailable") {
+      if (e.reason === "ai_unavailable") {
         Sentry.withScope((scope) => {
           scope.setLevel("warning");
           scope.setTag("route", "POST /ai/generate");
           scope.setTag("input_type", body.inputType);
           scope.setTag("quota_tier", args.user.tier);
+          scope.setTag("ai_provider", aiProvider.name);
           scope.setExtra("generation_id", generationId);
-          scope.setExtra("gemini_attempts", 1);
+          scope.setExtra("ai_attempts", 1);
           Sentry.captureException(e);
         });
       }
-      throw geminiErrorToHttp(e);
+      throw aiErrorToHttp(e);
     }
     throw e;
   }
@@ -200,13 +205,13 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
 
   let attempt2: GeminiAttempt;
   try {
-    attempt2 = await callGemini({
+    attempt2 = await aiProvider.call({
       contents: repairContents,
       systemInstruction: SYSTEM_PROMPT_V1,
       responseSchema: GEMINI_RESPONSE_SCHEMA,
     });
   } catch (e) {
-    if (e instanceof GeminiError) {
+    if (e instanceof AiError) {
       const inputTokens  = typeof e.details["inputTokens"]  === "number" ? e.details["inputTokens"]  : undefined;
       const outputTokens = typeof e.details["outputTokens"] === "number" ? e.details["outputTokens"] : undefined;
       await aiRepo.updateFailure(rowId, {
@@ -216,26 +221,28 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
           details: e.details,
           attempt: 2,
           promptVersion: PROMPT_VERSION,
+          provider: aiProvider.name,
           firstAttempt: { rawText: attempt1.rawText, zodIssues: zod1.error.issues, autoRepairs: rules1 },
         },
         // Tokens from attempt 1 are sunk cost; attempt 2 may have produced
         // partial tokens before failing — we only get the count from the
-        // GeminiError details if the model did emit something.
+        // AiError details if the model did emit something.
         inputTokens:  attempt1.inputTokens  + (inputTokens  ?? 0),
         outputTokens: attempt1.outputTokens + (outputTokens ?? 0),
       });
-      if (e.reason === "gemini_unavailable") {
+      if (e.reason === "ai_unavailable") {
         Sentry.withScope((scope) => {
           scope.setLevel("warning");
           scope.setTag("route", "POST /ai/generate");
           scope.setTag("input_type", body.inputType);
           scope.setTag("quota_tier", args.user.tier);
+          scope.setTag("ai_provider", aiProvider.name);
           scope.setExtra("generation_id", generationId);
-          scope.setExtra("gemini_attempts", 2);
+          scope.setExtra("ai_attempts", 2);
           Sentry.captureException(e);
         });
       }
-      throw geminiErrorToHttp(e);
+      throw aiErrorToHttp(e);
     }
     throw e;
   }

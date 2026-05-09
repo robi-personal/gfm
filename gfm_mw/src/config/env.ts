@@ -16,8 +16,15 @@ const schema = z.object({
   // Google auth
   GOOGLE_CLIENT_ID: z.string().min(1),
 
-  // Gemini
-  GEMINI_API_KEY: z.string().min(1),
+  // AI provider selection
+  AI_PROVIDER: z.enum(["gemini", "openrouter"]).default("gemini"),
+
+  // Gemini (required when AI_PROVIDER=gemini; see refine below)
+  GEMINI_API_KEY: z.string().optional(),
+
+  // OpenRouter (required when AI_PROVIDER=openrouter)
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_MODEL: z.string().default("google/gemini-2.0-flash-exp:free"),
 
   // RevenueCat
   RC_WEBHOOK_SECRET: z.string().min(1),
@@ -50,6 +57,21 @@ const schema = z.object({
 
   // Cost circuit breaker
   MAX_USER_DAILY_GEMINI_USD: z.coerce.number().default(0.5),
+}).superRefine((data, ctx) => {
+  if (data.AI_PROVIDER === "gemini" && !data.GEMINI_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["GEMINI_API_KEY"],
+      message: "GEMINI_API_KEY is required when AI_PROVIDER=gemini",
+    });
+  }
+  if (data.AI_PROVIDER === "openrouter" && !data.OPENROUTER_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["OPENROUTER_API_KEY"],
+      message: "OPENROUTER_API_KEY is required when AI_PROVIDER=openrouter",
+    });
+  }
 });
 
 const result = schema.safeParse(process.env);
