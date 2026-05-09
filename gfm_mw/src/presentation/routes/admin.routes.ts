@@ -2,7 +2,6 @@ import { Router } from "express";
 import { adminAuthMiddleware } from "../middleware/admin-auth.middleware";
 import { configService, CONFIG_KEYS, ConfigKey } from "../../config/config-service";
 import { PgConfigRepository } from "../../infrastructure/db/repositories/pg-config.repository";
-import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
 import { pool } from "../../infrastructure/db/postgres";
 import { logger } from "../../infrastructure/logger";
 import { env } from "../../config/env";
@@ -77,20 +76,3 @@ adminRouter.patch("/config", async (req, res) => {
   }
 });
 
-// GET /admin/spend — current global spend for each rolling window
-adminRouter.get("/spend", async (_req, res) => {
-  const now = Date.now();
-  const MS = 24 * 60 * 60 * 1_000;
-  const repo = new PgAiGenerationRepository(pool);
-  try {
-    const [daily, weekly, monthly] = await Promise.all([
-      repo.getGlobalSpendUsd(now - MS),
-      repo.getGlobalSpendUsd(now - 7 * MS),
-      repo.getGlobalSpendUsd(now - 30 * MS),
-    ]);
-    res.json({ spend: { daily, weekly, monthly } });
-  } catch (err) {
-    logger.error({ err }, "admin_spend_query_failed");
-    res.status(500).json({ code: "internal_error", message: "Failed to query spend." });
-  }
-});

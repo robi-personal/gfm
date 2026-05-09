@@ -35,6 +35,4 @@ export interface AiGenerationRepository {
   updateStatus(id: number, status: GenerationStatus): Promise<void>;
   updateSuccess(id: number, params: UpdateGenerationSuccessParams): Promise<void>;
   updateFailure(id: number, params: UpdateGenerationFailureParams): Promise<void>;
-  getTotalSpendUsd(userId: number, sinceMs: number): Promise<number>;
-  getGlobalSpendUsd(sinceMs: number): Promise<number>;
 }

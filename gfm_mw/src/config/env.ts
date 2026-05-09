@@ -58,9 +58,6 @@ const schema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
-  MAX_DAILY_GEMINI_SPEND_USD: z.coerce.number().min(0).default(10),
-  MAX_WEEKLY_GEMINI_SPEND_USD: z.coerce.number().min(0).default(50),
-  MAX_MONTHLY_GEMINI_SPEND_USD: z.coerce.number().min(0).default(150),
   USER_DENYLIST: z
     .string()
     .default("")
@@ -75,10 +72,6 @@ const schema = z.object({
   RL_RC_IP_MIN: z.coerce.number().default(120),
   RL_DEFAULT_IP_MIN: z.coerce.number().default(120),
 
-  // Cost circuit breaker
-  MAX_USER_DAILY_GEMINI_USD: z.coerce.number().default(0.5),
-  MAX_USER_WEEKLY_GEMINI_USD: z.coerce.number().default(2),
-  MAX_USER_MONTHLY_GEMINI_USD: z.coerce.number().default(5),
 }).superRefine((data, ctx) => {
   if (data.AI_PROVIDER === "gemini" && !data.GEMINI_API_KEY) {
     ctx.addIssue({

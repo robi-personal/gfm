@@ -17,14 +17,6 @@ const KEY_TYPES = {
   RL_STATUS_USER_MIN:           "number",
   RL_RC_IP_MIN:                 "number",
   RL_DEFAULT_IP_MIN:            "number",
-  // Global spend caps
-  MAX_DAILY_GEMINI_SPEND_USD:   "number",
-  MAX_WEEKLY_GEMINI_SPEND_USD:  "number",
-  MAX_MONTHLY_GEMINI_SPEND_USD: "number",
-  // Per-user spend caps
-  MAX_USER_DAILY_GEMINI_USD:    "number",
-  MAX_USER_WEEKLY_GEMINI_USD:   "number",
-  MAX_USER_MONTHLY_GEMINI_USD:  "number",
   // Kill switch
   AI_GENERATION_DISABLED:       "boolean",
   // YouTube

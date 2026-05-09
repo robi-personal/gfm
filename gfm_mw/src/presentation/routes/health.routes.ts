@@ -3,11 +3,9 @@ import { Router, Request, Response } from "express";
 import { env } from "../../config/env";
 import { pool } from "../../infrastructure/db/postgres";
 import { redis } from "../../infrastructure/redis/redis-client";
-import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
 import {
   register,
   healthDegraded,
-  geminiSpendUsd,
 } from "../../infrastructure/metrics";
 import { aiProvider } from "../../infrastructure/ai";
 
@@ -64,31 +62,6 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
   healthDegraded.set({ dep: "redis" },    rd.ok ? 0 : 1);
   healthDegraded.set({ dep: "gemini" },   aiHealth.ok ? 0 : 1);
 
-  const MS_PER_DAY = 24 * 60 * 60 * 1_000;
-  const nowMs = Date.now();
-  let spendByWindow: Record<string, number | null> = { daily: null, weekly: null, monthly: null };
-  try {
-    const repo = new PgAiGenerationRepository(pool);
-    const [daily, weekly, monthly] = await Promise.all([
-      repo.getGlobalSpendUsd(nowMs - MS_PER_DAY),
-      repo.getGlobalSpendUsd(nowMs - 7 * MS_PER_DAY),
-      repo.getGlobalSpendUsd(nowMs - 30 * MS_PER_DAY),
-    ]);
-    spendByWindow = { daily, weekly, monthly };
-    geminiSpendUsd.labels("daily").set(daily);
-    geminiSpendUsd.labels("weekly").set(weekly);
-    geminiSpendUsd.labels("monthly").set(monthly);
-  } catch {
-    // DB unavailable for spend computation — already reported via pg.ok
-  }
-
-  const cap = env.MAX_DAILY_GEMINI_SPEND_USD;
-
-  // Window resets at next UTC midnight.
-  const now = new Date();
-  const windowResetsAt = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
-  ).toISOString();
 
   // "down" if Postgres is gone (can't serve); "degraded" for Redis or Gemini.
   let status: "ok" | "degraded" | "down" = "ok";
@@ -103,17 +76,8 @@ healthRouter.get("/health", async (req: Request, res: Response): Promise<void> =
     uptimeSeconds: Math.floor(process.uptime()),
     version: process.env["npm_package_version"] ?? "unknown",
     killSwitches: {
-      aiGenerationDisabled:     env.AI_GENERATION_DISABLED,
-      userDenylistCount:        env.USER_DENYLIST.size,
-      maxDailyGeminiSpendUsd:   env.MAX_DAILY_GEMINI_SPEND_USD,
-      maxWeeklyGeminiSpendUsd:  env.MAX_WEEKLY_GEMINI_SPEND_USD,
-      maxMonthlyGeminiSpendUsd: env.MAX_MONTHLY_GEMINI_SPEND_USD,
-    },
-    spend: {
-      daily:   { spendUsd: spendByWindow["daily"],   capUsd: env.MAX_DAILY_GEMINI_SPEND_USD },
-      weekly:  { spendUsd: spendByWindow["weekly"],  capUsd: env.MAX_WEEKLY_GEMINI_SPEND_USD },
-      monthly: { spendUsd: spendByWindow["monthly"], capUsd: env.MAX_MONTHLY_GEMINI_SPEND_USD },
-      windowResetsAt,
+      aiGenerationDisabled: env.AI_GENERATION_DISABLED,
+      userDenylistCount:    env.USER_DENYLIST.size,
     },
     deps: {
       postgres: { ok: pg.ok,    latencyMs: pg.latencyMs },

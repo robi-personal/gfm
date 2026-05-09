@@ -7,10 +7,6 @@ import {
 } from "../../../domain/repositories/ai-generation.repository";
 import { DbClient } from "../postgres";
 
-// gemini-2.5-flash-lite standard tier pricing. See ai.google.dev/gemini-api/docs/pricing.
-const INPUT_USD_PER_TOKEN  = 0.10 / 1_000_000;
-const OUTPUT_USD_PER_TOKEN = 0.40 / 1_000_000;
-
 function mapRow(row: Record<string, unknown>): AiGeneration {
   return {
     id:             row["id"] as number,
@@ -155,28 +151,4 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
     );
   }
 
-  async getTotalSpendUsd(userId: number, sinceMs: number): Promise<number> {
-    const { rows } = await this.db.query(
-      `SELECT
-         COALESCE(SUM(input_tokens),  0)::numeric * $3
-       + COALESCE(SUM(output_tokens), 0)::numeric * $4 AS spend_usd
-       FROM ai_generations
-       WHERE user_id    = $1
-         AND created_at > to_timestamp($2 / 1000.0)`,
-      [userId, sinceMs, INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN],
-    );
-    return parseFloat(rows[0]["spend_usd"] as string);
-  }
-
-  async getGlobalSpendUsd(sinceMs: number): Promise<number> {
-    const { rows } = await this.db.query(
-      `SELECT
-         COALESCE(SUM(input_tokens),  0)::numeric * $1
-       + COALESCE(SUM(output_tokens), 0)::numeric * $2 AS spend_usd
-       FROM ai_generations
-       WHERE created_at > to_timestamp($3 / 1000.0)`,
-      [INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN, sinceMs],
-    );
-    return parseFloat(rows[0]["spend_usd"] as string);
-  }
 }

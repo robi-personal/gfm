@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from "uuid";
 import { authMiddleware } from "../middleware/auth.middleware";
 import {
   denylistMiddleware,
-  perUserBudgetMiddleware,
-  globalBudgetMiddleware,
 } from "../middleware/kill-switch.middleware";
 import {
   aiUserHourlyLimitMiddleware,
@@ -121,8 +119,6 @@ aiRouter.post(
   denylistMiddleware,
   aiUserHourlyLimitMiddleware,
   aiUserDailyLimitMiddleware,
-  globalBudgetMiddleware,
-  perUserBudgetMiddleware,
   youtubeMinutesMiddleware,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
