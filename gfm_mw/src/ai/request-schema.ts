@@ -38,6 +38,7 @@ export const PdfRequest = z
     inputType: z.literal("pdf"),
     fileBase64: Base64Pdf,
     fileName: z.string().max(255).optional(),
+    description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -46,6 +47,7 @@ export const YouTubeRequest = z
   .object({
     inputType: z.literal("youtube"),
     youtubeUrl: YouTubeUrl,
+    description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -54,6 +56,7 @@ export const UrlsRequest = z
   .object({
     inputType: z.literal("urls"),
     urls: z.array(HttpUrl).min(1).max(5),
+    description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -62,7 +65,7 @@ export const BookRequest = z
   .object({
     inputType: z.literal("book"),
     fileBase64: Base64Pdf,
-    chapterTitle: z.string().max(255).optional(),
+    description: z.string().max(2000).optional(),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();

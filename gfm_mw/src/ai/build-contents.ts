@@ -29,6 +29,7 @@ function pdfTurn(req: Extract<GenerateRequest, { inputType: "pdf" }>): Part[] {
   const scaffold =
     `INPUT_TYPE: pdf\n` +
     (req.fileName ? `FILE_NAME: ${req.fileName}\n` : "") +
+    (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
     `Build a form based on the attached PDF.`;
   return [
@@ -40,7 +41,7 @@ function pdfTurn(req: Extract<GenerateRequest, { inputType: "pdf" }>): Part[] {
 function bookTurn(req: Extract<GenerateRequest, { inputType: "book" }>): Part[] {
   const scaffold =
     `INPUT_TYPE: book\n` +
-    (req.chapterTitle ? `CHAPTER_TITLE: ${req.chapterTitle}\n` : "") +
+    (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
     `Build a comprehension form based on the attached chapter.`;
   return [
@@ -53,6 +54,7 @@ function youtubeTurn(req: Extract<GenerateRequest, { inputType: "youtube" }>): P
   const scaffold =
     `INPUT_TYPE: youtube\n` +
     `URL: ${req.youtubeUrl}\n` +
+    (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
     `Build a form based on the attached YouTube video.`;
   // Per ai-prompt-spec §7.3, YouTube is passed as a fileData part with the URL
@@ -77,6 +79,7 @@ function urlsTurn(
   const text =
     `INPUT_TYPE: urls\n` +
     `URLS:\n${req.urls.map((u) => `  - ${u}`).join("\n")}\n` +
+    (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
     `Build a form based on the fetched content below.\n\n` +
     blocks;

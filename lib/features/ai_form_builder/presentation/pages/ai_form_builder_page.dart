@@ -486,8 +486,8 @@ class _ReadyBody extends StatefulWidget {
 class _ReadyBodyState extends State<_ReadyBody> {
   // YouTube
   final _youtubeController = TextEditingController();
-  // Book
-  final _chapterTitleController = TextEditingController();
+  // Description (shared across pdf, youtube, urls, book)
+  final _descriptionController = TextEditingController();
   // URLs (1..5)
   late final List<TextEditingController> _urlControllers;
 
@@ -501,7 +501,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
     super.initState();
     _urlControllers = [TextEditingController()];
     _youtubeController.addListener(_notifyBodyChanged);
-    _chapterTitleController.addListener(_notifyBodyChanged);
+    _descriptionController.addListener(_notifyBodyChanged);
     for (final c in _urlControllers) {
       c.addListener(_notifyBodyChanged);
     }
@@ -510,7 +510,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
   @override
   void dispose() {
     _youtubeController.dispose();
-    _chapterTitleController.dispose();
+    _descriptionController.dispose();
     for (final c in _urlControllers) {
       c.dispose();
     }
@@ -605,26 +605,30 @@ class _ReadyBodyState extends State<_ReadyBody> {
         widget.onSubmitText?.call();
       case AiInputType.pdf:
         if (_fileBase64 == null || _fileName == null) return;
+        final pdfDesc = _descriptionController.text.trim();
         widget.cubit.submit({
           'inputType': 'pdf',
           'fileBase64': _fileBase64!,
           'fileName': _fileName!,
+          if (pdfDesc.isNotEmpty) 'description': pdfDesc,
         });
       case AiInputType.book:
         if (_fileBase64 == null || _fileName == null) return;
-        final chapter = _chapterTitleController.text.trim();
+        final bookDesc = _descriptionController.text.trim();
         widget.cubit.submit({
           'inputType': 'book',
           'fileBase64': _fileBase64!,
           'fileName': _fileName!,
-          if (chapter.isNotEmpty) 'chapterTitle': chapter,
+          if (bookDesc.isNotEmpty) 'description': bookDesc,
         });
       case AiInputType.youtube:
         final url = _youtubeController.text.trim();
         if (url.isEmpty) return;
+        final ytDesc = _descriptionController.text.trim();
         widget.cubit.submit({
           'inputType': 'youtube',
           'youtubeUrl': url,
+          if (ytDesc.isNotEmpty) 'description': ytDesc,
         });
       case AiInputType.urls:
         final urls = _urlControllers
@@ -632,9 +636,11 @@ class _ReadyBodyState extends State<_ReadyBody> {
             .where((s) => s.isNotEmpty)
             .toList();
         if (urls.isEmpty) return;
+        final urlsDesc = _descriptionController.text.trim();
         widget.cubit.submit({
           'inputType': 'urls',
           'urls': urls,
+          if (urlsDesc.isNotEmpty) 'description': urlsDesc,
         });
     }
   }
@@ -787,6 +793,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
               color: Colors.grey.shade600,
             ),
           ),
+        _descriptionField(theme),
       ],
     );
   }
@@ -808,6 +815,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
             prefixIcon: Icon(Icons.play_circle_outline),
           ),
         ),
+        _descriptionField(theme),
       ],
     );
   }
@@ -863,30 +871,37 @@ class _ReadyBodyState extends State<_ReadyBody> {
               label: const Text('Add URL', style: TextStyle(color: _purple)),
             ),
           ),
+        _descriptionField(theme),
       ],
     );
   }
 
   Widget _bookInputArea(ThemeData theme) {
+    return _pdfInputArea(
+      theme,
+      label: 'Upload an extracted chapter',
+      hint: 'Upload an extracted chapter (≤ 5 MB)',
+    );
+  }
+
+  Widget _descriptionField(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _pdfInputArea(
-          theme,
-          label: 'Upload an extracted chapter',
-          hint: 'Upload an extracted chapter (≤ 5 MB)',
-        ),
         const SizedBox(height: 16),
-        Text('Chapter title (optional)', style: theme.textTheme.labelLarge),
+        Text('What kind of form do you want? (optional)',
+            style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
         TextField(
-          controller: _chapterTitleController,
+          controller: _descriptionController,
+          onChanged: (_) => setState(() {}),
+          minLines: 2,
+          maxLines: 4,
+          maxLength: 500,
           enabled: !widget.isSubmitting,
-          maxLength: 255,
           decoration: const InputDecoration(
-            hintText: 'e.g. "Photosynthesis"',
             border: OutlineInputBorder(),
-            isDense: true,
+            alignLabelWithHint: true,
           ),
         ),
       ],
