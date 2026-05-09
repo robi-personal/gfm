@@ -14,8 +14,8 @@ import {
   geminiOutputTokensTotal,
 } from "../metrics";
 
-const MODEL = "gemini-2.0-flash";
-const DEFAULT_DEADLINE_MS = 30_000;
+const MODEL = "gemini-3-flash-preview";
+const DEFAULT_DEADLINE_MS = 60_000;
 const RETRY_BACKOFF_MS = 500;
 
 export class GeminiError extends Error {

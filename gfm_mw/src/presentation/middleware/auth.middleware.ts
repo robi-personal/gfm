@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/node";
 import { verifyGoogleIdToken } from "../../infrastructure/google-auth/google-token-verifier";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { pool } from "../../infrastructure/db/postgres";
+import { env } from "../../config/env";
 
 export async function authMiddleware(
   req: Request,
@@ -30,7 +31,7 @@ export async function authMiddleware(
     req.user = {
       id: user.id,
       googleSub: user.googleSub,
-      tier: user.isPremium ? "premium" : "free",
+      tier: (env.RC_BYPASS_PREMIUM || user.isPremium) ? "premium" : "free",
     };
 
     // Re-bind the request logger to include user_id on all subsequent log calls.

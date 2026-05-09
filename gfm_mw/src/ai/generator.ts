@@ -10,7 +10,8 @@ import { parseAndAutoRepair } from "./auto-repair";
 import { FormSchema, GeneratedForm } from "./form-schema";
 import { isFatal, isFallbackForm, formatZodErrors } from "./repair-policy";
 import { buildContents } from "./build-contents";
-import { GEMINI_RESPONSE_SCHEMA } from "./response-schema";
+import { SimpleForm, SIMPLE_RESPONSE_SCHEMA } from "./simple-schema";
+import { normalizeForm } from "./normalizer";
 import { SYSTEM_PROMPT_V1, PROMPT_VERSION } from "./system-prompt";
 import type { GenerateRequest } from "./request-schema";
 import { geminiRequestsTotal } from "../infrastructure/metrics";
@@ -103,7 +104,7 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
     attempt1 = await aiProvider.call({
       contents,
       systemInstruction: SYSTEM_PROMPT_V1,
-      responseSchema: GEMINI_RESPONSE_SCHEMA,
+      responseSchema: SIMPLE_RESPONSE_SCHEMA,
     });
   } catch (e) {
     if (e instanceof AiError) {
@@ -138,9 +139,26 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
     throw e;
   }
 
-  // ── Step C: Auto-repair + Zod ──────────────────────────────────────────────
-  const { candidate: candidate1, appliedRules: rules1 } = parseAndAutoRepair(attempt1.rawText);
-  const zod1 = FormSchema.safeParse(candidate1);
+  // ── Step C: Parse simple format → normalize → validate with FormSchema ───────
+  // Parse raw JSON before auto-repair, which uppercases some simple type names
+  // (e.g. "dropdown"→"DROPDOWN") and would break SimpleForm.safeParse.
+  let rawJson1: unknown = null;
+  try { rawJson1 = JSON.parse(attempt1.rawText.trim()); } catch { /* non-JSON */ }
+  const simple1 = rawJson1 ? SimpleForm.safeParse(rawJson1) : null;
+
+  let candidate1: unknown;
+  let rules1: string[];
+  let normalized1: unknown;
+
+  if (simple1?.success) {
+    normalized1 = normalizeForm(simple1.data);
+    candidate1 = rawJson1;
+    rules1 = [];
+  } else {
+    ({ candidate: candidate1, appliedRules: rules1 } = parseAndAutoRepair(attempt1.rawText));
+    normalized1 = candidate1;
+  }
+  const zod1 = FormSchema.safeParse(normalized1);
 
   if (zod1.success) {
     log.info({ attempt: 1, autoRepairs: rules1 }, "gen_first_attempt_success");
@@ -208,7 +226,7 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
     attempt2 = await aiProvider.call({
       contents: repairContents,
       systemInstruction: SYSTEM_PROMPT_V1,
-      responseSchema: GEMINI_RESPONSE_SCHEMA,
+      responseSchema: SIMPLE_RESPONSE_SCHEMA,
     });
   } catch (e) {
     if (e instanceof AiError) {
@@ -247,9 +265,24 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
     throw e;
   }
 
-  // ── Step F: Auto-repair + Zod on repair output ─────────────────────────────
-  const { candidate: candidate2, appliedRules: rules2 } = parseAndAutoRepair(attempt2.rawText);
-  const zod2 = FormSchema.safeParse(candidate2);
+  // ── Step F: Parse simple format → normalize → validate on repair output ──────
+  let rawJson2: unknown = null;
+  try { rawJson2 = JSON.parse(attempt2.rawText.trim()); } catch { /* non-JSON */ }
+  const simple2 = rawJson2 ? SimpleForm.safeParse(rawJson2) : null;
+
+  let candidate2: unknown;
+  let rules2: string[];
+  let normalized2: unknown;
+
+  if (simple2?.success) {
+    normalized2 = normalizeForm(simple2.data);
+    candidate2 = rawJson2;
+    rules2 = [];
+  } else {
+    ({ candidate: candidate2, appliedRules: rules2 } = parseAndAutoRepair(attempt2.rawText));
+    normalized2 = candidate2;
+  }
+  const zod2 = FormSchema.safeParse(normalized2);
   const totalTokens = sumTokens(attempt1, attempt2);
 
   if (zod2.success) {

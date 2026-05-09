@@ -4,6 +4,7 @@ import { denylistMiddleware } from "../middleware/kill-switch.middleware";
 import { statusUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { pool } from "../../infrastructure/db/postgres";
+import { env } from "../../config/env";
 
 // Quota constants — source of truth is api-contract.md §4.1 / §4.3
 const FREE_LIMIT    = 3;
@@ -32,7 +33,7 @@ userRouter.get(
       }
 
       res.json({
-        isPremium:        user.isPremium,
+        isPremium:        env.RC_BYPASS_PREMIUM || user.isPremium,
         aiFreeUsed:       user.aiFreeUsed,
         aiFreeLimit:      FREE_LIMIT,
         freeResetsAt:     user.freeMonthResetAt?.toISOString() ?? null,

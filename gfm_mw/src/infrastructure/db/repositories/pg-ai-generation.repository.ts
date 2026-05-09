@@ -106,7 +106,7 @@ export class PgAiGenerationRepository implements AiGenerationRepository {
     const result = await this.db.query(
       `UPDATE ai_generations
          SET status = 'processing', error_payload = NULL
-       WHERE id = $1 AND status IN ('gemini_error', 'validation_error')`,
+       WHERE id = $1 AND status IN ('gemini_error', 'validation_error', 'processing')`,
       [id],
     );
     return (result.rowCount ?? 0) > 0;

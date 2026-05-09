@@ -1,7 +1,7 @@
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 // Set to true to bypass RevenueCat during local testing; flip to false before release.
-const kBypassPremium = false;
+const kBypassPremium = true;
 
 class SubscriptionService {
   static const String _appId = 'app351cfe2e80';

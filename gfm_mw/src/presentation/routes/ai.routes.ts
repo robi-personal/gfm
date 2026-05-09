@@ -12,6 +12,7 @@ import {
 } from "../middleware/rate-limit.middleware";
 import { HttpError } from "../middleware/error.middleware";
 import { pool } from "../../infrastructure/db/postgres";
+import { env } from "../../config/env";
 import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import {
@@ -44,7 +45,7 @@ async function getQuotaSnapshot(
     // Should never happen — auth just upserted this user.
     throw new HttpError(401, "invalid_token", "User not found.");
   }
-  if (user.isPremium) {
+  if (env.RC_BYPASS_PREMIUM || user.isPremium) {
     return {
       tier: "premium",
       used: user.aiPremiumUsed,
@@ -161,8 +162,13 @@ aiRouter.post(
           return;
         }
         if (existing.status === "processing") {
-          throw new HttpError(409, "idempotency_in_flight",
-            "Your previous request is still being processed. Please retry in a moment.");
+          const ageMs = Date.now() - existing.createdAt.getTime();
+          if (ageMs < 2 * 60 * 1_000) {
+            throw new HttpError(409, "idempotency_in_flight",
+              "Your previous request is still being processed. Please retry in a moment.");
+          }
+          // Row has been processing for >2 min — treat as timed-out and take over.
+          req.log.warn({ generationId: existing.generationId, ageMs }, "idempotency_stuck_processing_takeover");
         }
         // existing.status is gemini_error or validation_error → take over.
       }
