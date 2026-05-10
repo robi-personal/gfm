@@ -216,12 +216,76 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-10 session)
+
+### AI Form Builder — fixes and features shipped
+
+**Model switch**
+- Changed Gemini model to `gemini-2.5-flash-lite` in `gfm_mw/src/infrastructure/gemini/gemini-client.ts`
+- Updated pricing in `pg-ai-generation.repository.ts`: `$0.10/M` input, `$0.40/M` output
+
+**Book type 400 fix**
+- `BookRequest` schema had `.strict()` but was missing `fileName` (Flutter sends it) → added `fileName: z.string().max(255).optional()` to `BookRequest` in `request-schema.ts`
+
+**Book timeout fix**
+- `DEFAULT_DEADLINE_MS = 60_000` was too short for large PDFs/books → added `FILE_DEADLINE_MS = 120_000` applied for `pdf`/`book` input types in `generator.ts`; YouTube stays at 180s
+
+**PDF/book multi-quota system**
+- New file `gfm_mw/src/ai/pdf-pages.ts`: `countPdfPages(base64)` using `pdf-lib`, `pdfQuotaCost(pages, pagesPerQuota)`
+- Config key `PDF_PAGES_PER_QUOTA` (default 50) added to `env.ts` and `config-service.ts`
+- New endpoint `POST /ai/pdf-page-count` — returns `{ pages, quotaCost, pagesPerQuota }` (auth required, pre-flight)
+- Generate handler: `quotaCost = ceil(pages / PDF_PAGES_PER_QUOTA)`; quota gate checks `used + quotaCost > limit`
+- `incrementFreeUsed` / `incrementPremiumUsed` now accept `by` parameter; `runGeneration` passes `quotaCost`
+- New admin page `DocumentsPage.tsx` with pages-per-quota setting and cost reference table
+- `confirmedQuotaCost` pattern: client sends confirmed cost from pre-flight; server returns 409 `quota_cost_changed` if mismatch (prevents silent over-charging)
+
+**Book prompt fix**
+- Strengthened `bookTurn` and `pdfTurn` prompts in `build-contents.ts` to explicitly require questions from the SPECIFIC document content, not generic questions
+
+**Question count picker**
+- Flutter: replaced chip-based question count selector with `_QuestionCountPicker` StatefulWidget — editable TextField + `_CounterButton` (−/+), range 3–50
+- Backend receives `questionCountHint` and passes it into the Gemini prompt
+
+**Budget cap system removed** (user decision: cap from Google AI Studio instead)
+- Removed 6 env vars: `MAX_DAILY/WEEKLY/MONTHLY_GEMINI_SPEND_USD`, `MAX_USER_DAILY/WEEKLY/MONTHLY_GEMINI_USD`
+- Removed `perUserBudgetMiddleware`, `globalBudgetMiddleware` from kill-switch middleware
+- Removed `getTotalSpendUsd`, `getGlobalSpendUsd` from repository interface + implementation
+- Removed `GET /admin/spend` endpoint, `geminiSpendUsd`, `geminiSpendCapUsd`, `costBreakerTrippedTotal` metrics
+- Deleted `BudgetCapsPage.tsx`, removed Budget Caps nav item and route from `admin/src/App.tsx`
+- Simplified `/health` response (no spend window data)
+
+---
+
+## Recent changes (2026-05-11 session)
+
+### AI Form Builder — quiz generation (end-to-end)
+
+**Unified prompt** (form + quiz auto-detection)
+- Bumped `PROMPT_VERSION` to `v3` in `gfm_mw/src/ai/system-prompt.ts`
+- Model decides `isQuiz` from user input (keywords + intent); no UI toggle required
+- Critical "never include X in Y mode" rules to prevent field leakage between modes
+- Quiz fallback uses `isQuiz: false` (schema-valid)
+- Prompt-injection rule extended to file content (PDF/YouTube/URL/book)
+
+**Schema layer** (gfm_mw/src/ai/)
+- `simple-schema.ts`: added `isQuiz`, `correctAnswers`, `pointValue`, `whenRight`, `whenWrong` to `SimpleQuestion` + `SIMPLE_RESPONSE_SCHEMA`. `superRefine` enforces: gradeable types only for quiz, correctAnswers required, options-must-match-correctAnswers, no quiz fields on form questions
+- `form-schema.ts`: nested `Grading` object on gradeable types only (MULTIPLE_CHOICE / CHECKBOXES / DROPDOWN / SHORT_ANSWER); cross-field validation in `FormSchema.superRefine`
+- `normalizer.ts`: folds quiz fields into nested `grading` object on gradeable questions
+- `few-shots.ts`: bakery shot updated with `isQuiz: false`; quiz shot rebuilt with full grading fields (correctAnswers, pointValue, whenRight, whenWrong)
+
+**Flutter layer** (lib/features/ai_form_builder/)
+- `domain/entities/generated_form.dart`: new `AiGrading` class; `isQuiz` on `GeneratedForm`; `grading` on `AiQuestion`
+- `data/repositories/ai_form_repository_impl.dart`: `_buildGrading` helper attaches Forms API `Grading` to choice/short questions; `enableQuizMode(formId)` called after batchUpdate when `isQuiz: true`
+- SHORT_ANSWER feedback routed to `generalFeedback`; choice types use `whenRight`/`whenWrong` (per Forms API constraint)
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
-5. **Phase 2 — AI Form Builder** — see `Tasks.md`. 7 spec tasks done. Backend implementation in `gfm_mw/`. **All 18 implementation tasks ✅ done.** Final deliverables: `/health`+`/metrics` endpoints (Task 15), full prom-client+Sentry observability wiring (Task 16), `nginx/nginx.prod.conf` with TLS (Task 17), `docker-compose.prod.yml`+`.env.example`+`docs/deployment-runbook.md` (Task 18). Backend is production-ready.
+5. **Phase 2 — AI Form Builder** — Backend production-ready. All spec + implementation tasks done. See recent changes below.
 6. **UI polish** — thumb-zone audit, spacing, typography refinements
 7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

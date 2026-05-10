@@ -28,6 +28,33 @@ AiQuestionType _parseType(String raw) {
 }
 
 @immutable
+class AiGrading {
+  final List<String> correctAnswers;
+  final int pointValue;
+  final String? whenRight;
+  final String? whenWrong;
+
+  const AiGrading({
+    required this.correctAnswers,
+    required this.pointValue,
+    this.whenRight,
+    this.whenWrong,
+  });
+
+  factory AiGrading.fromJson(Map<String, dynamic> json) {
+    final answers = (json['correctAnswers'] as List<dynamic>)
+        .map((e) => e as String)
+        .toList();
+    return AiGrading(
+      correctAnswers: answers,
+      pointValue: (json['pointValue'] as num?)?.toInt() ?? 1,
+      whenRight: json['whenRight'] as String?,
+      whenWrong: json['whenWrong'] as String?,
+    );
+  }
+}
+
+@immutable
 class AiQuestion {
   final String title;
   final String? description;
@@ -39,6 +66,7 @@ class AiQuestion {
   final String? scaleMinLabel;
   final String? scaleMaxLabel;
   final int? ratingScale;
+  final AiGrading? grading;
 
   const AiQuestion({
     required this.title,
@@ -51,10 +79,12 @@ class AiQuestion {
     this.scaleMinLabel,
     this.scaleMaxLabel,
     this.ratingScale,
+    this.grading,
   });
 
   factory AiQuestion.fromJson(Map<String, dynamic> json) {
     final rawOptions = json['options'] as List<dynamic>?;
+    final rawGrading = json['grading'] as Map<String, dynamic>?;
     return AiQuestion(
       title: json['title'] as String,
       description: json['description'] as String?,
@@ -66,6 +96,7 @@ class AiQuestion {
       scaleMinLabel: json['scaleMinLabel'] as String?,
       scaleMaxLabel: json['scaleMaxLabel'] as String?,
       ratingScale: (json['ratingScale'] as num?)?.toInt(),
+      grading: rawGrading == null ? null : AiGrading.fromJson(rawGrading),
     );
   }
 }
@@ -74,11 +105,13 @@ class AiQuestion {
 class GeneratedForm {
   final String title;
   final String? description;
+  final bool isQuiz;
   final List<AiQuestion> questions;
 
   const GeneratedForm({
     required this.title,
     this.description,
+    this.isQuiz = false,
     required this.questions,
   });
 
@@ -87,6 +120,7 @@ class GeneratedForm {
     return GeneratedForm(
       title: json['title'] as String,
       description: json['description'] as String?,
+      isQuiz: json['isQuiz'] as bool? ?? false,
       questions: rawQuestions
           .map((q) => AiQuestion.fromJson(q as Map<String, dynamic>))
           .toList(),

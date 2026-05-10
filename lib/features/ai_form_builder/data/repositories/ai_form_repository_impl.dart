@@ -98,6 +98,12 @@ class AiFormRepositoryImpl implements AiFormRepository {
         await _formsDataSource.batchUpdate(formId, requests);
       }
 
+      // Quiz mode is set last so the per-question grading already attached in
+      // the batchUpdate above is preserved.
+      if (generatedForm.isQuiz) {
+        await _formsDataSource.enableQuizMode(formId);
+      }
+
       return Right(formId);
     } on SocketException {
       return const Left(NetworkFailure());
@@ -135,6 +141,7 @@ forms_api.Question _buildQuestion(AiQuestion q) {
     AiQuestionType.shortAnswer => forms_api.Question(
         required: q.required,
         textQuestion: forms_api.TextQuestion(paragraph: false),
+        grading: _buildGrading(q),
       ),
     AiQuestionType.paragraph => forms_api.Question(
         required: q.required,
@@ -148,6 +155,7 @@ forms_api.Question _buildQuestion(AiQuestion q) {
               .map((v) => forms_api.Option(value: v))
               .toList(),
         ),
+        grading: _buildGrading(q),
       ),
     AiQuestionType.checkboxes => forms_api.Question(
         required: q.required,
@@ -157,6 +165,7 @@ forms_api.Question _buildQuestion(AiQuestion q) {
               .map((v) => forms_api.Option(value: v))
               .toList(),
         ),
+        grading: _buildGrading(q),
       ),
     AiQuestionType.dropdown => forms_api.Question(
         required: q.required,
@@ -166,6 +175,7 @@ forms_api.Question _buildQuestion(AiQuestion q) {
               .map((v) => forms_api.Option(value: v))
               .toList(),
         ),
+        grading: _buildGrading(q),
       ),
     AiQuestionType.linearScale => forms_api.Question(
         required: q.required,
@@ -195,4 +205,38 @@ forms_api.Question _buildQuestion(AiQuestion q) {
         ),
       ),
   };
+}
+
+/// Builds the Forms API Grading object from AiQuestion.grading.
+///
+/// Per the Forms API: whenRight/whenWrong are only valid on choice questions
+/// (RADIO/CHECKBOX/DROP_DOWN); for SHORT_ANSWER they must be expressed as
+/// generalFeedback instead.
+forms_api.Grading? _buildGrading(AiQuestion q) {
+  final g = q.grading;
+  if (g == null) return null;
+
+  final correct = forms_api.CorrectAnswers(
+    answers: g.correctAnswers
+        .map((v) => forms_api.CorrectAnswer(value: v))
+        .toList(),
+  );
+
+  if (q.type == AiQuestionType.shortAnswer) {
+    final feedbackText = g.whenWrong ?? g.whenRight;
+    return forms_api.Grading(
+      correctAnswers: correct,
+      pointValue: g.pointValue,
+      generalFeedback: feedbackText == null
+          ? null
+          : forms_api.Feedback(text: feedbackText),
+    );
+  }
+
+  return forms_api.Grading(
+    correctAnswers: correct,
+    pointValue: g.pointValue,
+    whenRight: g.whenRight == null ? null : forms_api.Feedback(text: g.whenRight),
+    whenWrong: g.whenWrong == null ? null : forms_api.Feedback(text: g.whenWrong),
+  );
 }
