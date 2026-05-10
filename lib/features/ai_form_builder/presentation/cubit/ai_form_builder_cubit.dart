@@ -220,7 +220,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
           AiErrorModalConfig(kind: _failureToErrorKind(failure)),
         ));
       },
-      (formId) => emit(AiFormBuilderEditorHandoff(formId: formId)),
+      (formId) => emit(AiFormBuilderEditorHandoff(formId: formId, formTitle: form.title)),
     );
   }
 

@@ -143,8 +143,12 @@ class AiFormBuilderCreatingForm extends AiFormBuilderState {
 /// the editor for [formId], replacing the AI builder route.
 class AiFormBuilderEditorHandoff extends AiFormBuilderState {
   final String formId;
+  final String formTitle;
 
-  const AiFormBuilderEditorHandoff({required this.formId});
+  const AiFormBuilderEditorHandoff({
+    required this.formId,
+    required this.formTitle,
+  });
 }
 
 // ── Side-effect events ────────────────────────────────────────────────────────

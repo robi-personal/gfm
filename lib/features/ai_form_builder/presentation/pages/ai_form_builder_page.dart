@@ -384,7 +384,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
         } else if (state is AiFormBuilderEditorHandoff) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute<void>(
-              builder: (_) => EditorPage(formId: state.formId, formName: ''),
+              builder: (_) => EditorPage(formId: state.formId, formName: state.formTitle),
             ),
             (route) => route.isFirst,
           );

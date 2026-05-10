@@ -61,8 +61,11 @@ class AiFormRepositoryImpl implements AiFormRepository {
   Future<Either<Failure, String>> createFormFromAi(
       GeneratedForm generatedForm) async {
     try {
-      // Step 1: Create blank form — API only accepts info.title on create.
-      final created = await _formsDataSource.createForm(generatedForm.title);
+      // Step 1: Create form — documentTitle (Drive name) can only be set here.
+      final created = await _formsDataSource.createForm(
+        generatedForm.title,
+        documentTitle: generatedForm.title,
+      );
       final formId = created.formId!;
 
       // Step 2: Publish the form (required since March 31 2026)
@@ -76,8 +79,6 @@ class AiFormRepositoryImpl implements AiFormRepository {
       // Step 4: Build requests — title + description + questions — then batchUpdate once.
       final requests = <forms_api.Request>[];
 
-      // forms.create sets the Drive document title but not the form's displayed
-      // title shown to respondents. A separate updateFormInfo is required.
       requests.add(forms_api.Request(
         updateFormInfo: forms_api.UpdateFormInfoRequest(
           info: forms_api.Info(title: generatedForm.title),

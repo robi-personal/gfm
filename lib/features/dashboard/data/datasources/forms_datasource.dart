@@ -8,10 +8,13 @@ class FormsDataSource {
 
   FormsDataSource(this._client);
 
-  Future<forms_api.Form> createForm(String title) =>
+  Future<forms_api.Form> createForm(String title, {String? documentTitle}) =>
       _client.api.forms.create(
         forms_api.Form(
-          info: forms_api.Info(title: title),
+          info: forms_api.Info(
+            title: title,
+            documentTitle: documentTitle,
+          ),
         ),
       );
 
