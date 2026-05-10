@@ -29,6 +29,7 @@ export const TextRequest = z
   .object({
     inputType: z.literal("text"),
     prompt: z.string().min(1).max(4_000),
+    isQuiz: z.boolean().default(false),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -39,6 +40,7 @@ export const PdfRequest = z
     fileBase64: Base64Pdf,
     fileName: z.string().max(255).optional(),
     description: z.string().max(2000).optional(),
+    isQuiz: z.boolean().default(false),
     questionCountHint: QuestionCountHint.optional(),
     confirmedQuotaCost: z.number().int().min(1),
   })
@@ -49,6 +51,7 @@ export const YouTubeRequest = z
     inputType: z.literal("youtube"),
     youtubeUrl: YouTubeUrl,
     description: z.string().max(2000).optional(),
+    isQuiz: z.boolean().default(false),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -58,6 +61,7 @@ export const UrlsRequest = z
     inputType: z.literal("urls"),
     urls: z.array(HttpUrl).min(1).max(5),
     description: z.string().max(2000).optional(),
+    isQuiz: z.boolean().default(false),
     questionCountHint: QuestionCountHint.optional(),
   })
   .strict();
@@ -68,6 +72,7 @@ export const BookRequest = z
     fileBase64: Base64Pdf,
     fileName: z.string().max(255).optional(),
     description: z.string().max(2000).optional(),
+    isQuiz: z.boolean().default(false),
     questionCountHint: QuestionCountHint.optional(),
     confirmedQuotaCost: z.number().int().min(1),
   })

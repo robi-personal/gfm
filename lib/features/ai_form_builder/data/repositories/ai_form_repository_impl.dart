@@ -68,7 +68,12 @@ class AiFormRepositoryImpl implements AiFormRepository {
       // Step 2: Publish the form (required since March 31 2026)
       await _formsDataSource.publishForm(formId);
 
-      // Step 3: Build requests — title + description + questions — then batchUpdate once.
+      // Step 3: Enable quiz mode before adding questions so grading is accepted.
+      if (generatedForm.isQuiz) {
+        await _formsDataSource.enableQuizMode(formId);
+      }
+
+      // Step 4: Build requests — title + description + questions — then batchUpdate once.
       final requests = <forms_api.Request>[];
 
       // forms.create sets the Drive document title but not the form's displayed
@@ -96,12 +101,6 @@ class AiFormRepositoryImpl implements AiFormRepository {
 
       if (requests.isNotEmpty) {
         await _formsDataSource.batchUpdate(formId, requests);
-      }
-
-      // Quiz mode is set last so the per-question grading already attached in
-      // the batchUpdate above is preserved.
-      if (generatedForm.isQuiz) {
-        await _formsDataSource.enableQuizMode(formId);
       }
 
       return Right(formId);

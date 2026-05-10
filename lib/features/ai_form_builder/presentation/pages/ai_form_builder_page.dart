@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,6 +18,8 @@ import 'ai_form_preview_page.dart';
 
 const _purple = Color(0xFF772FC0);
 const _purpleLight = Color(0xFFF3EBFC);
+const _iosBg = Color(0xFFF2F2F7);
+const _cardBg = Colors.white;
 
 class AiFormBuilderPage extends StatelessWidget {
   const AiFormBuilderPage({super.key});
@@ -59,8 +62,6 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
     _promptController.dispose();
     super.dispose();
   }
-
-  // ── Event stream handler ──────────────────────────────────────────────────
 
   void _handleEvent(AiFormBuilderEvent event) {
     if (!mounted) return;
@@ -178,8 +179,6 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
           onPrimary: () {
             dismissError();
             if (mounted) {
-              // signOut() causes _AuthGate to rebuild to SignInScreen;
-              // pop() removes this page so that screen becomes visible.
               context.read<SignInCubit>().signOut();
               Navigator.of(context).pop();
             }
@@ -355,20 +354,17 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
     await cubit.paywallDismissed();
   }
 
-  // ── Submission ────────────────────────────────────────────────────────────
-
-  void _submitText(AiFormBuilderCubit cubit, int? questionCountHint) {
+  void _submitText(AiFormBuilderCubit cubit, int? questionCountHint, bool isQuiz) {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) return;
     _promptDirty = false;
     cubit.submit({
       'inputType': 'text',
       'prompt': prompt,
+      'isQuiz': isQuiz,
       if (questionCountHint != null) 'questionCountHint': questionCountHint,
     });
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -397,10 +393,25 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       builder: (context, state) {
         final cubit = context.read<AiFormBuilderCubit>();
         return Scaffold(
+          backgroundColor: _iosBg,
           appBar: AppBar(
-            title: const Text('AI Form Builder'),
-            backgroundColor: _purple,
-            foregroundColor: Colors.white,
+            backgroundColor: _iosBg,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            title: const Text(
+              'AI Form Builder',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: Color(0xFF1C1C1E),
+              ),
+            ),
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF772FC0)),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
           ),
           body: _buildBody(context, state, cubit),
         );
@@ -414,7 +425,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
     AiFormBuilderCubit cubit,
   ) {
     if (state is AiFormBuilderStatusLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator(radius: 14));
     }
 
     if (state is AiFormBuilderCreatingForm) {
@@ -422,22 +433,24 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
+            CupertinoActivityIndicator(radius: 14),
             SizedBox(height: 16),
-            Text('Creating your form…'),
+            Text(
+              'Creating your form…',
+              style: TextStyle(
+                fontSize: 15,
+                color: Color(0xFF3C3C43),
+              ),
+            ),
           ],
         ),
       );
     }
 
-    // AiFormBuilderPreview and AiFormBuilderEditorHandoff are handled by
-    // the BlocConsumer listener — show a loading indicator while transitioning.
-    if (state is AiFormBuilderPreview ||
-        state is AiFormBuilderEditorHandoff) {
-      return const Center(child: CircularProgressIndicator());
+    if (state is AiFormBuilderPreview || state is AiFormBuilderEditorHandoff) {
+      return const Center(child: CupertinoActivityIndicator(radius: 14));
     }
 
-    // Ready or Submitting
     final UserStatus status;
     final AiInputType selectedType;
     final bool isSubmitting;
@@ -467,7 +480,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       onPromptChanged: () {
         _promptDirty = true;
       },
-      onSubmitText: isSubmitting ? null : (hint) => _submitText(cubit, hint),
+      onSubmitText: isSubmitting ? null : (hint, isQuiz) => _submitText(cubit, hint, isQuiz),
       onUpgrade: () => _showPaywall(cubit),
     );
   }
@@ -483,7 +496,7 @@ class _ReadyBody extends StatefulWidget {
   final Duration elapsed;
   final TextEditingController promptController;
   final VoidCallback onPromptChanged;
-  final void Function(int? questionCountHint)? onSubmitText;
+  final void Function(int? questionCountHint, bool isQuiz)? onSubmitText;
   final VoidCallback onUpgrade;
 
   const _ReadyBody({
@@ -503,20 +516,16 @@ class _ReadyBody extends StatefulWidget {
 }
 
 class _ReadyBodyState extends State<_ReadyBody> {
-  // YouTube
   final _youtubeController = TextEditingController();
-  // Description (shared across pdf, youtube, urls, book)
   final _descriptionController = TextEditingController();
-  // URLs (1..5)
   late final List<TextEditingController> _urlControllers;
 
-  // PDF / Book file selection
   String? _fileName;
   String? _fileBase64;
   String? _fileError;
 
-  // Question count hint (null sends no hint, AI uses default 10-15)
   int? _questionCountHint = 10;
+  bool _isQuiz = false;
 
   @override
   void initState() {
@@ -624,7 +633,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
   void _onGeneratePressed() {
     switch (widget.selectedType) {
       case AiInputType.text:
-        widget.onSubmitText?.call(_questionCountHint);
+        widget.onSubmitText?.call(_questionCountHint, _isQuiz);
       case AiInputType.pdf:
         if (_fileBase64 == null || _fileName == null) return;
         _submitWithPdfConfirmation(
@@ -650,6 +659,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
         widget.cubit.submit({
           'inputType': 'youtube',
           'youtubeUrl': url,
+          'isQuiz': _isQuiz,
           if (ytDesc.isNotEmpty) 'description': ytDesc,
           if (_questionCountHint != null) 'questionCountHint': _questionCountHint,
         });
@@ -663,6 +673,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
         widget.cubit.submit({
           'inputType': 'urls',
           'urls': urls,
+          'isQuiz': _isQuiz,
           if (urlsDesc.isNotEmpty) 'description': urlsDesc,
           if (_questionCountHint != null) 'questionCountHint': _questionCountHint,
         });
@@ -677,8 +688,6 @@ class _ReadyBodyState extends State<_ReadyBody> {
     required int? questionCountHint,
   }) async {
     final context = this.context;
-
-    // Show a loading indicator while fetching page count
     if (!context.mounted) return;
 
     PdfPageInfo info;
@@ -739,9 +748,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
             Text(
               'You have $remaining quota remaining.',
               style: TextStyle(
-                color: remaining < info.quotaCost
-                    ? Colors.red
-                    : Theme.of(ctx).textTheme.bodySmall?.color,
+                color: remaining < info.quotaCost ? Colors.red : Theme.of(ctx).textTheme.bodySmall?.color,
                 fontSize: 13,
               ),
             ),
@@ -753,9 +760,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: remaining >= info.quotaCost
-                ? () => Navigator.of(ctx).pop(true)
-                : null,
+            onPressed: remaining >= info.quotaCost ? () => Navigator.of(ctx).pop(true) : null,
             child: const Text('Generate'),
           ),
         ],
@@ -768,6 +773,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
         'fileBase64': fileBase64,
         'fileName': fileName,
         'confirmedQuotaCost': info.quotaCost,
+        'isQuiz': _isQuiz,
         if (description.isNotEmpty) 'description': description,
         if (questionCountHint != null) 'questionCountHint': questionCountHint,
       });
@@ -776,18 +782,17 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final status = widget.status;
     final isQuotaExhausted = status.isQuotaExhausted;
     final isPremium = status.isPremium;
     final selectedType = widget.selectedType;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Quota counter
+          // Quota counter card
           _QuotaCounter(status: status, onUpgradeTap: widget.onUpgrade),
           const SizedBox(height: 12),
 
@@ -797,118 +802,133 @@ class _ReadyBodyState extends State<_ReadyBody> {
             const SizedBox(height: 12),
           ],
 
-          // Upgrade banner (free, quota exhausted)
+          // Upgrade banner
           if (!isPremium && isQuotaExhausted) ...[
             _UpgradeBanner(onUpgrade: widget.onUpgrade),
             const SizedBox(height: 16),
           ] else
             const SizedBox(height: 4),
 
-          // Premium-only: input type picker
+          // Input type segmented picker (premium only)
           if (isPremium) ...[
             _InputTypePicker(
               selected: selectedType,
               enabled: !widget.isSubmitting,
-              onChanged: widget.cubit.setSelectedType,
+              onChanged: (type) {
+                if (type == AiInputType.book &&
+                    _descriptionController.text.trim().isEmpty) {
+                  _descriptionController.text =
+                      'Generate a comprehension quiz from this material.';
+                }
+                widget.cubit.setSelectedType(type);
+              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
           ],
 
-          // Per-type input area
-          _inputArea(theme),
-          const SizedBox(height: 16),
+          // Input area card
+          _IosCard(child: _inputArea()),
+          const SizedBox(height: 12),
 
-          // Question count picker
-          _QuestionCountPicker(
-            value: _questionCountHint,
-            enabled: !widget.isSubmitting,
-            onChanged: (v) => setState(() => _questionCountHint = v),
+          // Question count + quiz toggle card
+          _IosCard(
+            child: Column(
+              children: [
+                _QuestionCountRow(
+                  value: _questionCountHint,
+                  enabled: !widget.isSubmitting,
+                  onChanged: (v) => setState(() => _questionCountHint = v),
+                ),
+                const Divider(height: 24, color: Color(0xFFF2F2F7)),
+                _QuizToggleRow(
+                  value: _isQuiz,
+                  enabled: !widget.isSubmitting,
+                  onChanged: (v) {
+                    setState(() => _isQuiz = v);
+                    _notifyBodyChanged();
+                  },
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
-          // Loading phase text (while submitting)
+          // Loading state
           if (widget.isSubmitting) ...[
             Center(
               child: Column(
                 children: [
-                  const CircularProgressIndicator(),
+                  const CupertinoActivityIndicator(radius: 13),
                   const SizedBox(height: 12),
                   Text(
                     _loadingLabel(widget.elapsed),
-                    style: theme.textTheme.bodyMedium,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8E8E93),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
           ],
 
           // Generate button
-          FilledButton(
-            onPressed: _canGenerate ? _onGeneratePressed : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: _purple,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text('Generate', style: TextStyle(fontSize: 16)),
+          _GenerateButton(
+            enabled: _canGenerate,
+            onPressed: _onGeneratePressed,
           ),
         ],
       ),
     );
   }
 
-  Widget _inputArea(ThemeData theme) {
+  Widget _inputArea() {
     switch (widget.selectedType) {
       case AiInputType.text:
-        return _textInputArea(theme);
+        return _textInputArea();
       case AiInputType.pdf:
         return _pdfInputArea(
-          theme,
           label: 'Upload a PDF',
           hint: 'Up to 5 MB. Chapter PDFs work best.',
         );
       case AiInputType.youtube:
-        return _youtubeInputArea(theme);
+        return _youtubeInputArea();
       case AiInputType.urls:
-        return _urlsInputArea(theme);
+        return _urlsInputArea();
       case AiInputType.book:
-        return _bookInputArea(theme);
+        return _pdfInputArea(
+          label: 'Upload an extracted chapter',
+          hint: 'Up to 5 MB',
+        );
     }
   }
 
-  Widget _textInputArea(ThemeData theme) {
+  Widget _textInputArea() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Describe the form you want', style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
-        TextField(
+        const _SectionLabel('Describe the form you want'),
+        const SizedBox(height: 10),
+        _IosTextField(
           controller: widget.promptController,
           onChanged: (_) => widget.onPromptChanged(),
           minLines: 4,
           maxLines: 8,
           maxLength: 4000,
           enabled: !widget.isSubmitting,
-          decoration: const InputDecoration(
-            hintText: 'e.g. "Customer feedback survey for a small bakery"',
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
-          ),
+          hintText: 'e.g. "Customer feedback survey for a small bakery"',
         ),
       ],
     );
   }
 
-  Widget _pdfInputArea(
-    ThemeData theme, {
-    required String label,
-    required String hint,
-  }) {
+  Widget _pdfInputArea({required String label, required String hint}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
+        _SectionLabel(label),
+        const SizedBox(height: 10),
         _FilePickerButton(
           fileName: _fileName,
           enabled: !widget.isSubmitting,
@@ -919,138 +939,110 @@ class _ReadyBodyState extends State<_ReadyBody> {
         if (_fileError != null)
           Text(
             _fileError!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.red.shade700,
-            ),
+            style: const TextStyle(color: Color(0xFFFF3B30), fontSize: 13),
           )
         else
           Text(
             hint,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade600,
-            ),
+            style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
           ),
-        _descriptionField(theme),
+        _descriptionField(),
       ],
     );
   }
 
-  Widget _youtubeInputArea(ThemeData theme) {
+  Widget _youtubeInputArea() {
     final remaining = widget.status.youtubeMinutesRemaining;
-    final limit     = widget.status.youtubeMinutesLimit;
+    final limit = widget.status.youtubeMinutesLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Paste a YouTube URL', style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
-        TextField(
+        const _SectionLabel('Paste a YouTube URL'),
+        const SizedBox(height: 10),
+        _IosTextField(
           controller: _youtubeController,
           onChanged: (_) => setState(() {}),
           enabled: !widget.isSubmitting,
           keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'https://www.youtube.com/watch?v=…',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.play_circle_outline),
-          ),
+          hintText: 'https://www.youtube.com/watch?v=…',
+          prefixIcon: const Icon(Icons.play_circle_outline, color: Color(0xFF8E8E93), size: 20),
         ),
         const SizedBox(height: 6),
         Text(
           '$remaining / $limit minutes remaining this month',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: remaining < 10
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurfaceVariant,
+          style: TextStyle(
+            color: remaining < 10 ? const Color(0xFFFF3B30) : const Color(0xFF8E8E93),
+            fontSize: 13,
           ),
         ),
-        _descriptionField(theme),
+        _descriptionField(),
       ],
     );
   }
 
-  Widget _urlsInputArea(ThemeData theme) {
+  Widget _urlsInputArea() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Paste a website or blog link', style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
+        const _SectionLabel('Paste a website or blog link'),
+        const SizedBox(height: 10),
         for (var i = 0; i < _urlControllers.length; i++) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _urlControllers[i],
-                  onChanged: (_) => setState(() {}),
-                  enabled: !widget.isSubmitting,
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(
-                    hintText: 'https://…',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.link),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 14,
-                    ),
-                    suffixIcon: _urlControllers.length > 1
-                        ? IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            tooltip: 'Remove',
-                            onPressed: widget.isSubmitting
-                                ? null
-                                : () => _removeUrlField(i),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-            ],
+          _IosTextField(
+            controller: _urlControllers[i],
+            onChanged: (_) => setState(() {}),
+            enabled: !widget.isSubmitting,
+            keyboardType: TextInputType.url,
+            hintText: 'https://…',
+            prefixIcon: const Icon(Icons.link, color: Color(0xFF8E8E93), size: 20),
+            suffixIcon: _urlControllers.length > 1
+                ? GestureDetector(
+                    onTap: widget.isSubmitting ? null : () => _removeUrlField(i),
+                    child: const Icon(Icons.cancel, color: Color(0xFFC7C7CC), size: 20),
+                  )
+                : null,
           ),
           if (i != _urlControllers.length - 1) const SizedBox(height: 8),
         ],
         const SizedBox(height: 8),
         if (_urlControllers.length < 5)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: widget.isSubmitting ? null : _addUrlField,
-              icon: const Icon(Icons.add, size: 18, color: _purple),
-              label: const Text('Add URL', style: TextStyle(color: _purple)),
+          GestureDetector(
+            onTap: widget.isSubmitting ? null : _addUrlField,
+            child: const Row(
+              children: [
+                Icon(Icons.add_circle_outline, color: _purple, size: 18),
+                SizedBox(width: 6),
+                Text(
+                  'Add another URL',
+                  style: TextStyle(color: _purple, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
-        _descriptionField(theme),
+        _descriptionField(),
       ],
     );
   }
 
-  Widget _bookInputArea(ThemeData theme) {
-    return _pdfInputArea(
-      theme,
-      label: 'Upload an extracted chapter',
-      hint: 'Upload an extracted chapter (≤ 5 MB)',
-    );
-  }
-
-  Widget _descriptionField(ThemeData theme) {
+  Widget _descriptionField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 16),
-        Text('What kind of form do you want? (optional)',
-            style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
-        TextField(
+        const SizedBox(height: 20),
+        const _SectionLabel('What kind of form do you want?'),
+        const SizedBox(height: 4),
+        const Text(
+          'Optional — e.g. "quiz style" or "customer feedback"',
+          style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
+        ),
+        const SizedBox(height: 10),
+        _IosTextField(
           controller: _descriptionController,
           onChanged: (_) => setState(() {}),
           minLines: 2,
           maxLines: 4,
           maxLength: 500,
           enabled: !widget.isSubmitting,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
-          ),
+          hintText: '',
         ),
       ],
     );
@@ -1058,31 +1050,205 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
   String _loadingLabel(Duration elapsed) {
     final isYoutube = widget.selectedType == AiInputType.youtube;
-    if (elapsed.inSeconds < 8)  return 'Generating your form…';
+    if (elapsed.inSeconds < 8) return 'Generating your form…';
     if (elapsed.inSeconds < 30) return 'This is taking a moment…';
     if (isYoutube && elapsed.inSeconds < 120) return 'Analysing video content…';
     return 'Almost there…';
   }
 }
 
-// ── Question count picker ─────────────────────────────────────────────────────
+// ── Shared iOS-style card wrapper ────────────────────────────────────────────
 
-class _QuestionCountPicker extends StatefulWidget {
+class _IosCard extends StatelessWidget {
+  final Widget child;
+
+  const _IosCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1C1C1E),
+      ),
+    );
+  }
+}
+
+// ── iOS-style text field ──────────────────────────────────────────────────────
+
+class _IosTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
+  final int minLines;
+  final int? maxLines;
+  final int? maxLength;
+  final bool enabled;
+  final String hintText;
+  final TextInputType? keyboardType;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+
+  const _IosTextField({
+    required this.controller,
+    this.onChanged,
+    this.minLines = 1,
+    this.maxLines = 1,
+    this.maxLength,
+    this.enabled = true,
+    required this.hintText,
+    this.keyboardType,
+    this.prefixIcon,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      minLines: minLines,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      enabled: enabled,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 15, color: Color(0xFF1C1C1E)),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15),
+        filled: true,
+        fillColor: const Color(0xFFF2F2F7),
+        counterText: '',
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: prefixIcon != null ? 0 : 14,
+          vertical: minLines > 1 ? 12 : 0,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _purple, width: 1.5),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Generate button ───────────────────────────────────────────────────────────
+
+class _GenerateButton extends StatelessWidget {
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _GenerateButton({required this.enabled, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onPressed : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 52,
+        decoration: BoxDecoration(
+          color: enabled ? _purple : const Color(0xFFD1D1D6),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: _purple.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Generate',
+                style: TextStyle(
+                  color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Question count row ────────────────────────────────────────────────────────
+
+class _QuestionCountRow extends StatefulWidget {
   final int? value;
   final bool enabled;
   final ValueChanged<int?> onChanged;
 
-  const _QuestionCountPicker({
+  const _QuestionCountRow({
     required this.value,
     required this.enabled,
     required this.onChanged,
   });
 
   @override
-  State<_QuestionCountPicker> createState() => _QuestionCountPickerState();
+  State<_QuestionCountRow> createState() => _QuestionCountRowState();
 }
 
-class _QuestionCountPickerState extends State<_QuestionCountPicker> {
+class _QuestionCountRowState extends State<_QuestionCountRow> {
   late final TextEditingController _controller;
 
   static const _min = 3;
@@ -1132,47 +1298,58 @@ class _QuestionCountPickerState extends State<_QuestionCountPicker> {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
+        const Text(
           'Number of questions',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.black54,
-            fontWeight: FontWeight.w600,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF1C1C1E),
           ),
         ),
         const Spacer(),
-        _CounterButton(
-          icon: Icons.remove,
+        _StepperButton(
+          icon: CupertinoIcons.minus,
           enabled: widget.enabled && _current > _min,
           onTap: _decrement,
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
         SizedBox(
-          width: 48,
+          width: 44,
           child: TextField(
             controller: _controller,
             enabled: widget.enabled,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: Color(0xFF1C1C1E),
+            ),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              filled: true,
+              fillColor: const Color(0xFFF2F2F7),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _purple.withValues(alpha: 0.4)),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: _purple),
+                borderSide: const BorderSide(color: _purple, width: 1.5),
               ),
             ),
-            style: const TextStyle(fontWeight: FontWeight.w600),
             onSubmitted: _onFieldSubmitted,
             onTapOutside: (_) => _onFieldSubmitted(_controller.text),
           ),
         ),
-        const SizedBox(width: 4),
-        _CounterButton(
-          icon: Icons.add,
+        const SizedBox(width: 8),
+        _StepperButton(
+          icon: CupertinoIcons.plus,
           enabled: widget.enabled && _current < _max,
           onTap: _increment,
         ),
@@ -1181,12 +1358,12 @@ class _QuestionCountPickerState extends State<_QuestionCountPicker> {
   }
 }
 
-class _CounterButton extends StatelessWidget {
+class _StepperButton extends StatelessWidget {
   final IconData icon;
   final bool enabled;
   final VoidCallback onTap;
 
-  const _CounterButton({
+  const _StepperButton({
     required this.icon,
     required this.enabled,
     required this.onTap,
@@ -1194,25 +1371,68 @@ class _CounterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 36,
-        height: 36,
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
-          color: enabled ? _purpleLight : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: enabled ? _purple.withValues(alpha: 0.4) : Colors.grey.shade300,
-          ),
+          color: enabled ? _purpleLight : const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
-          size: 18,
-          color: enabled ? _purple : Colors.grey.shade400,
+          size: 16,
+          color: enabled ? _purple : const Color(0xFFC7C7CC),
         ),
       ),
+    );
+  }
+}
+
+// ── Quiz toggle row ───────────────────────────────────────────────────────────
+
+class _QuizToggleRow extends StatelessWidget {
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _QuizToggleRow({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Generate as quiz',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1C1C1E),
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Adds correct answers and grading',
+                style: TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
+              ),
+            ],
+          ),
+        ),
+        Switch.adaptive(
+          value: value,
+          onChanged: enabled ? onChanged : null,
+          activeTrackColor: _purple,
+        ),
+      ],
     );
   }
 }
@@ -1230,37 +1450,106 @@ class _InputTypePicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  static const _items = <(AiInputType, String, IconData)>[
+    (AiInputType.text, 'Text', CupertinoIcons.text_alignleft),
+    (AiInputType.pdf, 'PDF', CupertinoIcons.doc_text),
+    (AiInputType.youtube, 'YouTube', CupertinoIcons.play_rectangle),
+    (AiInputType.urls, 'URLs', CupertinoIcons.link),
+    (AiInputType.book, 'Book', CupertinoIcons.book),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    const items = <(AiInputType, String)>[
-      (AiInputType.text, 'Text'),
-      (AiInputType.pdf, 'PDF'),
-      (AiInputType.youtube, 'YouTube'),
-      (AiInputType.urls, 'URLs'),
-      (AiInputType.book, 'Book'),
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final (type, label) in items) ...[
-            ChoiceChip(
-              label: Text(label),
-              selected: selected == type,
-              onSelected: enabled ? (_) => onChanged(type) : null,
-              selectedColor: _purple,
-              backgroundColor: _purpleLight,
-              labelStyle: TextStyle(
-                color: selected == type ? Colors.white : _purple,
-                fontWeight: FontWeight.w600,
-              ),
-              side: BorderSide(color: _purple.withValues(alpha: 0.3)),
-              showCheckmark: false,
-            ),
-            const SizedBox(width: 8),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Colors.white, Colors.white, Colors.transparent],
+            stops: [0.0, 0.75, 1.0],
+          ).createShader(bounds),
+          blendMode: BlendMode.dstIn,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(4, 4, 36, 4),
+            child: Row(
+              children: [
+                for (final (type, label, icon) in _items)
+                  _TypeChip(
+                    label: label,
+                    icon: icon,
+                    selected: selected == type,
+                    enabled: enabled,
+                    onTap: () => onChanged(type),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _TypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? _purple : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? Colors.white : const Color(0xFF8E8E93),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : const Color(0xFF3C3C43),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1285,15 +1574,14 @@ class _FilePickerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (fileName != null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: _purpleLight,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _purple.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
-            const Icon(Icons.picture_as_pdf, color: _purple, size: 20),
+            const Icon(CupertinoIcons.doc_text_fill, color: _purple, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -1302,26 +1590,46 @@ class _FilePickerButton extends StatelessWidget {
                 style: const TextStyle(
                   color: _purple,
                   fontWeight: FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18, color: _purple),
-              tooltip: 'Remove file',
-              onPressed: enabled ? onClear : null,
+            GestureDetector(
+              onTap: enabled ? onClear : null,
+              child: const Icon(CupertinoIcons.xmark_circle_fill, color: _purple, size: 20),
             ),
           ],
         ),
       );
     }
 
-    return OutlinedButton.icon(
-      onPressed: enabled ? onPick : null,
-      icon: const Icon(Icons.upload_file, color: _purple),
-      label: const Text('Upload PDF', style: TextStyle(color: _purple)),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: _purple.withValues(alpha: 0.5)),
+    return GestureDetector(
+      onTap: enabled ? onPick : null,
+      child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFFD1D1D6),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.arrow_up_doc, color: _purple, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Choose PDF',
+              style: TextStyle(
+                color: _purple,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1337,10 +1645,10 @@ class _QuotaCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final remaining = status.effectiveRemaining;
     final limit = status.effectiveLimit;
     final isExhausted = status.isQuotaExhausted;
+    final fraction = limit > 0 ? (remaining / limit).clamp(0.0, 1.0) : 0.0;
 
     final counterText = status.isPremium
         ? '$remaining of $limit generations remaining'
@@ -1351,45 +1659,65 @@ class _QuotaCounter extends StatelessWidget {
         ? (status.isPremium ? 'Renews ${_formatDate(resetsAt)}' : 'Resets ${_formatDate(resetsAt)}')
         : null;
 
+    final barColor = isExhausted
+        ? const Color(0xFFFF3B30)
+        : fraction < 0.3
+            ? const Color(0xFFFF9500)
+            : _purple;
+
     return GestureDetector(
       onTap: (!status.isPremium && isExhausted) ? onUpgradeTap : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: _purpleLight,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _purple.withValues(alpha: 0.3)),
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.auto_awesome, color: _purple, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: _purple, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
                     counterText,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isExhausted ? Colors.red.shade700 : _purple,
+                    style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: isExhausted ? const Color(0xFFFF3B30) : const Color(0xFF1C1C1E),
                     ),
                   ),
-                  if (subLine != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subLine,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
+                if (!status.isPremium)
+                  const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 18),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 5,
+                backgroundColor: const Color(0xFFF2F2F7),
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
-            if (!status.isPremium)
-              const Icon(Icons.chevron_right, color: _purple, size: 18),
+            if (subLine != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                subLine,
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+              ),
+            ],
           ],
         ),
       ),
@@ -1406,50 +1734,68 @@ class _UpgradeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _purpleLight,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onUpgrade,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _purple.withValues(alpha: 0.4)),
+    return GestureDetector(
+      onTap: onUpgrade,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF9B4FE8), Color(0xFF5E24A8)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-          child: Row(
-            children: [
-              const Icon(Icons.workspace_premium, color: _purple, size: 18),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Upgrade for 50 generations + PDF, YouTube & more',
-                  style: TextStyle(
-                    color: _purple,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: _purple.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.workspace_premium, color: Colors.white, size: 22),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upgrade to Premium',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
+                  SizedBox(height: 2),
+                  Text(
+                    '50 generations · PDF, YouTube & more',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Upgrade',
+                style: TextStyle(
                   color: _purple,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Upgrade',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1466,23 +1812,24 @@ class _GracePeriodBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.shade300),
+        color: const Color(0xFFFFF9EC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded,
-              color: Colors.orange.shade700, size: 18),
-          const SizedBox(width: 8),
+          const Icon(CupertinoIcons.exclamationmark_circle_fill,
+              color: Color(0xFFFF9500), size: 18),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Billing issue — service active until ${_formatDate(until)}',
-              style: TextStyle(
-                color: Colors.orange.shade900,
+              style: const TextStyle(
+                color: Color(0xFF7D4E00),
                 fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

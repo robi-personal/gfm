@@ -5,6 +5,21 @@ const VALID_TYPES = new Set([
   "DROPDOWN", "LINEAR_SCALE", "DATE", "TIME", "RATING",
 ]);
 
+// Simple-format type names the model emits when structured output is active.
+// These bypass normalizeForm when SimpleForm.safeParse fails (e.g. missing
+// correctAnswers), so we remap them here so isFatal sees a known type.
+const SIMPLE_TYPE_MAP: Record<string, string> = {
+  short:    "SHORT_ANSWER",
+  long:     "PARAGRAPH",
+  choice:   "MULTIPLE_CHOICE",
+  multi:    "CHECKBOXES",
+  dropdown: "DROPDOWN",
+  scale:    "LINEAR_SCALE",
+  rating:   "RATING",
+  date:     "DATE",
+  time:     "TIME",
+};
+
 const OPTION_TYPES = new Set(["MULTIPLE_CHOICE", "CHECKBOXES", "DROPDOWN"]);
 const SCALE_FIELDS = ["scaleMin", "scaleMax", "scaleMinLabel", "scaleMaxLabel"] as const;
 
@@ -156,10 +171,16 @@ function repairQuestion(q: unknown, rules: string[]): unknown {
 
   // Enum casing normalization for `type`.
   if (typeof question["type"] === "string") {
-    const normalized = normalizeEnumValue(question["type"]);
-    if (normalized !== question["type"] && VALID_TYPES.has(normalized)) {
-      question["type"] = normalized;
-      addRule(rules, "enum_casing");
+    const simpleRemapped = SIMPLE_TYPE_MAP[question["type"]];
+    if (simpleRemapped) {
+      question["type"] = simpleRemapped;
+      addRule(rules, "simple_type_remap");
+    } else {
+      const normalized = normalizeEnumValue(question["type"]);
+      if (normalized !== question["type"] && VALID_TYPES.has(normalized)) {
+        question["type"] = normalized;
+        addRule(rules, "enum_casing");
+      }
     }
   }
 
@@ -171,6 +192,35 @@ function repairQuestion(q: unknown, rules: string[]): unknown {
   ) {
     question["required"] = false;
     addRule(rules, "default_required");
+  }
+
+  // Fold simple-format quiz fields into a nested grading object.
+  // normalizeForm does this when SimpleForm.safeParse succeeds; we mirror it
+  // here so the repair turn (which also uses SIMPLE_RESPONSE_SCHEMA) works too.
+  if (Array.isArray(question["correctAnswers"]) && question["correctAnswers"].length > 0) {
+    const grading: Record<string, unknown> = {
+      correctAnswers: question["correctAnswers"],
+      pointValue: typeof question["pointValue"] === "number" ? question["pointValue"] : 1,
+    };
+    if (typeof question["whenRight"] === "string" && question["whenRight"].trim()) {
+      grading["whenRight"] = question["whenRight"];
+    }
+    if (typeof question["whenWrong"] === "string" && question["whenWrong"].trim()) {
+      grading["whenWrong"] = question["whenWrong"];
+    }
+    question["grading"] = grading;
+    delete question["correctAnswers"];
+    delete question["pointValue"];
+    delete question["whenRight"];
+    delete question["whenWrong"];
+    addRule(rules, "fold_quiz_grading");
+  } else {
+    // Strip stray quiz flat fields that can't form a valid grading object.
+    let stripped = false;
+    for (const f of ["pointValue", "whenRight", "whenWrong"] as const) {
+      if (f in question) { delete question[f]; stripped = true; }
+    }
+    if (stripped) addRule(rules, "strip_quiz_fields");
   }
 
   // Repair options array: coerce non-strings, trim, dedupe.

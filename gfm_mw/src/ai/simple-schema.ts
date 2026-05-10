@@ -90,10 +90,9 @@ export const SimpleForm = z
 
 export type SimpleFormType = z.infer<typeof SimpleForm>;
 
-// Gemini structured-output schema. Quiz fields are listed as optional here
-// (a single shape covers form + quiz). The strict gate is SimpleForm.superRefine
-// — Gemini's responseSchema is a soft hint; Zod is the gate.
-export const SIMPLE_RESPONSE_SCHEMA = {
+// Gemini structured-output schema for FORM generation (isQuiz: false).
+// No quiz fields — keeps the schema focused so the model doesn't emit them.
+export const FORM_RESPONSE_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
     title:       { type: SchemaType.STRING },
@@ -111,11 +110,6 @@ export const SIMPLE_RESPONSE_SCHEMA = {
           },
           options:  { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
           required: { type: SchemaType.BOOLEAN },
-
-          correctAnswers: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          pointValue:     { type: SchemaType.INTEGER },
-          whenRight:      { type: SchemaType.STRING },
-          whenWrong:      { type: SchemaType.STRING },
         },
         required: ["title", "type"],
       },
@@ -123,3 +117,40 @@ export const SIMPLE_RESPONSE_SCHEMA = {
   },
   required: ["title", "isQuiz", "questions"],
 };
+
+// Gemini structured-output schema for QUIZ generation (isQuiz: true).
+// correctAnswers is listed as required so the model cannot omit it.
+// Type enum is restricted to quiz-valid types only.
+export const QUIZ_RESPONSE_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    title:       { type: SchemaType.STRING },
+    description: { type: SchemaType.STRING },
+    isQuiz:      { type: SchemaType.BOOLEAN },
+    questions: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title:    { type: SchemaType.STRING },
+          type: {
+            type: SchemaType.STRING,
+            enum: ["choice", "multi", "dropdown", "short"],
+          },
+          options:        { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          required:       { type: SchemaType.BOOLEAN },
+          correctAnswers: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          pointValue:     { type: SchemaType.INTEGER },
+          whenRight:      { type: SchemaType.STRING },
+          whenWrong:      { type: SchemaType.STRING },
+        },
+        required: ["title", "type", "correctAnswers"],
+      },
+    },
+  },
+  required: ["title", "isQuiz", "questions"],
+};
+
+// Keep the old export name as an alias so any future callers that haven't
+// migrated yet still compile. generator.ts now selects per-mode directly.
+export const SIMPLE_RESPONSE_SCHEMA = FORM_RESPONSE_SCHEMA;

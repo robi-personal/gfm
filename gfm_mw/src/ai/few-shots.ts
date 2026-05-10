@@ -1,12 +1,10 @@
 import type { Content } from "@google/generative-ai";
 
-// Two text-mode few-shots per ai-prompt-spec.md §7.1. They demonstrate the
-// JSON output contract — which is the main thing in-context examples buy us.
-// File-mode inputs (pdf/youtube/urls/book) reuse these because few-shotting
-// real PDF bytes / video URIs is expensive and the JSON shape lesson is the
-// same. Both shots carry isQuiz so the model sees the field set both ways.
+// Separate few-shot sets for form and quiz prompts. Each set demonstrates
+// only the JSON shape the matching prompt produces — no cross-contamination.
 
 const BAKERY_INPUT = `INPUT_TYPE: text
+IS_QUIZ: false
 QUESTION_COUNT: default
 
 Customer feedback survey for a small bakery. Ask about visit frequency,
@@ -35,6 +33,7 @@ const BAKERY_OUTPUT = JSON.stringify({
 });
 
 const QUIZ_INPUT = `INPUT_TYPE: text
+IS_QUIZ: true
 QUESTION_COUNT: 8
 
 Quick quiz for 5th graders on US state capitals. Mix of multiple-choice
@@ -108,9 +107,12 @@ const QUIZ_OUTPUT = JSON.stringify({
   ],
 });
 
-export const FEW_SHOTS: Content[] = [
+export const FORM_FEW_SHOTS: Content[] = [
   { role: "user",  parts: [{ text: BAKERY_INPUT  }] },
   { role: "model", parts: [{ text: BAKERY_OUTPUT }] },
-  { role: "user",  parts: [{ text: QUIZ_INPUT   }] },
-  { role: "model", parts: [{ text: QUIZ_OUTPUT  }] },
+];
+
+export const QUIZ_FEW_SHOTS: Content[] = [
+  { role: "user",  parts: [{ text: QUIZ_INPUT  }] },
+  { role: "model", parts: [{ text: QUIZ_OUTPUT }] },
 ];

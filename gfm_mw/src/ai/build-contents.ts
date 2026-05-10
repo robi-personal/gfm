@@ -1,52 +1,42 @@
 import type { Content, Part } from "@google/generative-ai";
-import { FEW_SHOTS } from "./few-shots";
+import { FORM_FEW_SHOTS, QUIZ_FEW_SHOTS } from "./few-shots";
 import type { GenerateRequest } from "./request-schema";
-
-// Builds the `contents[]` payload for a Gemini call. System prompt and
-// few-shots are kept separate (system instruction goes in model config; few-shots
-// prepend the user turn) per ai-prompt-spec §3.2.
 
 interface UrlContent { url: string; text: string }
 
 export interface BuildContentsArgs {
   body: GenerateRequest;
-  fetchedUrls?: UrlContent[];   // populated for inputType=urls (Task 11 fetcher)
+  fetchedUrls?: UrlContent[];
 }
 
 function questionCount(hint?: number): string {
   return hint ? String(hint) : "default";
 }
 
+function isQuizFlag(isQuiz: boolean): string {
+  return isQuiz ? "true" : "false";
+}
+
 function textTurn(req: Extract<GenerateRequest, { inputType: "text" }>): Part {
   const text =
     `INPUT_TYPE: text\n` +
+    `IS_QUIZ: ${isQuizFlag(req.isQuiz)}\n` +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
     req.prompt.trim();
   return { text };
 }
 
-function pdfTurn(req: Extract<GenerateRequest, { inputType: "pdf" }>): Part[] {
+function documentTurn(
+  req: Extract<GenerateRequest, { inputType: "pdf" | "book" }>,
+): Part[] {
   const scaffold =
-    `INPUT_TYPE: pdf\n` +
+    `INPUT_TYPE: ${req.inputType}\n` +
+    `IS_QUIZ: ${isQuizFlag(req.isQuiz)}\n` +
     (req.fileName ? `FILE_NAME: ${req.fileName}\n` : "") +
     (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Read the attached PDF carefully. Generate a form with questions that are directly based on the SPECIFIC content of this document. Do NOT generate generic questions.`;
-  return [
-    { text: scaffold },
-    { inlineData: { mimeType: "application/pdf", data: req.fileBase64 } },
-  ];
-}
+    `Read the attached document carefully. Generate questions based on the SPECIFIC content — do NOT generate generic questions.`;
 
-function bookTurn(req: Extract<GenerateRequest, { inputType: "book" }>): Part[] {
-  const scaffold =
-    `INPUT_TYPE: book\n` +
-    (req.fileName ? `FILE_NAME: ${req.fileName}\n` : "") +
-    (req.description ? `USER_INTENT: ${req.description}\n` : "") +
-    `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Read the attached book/document carefully. Generate a comprehension quiz with questions that test knowledge of the SPECIFIC content, concepts, facts, and ideas found in this document. ` +
-    `Every question must come directly from the material — do NOT generate generic questions. ` +
-    `If the document covers multiple topics, spread the questions across them.`;
   return [
     { text: scaffold },
     { inlineData: { mimeType: "application/pdf", data: req.fileBase64 } },
@@ -56,12 +46,11 @@ function bookTurn(req: Extract<GenerateRequest, { inputType: "book" }>): Part[] 
 function youtubeTurn(req: Extract<GenerateRequest, { inputType: "youtube" }>): Part[] {
   const scaffold =
     `INPUT_TYPE: youtube\n` +
+    `IS_QUIZ: ${isQuizFlag(req.isQuiz)}\n` +
     `URL: ${req.youtubeUrl}\n` +
     (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Build a form based on the attached YouTube video.`;
-  // Per ai-prompt-spec §7.3, YouTube is passed as a fileData part with the URL
-  // as the fileUri. mimeType is video/* — the Gemini SDK accepts the URL.
+    `Build questions based on the attached YouTube video.`;
   return [
     { text: scaffold },
     { fileData: { mimeType: "video/*", fileUri: req.youtubeUrl } },
@@ -81,10 +70,11 @@ function urlsTurn(
 
   const text =
     `INPUT_TYPE: urls\n` +
+    `IS_QUIZ: ${isQuizFlag(req.isQuiz)}\n` +
     `URLS:\n${req.urls.map((u) => `  - ${u}`).join("\n")}\n` +
     (req.description ? `USER_INTENT: ${req.description}\n` : "") +
     `QUESTION_COUNT: ${questionCount(req.questionCountHint)}\n\n` +
-    `Build a form based on the fetched content below.\n\n` +
+    `Build questions based on the fetched content below.\n\n` +
     blocks;
 
   return { text };
@@ -92,18 +82,19 @@ function urlsTurn(
 
 export function buildContents(args: BuildContentsArgs): Content[] {
   const { body, fetchedUrls } = args;
+  const fewShots = body.isQuiz ? QUIZ_FEW_SHOTS : FORM_FEW_SHOTS;
 
   let userParts: Part[];
   switch (body.inputType) {
     case "text":    userParts = [textTurn(body)]; break;
-    case "pdf":     userParts = pdfTurn(body);    break;
-    case "book":    userParts = bookTurn(body);   break;
+    case "pdf":     userParts = documentTurn(body); break;
+    case "book":    userParts = documentTurn(body); break;
     case "youtube": userParts = youtubeTurn(body); break;
     case "urls":    userParts = [urlsTurn(body, fetchedUrls ?? [])]; break;
   }
 
   return [
-    ...FEW_SHOTS,
+    ...fewShots,
     { role: "user", parts: userParts },
   ];
 }

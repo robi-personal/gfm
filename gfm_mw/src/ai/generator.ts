@@ -10,9 +10,9 @@ import { parseAndAutoRepair } from "./auto-repair";
 import { FormSchema, GeneratedForm } from "./form-schema";
 import { isFatal, isFallbackForm, formatZodErrors } from "./repair-policy";
 import { buildContents } from "./build-contents";
-import { SimpleForm, SIMPLE_RESPONSE_SCHEMA } from "./simple-schema";
+import { SimpleForm, FORM_RESPONSE_SCHEMA, QUIZ_RESPONSE_SCHEMA } from "./simple-schema";
 import { normalizeForm } from "./normalizer";
-import { SYSTEM_PROMPT_V1, PROMPT_VERSION } from "./system-prompt";
+import { SYSTEM_PROMPT_FORM, SYSTEM_PROMPT_QUIZ, PROMPT_VERSION } from "./system-prompt";
 import type { GenerateRequest } from "./request-schema";
 import { geminiRequestsTotal } from "../infrastructure/metrics";
 
@@ -102,6 +102,8 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
   }
 
   const contents = buildContents({ body, fetchedUrls });
+  const systemPrompt = body.isQuiz ? SYSTEM_PROMPT_QUIZ : SYSTEM_PROMPT_FORM;
+  const responseSchema = body.isQuiz ? QUIZ_RESPONSE_SCHEMA : FORM_RESPONSE_SCHEMA;
   const deadlineMs =
     body.inputType === "youtube" ? YOUTUBE_DEADLINE_MS :
     body.inputType === "pdf" || body.inputType === "book" ? FILE_DEADLINE_MS :
@@ -112,8 +114,8 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
   try {
     attempt1 = await aiProvider.call({
       contents,
-      systemInstruction: SYSTEM_PROMPT_V1,
-      responseSchema: SIMPLE_RESPONSE_SCHEMA,
+      systemInstruction: systemPrompt,
+      responseSchema: responseSchema,
       deadlineMs,
     });
   } catch (e) {
@@ -235,8 +237,8 @@ export async function runGeneration(args: GenerateArgs): Promise<GenerationOutco
   try {
     attempt2 = await aiProvider.call({
       contents: repairContents,
-      systemInstruction: SYSTEM_PROMPT_V1,
-      responseSchema: SIMPLE_RESPONSE_SCHEMA,
+      systemInstruction: systemPrompt,
+      responseSchema: responseSchema,
       deadlineMs,
     });
   } catch (e) {
