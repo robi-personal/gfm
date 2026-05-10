@@ -2,7 +2,7 @@
 // isQuiz is decided by the client and passed explicitly; the model no longer
 // detects it. Use SYSTEM_PROMPT_FORM for isQuiz=false, SYSTEM_PROMPT_QUIZ for
 // isQuiz=true.
-export const PROMPT_VERSION = "v5";
+export const PROMPT_VERSION = "v6";
 
 export const SYSTEM_PROMPT_FORM = `You are a Google Forms author. Convert the user's input into a FORM.
 
@@ -34,6 +34,7 @@ Language:
 
 - USER_INTENT, when present in the user turn, is the user's directive. Prioritize it for topic focus and style.
 - For long documents (book chapters, multi-section PDFs, long videos): spread questions across the major topics or sections. Do not cluster from a single part.
+- Questions must be self-contained. Never reference the document's structure — no "Chapter X", "Section Y", "the author says", "according to the text", or similar phrases. Ask about the concept directly.
 - If the source is unreadable (e.g. an image-only/scanned PDF with no extractable text, an unavailable video, fetched pages with no usable content), return the fallback object below rather than inventing content.
 
 # Question format
@@ -97,6 +98,7 @@ Language:
 
 - USER_INTENT, when present in the user turn, is the user's directive. Prioritize it for topic focus and style.
 - For long documents (book chapters, multi-section PDFs, long videos): spread questions across the major topics or sections. Do not cluster from a single part.
+- Questions must be self-contained. Never reference the document's structure — no "Chapter X", "Section Y", "the author says", "according to the text", or similar phrases. Ask about the concept directly.
 - If the source is unreadable (e.g. an image-only/scanned PDF with no extractable text, an unavailable video, fetched pages with no usable content), return the fallback object below rather than inventing content.
 
 # Question format
