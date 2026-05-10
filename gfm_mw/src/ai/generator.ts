@@ -349,21 +349,13 @@ async function finalize(
   form: GeneratedForm,
   tokens: GeminiAttempt,
 ): Promise<GenerationOutcome> {
-  const { aiRepo, userRepo, user, rowId, generationId, quotaCost } = args;
+  const { aiRepo, rowId, generationId } = args;
 
   await aiRepo.updateSuccess(rowId, {
     outputJson: form,
     inputTokens:  tokens.inputTokens,
     outputTokens: tokens.outputTokens,
   });
-
-  // Quota burns only on successful completion (api-contract.md §4.1).
-  // PDF/book types may cost more than 1 quota unit based on page count.
-  if (user.tier === "free") {
-    await userRepo.incrementFreeUsed(user.id, quotaCost);
-  } else {
-    await userRepo.incrementPremiumUsed(user.id, quotaCost);
-  }
 
   return {
     generationId,

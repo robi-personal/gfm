@@ -121,7 +121,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
     final s = state;
     if (s is! AiFormBuilderReady) return;
 
-    if (!s.status.isPremium && s.status.isQuotaExhausted) {
+    if (!s.status.unlimited && s.status.isQuotaExhausted) {
       _eventsController.add(const ShowPaywallEvent());
       return;
     }
@@ -280,9 +280,8 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
           kind: failure.tier == 'free'
               ? AiErrorKind.quotaExceededFree
               : AiErrorKind.quotaExceededPremium,
-          quotaUsed: failure.used,
-          quotaLimit: failure.limit,
-          resetsAt: failure.resetsAt,
+          quotaUsed: failure.balance,
+          quotaLimit: failure.quotaCost,
         ),
       RateLimitedFailure() => AiErrorModalConfig(
           kind: AiErrorKind.rateLimited,
@@ -324,7 +323,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
       IdempotencyInFlightFailure() => AiErrorKind.idempotencyInFlight,
       QuotaExceededFailure(:final tier) => tier == 'free'
           ? AiErrorKind.quotaExceededFree
-          : AiErrorKind.quotaExceededPremium,
+          : AiErrorKind.quotaExceededPremium, // ignore: unnecessary_cast
       RateLimitedFailure() => AiErrorKind.rateLimited,
       AiServiceFailure(:final code) => switch (code) {
           'gemini_unavailable' => AiErrorKind.geminiUnavailable,
@@ -399,27 +398,14 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
   /// into the existing [UserStatus] so the Ready/Preview UI can render the
   /// updated counter without an extra `/user/status` round-trip (§3.2).
   static UserStatus _applyQuota(UserStatus current, QuotaSnapshot q) {
-    if (q.tier == QuotaTier.premium) {
-      return UserStatus(
-        isPremium: current.isPremium,
-        aiFreeUsed: current.aiFreeUsed,
-        aiFreeLimit: current.aiFreeLimit,
-        freeResetsAt: current.freeResetsAt,
-        aiPremiumUsed: q.used,
-        aiPremiumLimit: q.limit,
-        premiumResetsAt: q.resetsAt,
-        gracePeriodUntil: current.gracePeriodUntil,
-      );
-    }
     return UserStatus(
-      isPremium: current.isPremium,
-      aiFreeUsed: q.used,
-      aiFreeLimit: q.limit,
-      freeResetsAt: q.resetsAt,
-      aiPremiumUsed: current.aiPremiumUsed,
-      aiPremiumLimit: current.aiPremiumLimit,
-      premiumResetsAt: current.premiumResetsAt,
-      gracePeriodUntil: current.gracePeriodUntil,
+      isPremium:    current.isPremium,
+      quotaBalance: q.balance,
+      unlimited:    q.unlimited,
+      gracePeriodUntil:    current.gracePeriodUntil,
+      youtubeMinutesUsed:  current.youtubeMinutesUsed,
+      youtubeMinutesLimit: current.youtubeMinutesLimit,
+      youtubeMinutesResetsAt: current.youtubeMinutesResetsAt,
     );
   }
 

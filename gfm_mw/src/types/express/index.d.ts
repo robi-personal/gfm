@@ -17,6 +17,7 @@ declare global {
       user?: {
         id: number;
         googleSub: string;
+        email: string;
         tier: "free" | "premium";
       };
 

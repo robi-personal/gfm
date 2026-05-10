@@ -4,10 +4,9 @@ export interface User {
   email: string;
   createdAt: Date;
   isPremium: boolean;
-  aiFreeUsed: number;
-  aiPremiumUsed: number;
-  freeMonthResetAt: Date | null;
-  premiumResetAt: Date | null;
+  quotaBalance: number;
+  freeQuotaResetAt: Date | null;
+  subscriptionProductId: string | null;
   gracePeriodUntil: Date | null;
   youtubeMinutesUsed: number;
   youtubeMinutesResetAt: Date | null;

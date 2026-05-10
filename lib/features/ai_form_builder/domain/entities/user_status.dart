@@ -3,12 +3,8 @@ import 'package:flutter/foundation.dart';
 @immutable
 class UserStatus {
   final bool isPremium;
-  final int aiFreeUsed;
-  final int aiFreeLimit;
-  final DateTime? freeResetsAt;
-  final int aiPremiumUsed;
-  final int aiPremiumLimit;
-  final DateTime? premiumResetsAt;
+  final int quotaBalance;
+  final bool unlimited;
   final DateTime? gracePeriodUntil;
   final int youtubeMinutesUsed;
   final int youtubeMinutesLimit;
@@ -16,12 +12,8 @@ class UserStatus {
 
   const UserStatus({
     required this.isPremium,
-    required this.aiFreeUsed,
-    required this.aiFreeLimit,
-    this.freeResetsAt,
-    required this.aiPremiumUsed,
-    required this.aiPremiumLimit,
-    this.premiumResetsAt,
+    required this.quotaBalance,
+    required this.unlimited,
     this.gracePeriodUntil,
     this.youtubeMinutesUsed = 0,
     this.youtubeMinutesLimit = 300,
@@ -31,24 +23,16 @@ class UserStatus {
   int get youtubeMinutesRemaining =>
       (youtubeMinutesLimit - youtubeMinutesUsed).clamp(0, youtubeMinutesLimit);
 
-  int get effectiveUsed => isPremium ? aiPremiumUsed : aiFreeUsed;
-  int get effectiveLimit => isPremium ? aiPremiumLimit : aiFreeLimit;
-  int get effectiveRemaining => (effectiveLimit - effectiveUsed).clamp(0, effectiveLimit);
-  bool get isQuotaExhausted => effectiveUsed >= effectiveLimit;
-  DateTime? get effectiveResetsAt => isPremium ? premiumResetsAt : freeResetsAt;
+  bool get isQuotaExhausted => !unlimited && quotaBalance <= 0;
 
   factory UserStatus.fromJson(Map<String, dynamic> json) {
     DateTime? parseNullable(String? raw) =>
         raw == null ? null : DateTime.parse(raw);
 
     return UserStatus(
-      isPremium: json['isPremium'] as bool,
-      aiFreeUsed: (json['aiFreeUsed'] as num).toInt(),
-      aiFreeLimit: (json['aiFreeLimit'] as num).toInt(),
-      freeResetsAt: parseNullable(json['freeResetsAt'] as String?),
-      aiPremiumUsed: (json['aiPremiumUsed'] as num).toInt(),
-      aiPremiumLimit: (json['aiPremiumLimit'] as num).toInt(),
-      premiumResetsAt: parseNullable(json['premiumResetsAt'] as String?),
+      isPremium:     json['isPremium']    as bool,
+      quotaBalance:  (json['quotaBalance'] as num).toInt(),
+      unlimited:     json['unlimited']    as bool,
       gracePeriodUntil: parseNullable(json['gracePeriodUntil'] as String?),
       youtubeMinutesUsed:     (json['youtubeMinutesUsed']  as num?)?.toInt() ?? 0,
       youtubeMinutesLimit:    (json['youtubeMinutesLimit'] as num?)?.toInt() ?? 300,

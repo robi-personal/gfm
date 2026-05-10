@@ -720,7 +720,8 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
     if (!context.mounted) return;
 
-    final remaining = widget.status.effectiveRemaining;
+    final isUnlimited = widget.status.unlimited;
+    final balance = widget.status.quotaBalance;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -746,9 +747,9 @@ class _ReadyBodyState extends State<_ReadyBody> {
             ),
             const SizedBox(height: 4),
             Text(
-              'You have $remaining quota remaining.',
+              isUnlimited ? 'You have unlimited quota.' : 'You have $balance quota remaining.',
               style: TextStyle(
-                color: remaining < info.quotaCost ? Colors.red : Theme.of(ctx).textTheme.bodySmall?.color,
+                color: (!isUnlimited && balance < info.quotaCost) ? Colors.red : Theme.of(ctx).textTheme.bodySmall?.color,
                 fontSize: 13,
               ),
             ),
@@ -760,7 +761,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: remaining >= info.quotaCost ? () => Navigator.of(ctx).pop(true) : null,
+            onPressed: (isUnlimited || balance >= info.quotaCost) ? () => Navigator.of(ctx).pop(true) : null,
             child: const Text('Generate'),
           ),
         ],
@@ -803,7 +804,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
           ],
 
           // Upgrade banner
-          if (!isPremium && isQuotaExhausted) ...[
+          if (!status.unlimited && isQuotaExhausted) ...[
             _UpgradeBanner(onUpgrade: widget.onUpgrade),
             const SizedBox(height: 16),
           ] else
@@ -1645,28 +1646,24 @@ class _QuotaCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = status.effectiveRemaining;
-    final limit = status.effectiveLimit;
+    final isUnlimited = status.unlimited;
+    final balance     = status.quotaBalance;
     final isExhausted = status.isQuotaExhausted;
-    final fraction = limit > 0 ? (remaining / limit).clamp(0.0, 1.0) : 0.0;
 
-    final counterText = status.isPremium
-        ? '$remaining of $limit generations remaining'
-        : '$remaining of $limit free generations remaining';
-
-    final resetsAt = status.effectiveResetsAt;
-    final subLine = resetsAt != null
-        ? (status.isPremium ? 'Renews ${_formatDate(resetsAt)}' : 'Resets ${_formatDate(resetsAt)}')
-        : null;
+    final counterText = isUnlimited
+        ? 'Unlimited generations'
+        : '$balance generations remaining';
 
     final barColor = isExhausted
         ? const Color(0xFFFF3B30)
-        : fraction < 0.3
-            ? const Color(0xFFFF9500)
-            : _purple;
+        : isUnlimited || balance > 5
+            ? _purple
+            : const Color(0xFFFF9500);
+
+    final fraction = isUnlimited ? 1.0 : (balance / 10.0).clamp(0.0, 1.0);
 
     return GestureDetector(
-      onTap: (!status.isPremium && isExhausted) ? onUpgradeTap : null,
+      onTap: (!isUnlimited && isExhausted) ? onUpgradeTap : null,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
@@ -1697,7 +1694,7 @@ class _QuotaCounter extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!status.isPremium)
+                if (!isUnlimited && !status.isPremium)
                   const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 18),
               ],
             ),
@@ -1711,13 +1708,6 @@ class _QuotaCounter extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
-            if (subLine != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                subLine,
-                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
-              ),
-            ],
           ],
         ),
       ),

@@ -31,6 +31,7 @@ export async function authMiddleware(
     req.user = {
       id: user.id,
       googleSub: user.googleSub,
+      email: user.email,
       tier: (env.RC_BYPASS_PREMIUM || user.isPremium) ? "premium" : "free",
     };
 

@@ -3,18 +3,14 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { denylistMiddleware } from "../middleware/kill-switch.middleware";
 import { statusUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
+import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { pool } from "../../infrastructure/db/postgres";
 import { env } from "../../config/env";
 import { configService } from "../../config/config-service";
 
-// Quota constants — source of truth is api-contract.md §4.1 / §4.3
-const FREE_LIMIT    = 3;
-const PREMIUM_LIMIT = 50;
-
 export const userRouter = Router();
 
 // GET /user/status
-// Auth → denylist → rate limit → auto-reset expired quota → return snapshot
 userRouter.get(
   "/status",
   authMiddleware,
@@ -22,12 +18,16 @@ userRouter.get(
   statusUserLimitMiddleware,
   async (req, res, next) => {
     try {
-      const userRepo = new PgUserRepository(pool);
+      const userRepo      = new PgUserRepository(pool);
+      const whitelistRepo = new PgQuotaWhitelistRepository(pool);
 
-      await userRepo.resetFreeQuotaIfExpired(req.user!.id);
       await userRepo.resetYoutubeMinutesIfNeeded(req.user!.id);
 
-      const user = await userRepo.findById(req.user!.id);
+      const [user, unlimited] = await Promise.all([
+        userRepo.findById(req.user!.id),
+        whitelistRepo.contains(req.user!.email),
+      ]);
+
       if (!user) {
         res.status(401).json({ code: "invalid_token", message: "User not found." });
         return;
@@ -36,12 +36,8 @@ userRouter.get(
       const ytLimit = configService.get<number>("YOUTUBE_MONTHLY_MINUTES", env.YOUTUBE_MONTHLY_MINUTES);
       res.json({
         isPremium:               env.RC_BYPASS_PREMIUM || user.isPremium,
-        aiFreeUsed:              user.aiFreeUsed,
-        aiFreeLimit:             FREE_LIMIT,
-        freeResetsAt:            user.freeMonthResetAt?.toISOString() ?? null,
-        aiPremiumUsed:           user.aiPremiumUsed,
-        aiPremiumLimit:          PREMIUM_LIMIT,
-        premiumResetsAt:         user.premiumResetAt?.toISOString() ?? null,
+        quotaBalance:            user.quotaBalance,
+        unlimited,
         gracePeriodUntil:        user.gracePeriodUntil?.toISOString() ?? null,
         youtubeMinutesUsed:      user.youtubeMinutesUsed,
         youtubeMinutesLimit:     ytLimit,

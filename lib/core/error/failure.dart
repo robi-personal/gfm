@@ -43,18 +43,16 @@ class RevisionMismatchFailure extends Failure {
 
 // ── AI Form Builder failures ──────────────────────────────────────────────────
 
-/// 429 quota_exceeded — user has used all generations for the period.
+/// 429 quota_exceeded — user's balance is insufficient for the generation.
 class QuotaExceededFailure extends Failure {
   final String tier;
-  final int used;
-  final int limit;
-  final DateTime resetsAt;
+  final int balance;
+  final int quotaCost;
 
   QuotaExceededFailure({
     required this.tier,
-    required this.used,
-    required this.limit,
-    required this.resetsAt,
+    required this.balance,
+    required this.quotaCost,
     String message = 'Generation quota exceeded.',
   }) : super(message);
 }

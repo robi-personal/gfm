@@ -157,12 +157,9 @@ class AiFormDataSource {
         }
         // quota_exceeded
         throw QuotaExceededFailure(
-          tier: details['tier'] as String? ?? 'free',
-          used: (details['used'] as num?)?.toInt() ?? 0,
-          limit: (details['limit'] as num?)?.toInt() ?? 0,
-          resetsAt: details['resetsAt'] != null
-              ? DateTime.parse(details['resetsAt'] as String)
-              : DateTime.now().add(const Duration(days: 30)),
+          tier:      details['tier']      as String? ?? 'free',
+          balance:   (details['balance']  as num?)?.toInt() ?? 0,
+          quotaCost: (details['quotaCost'] as num?)?.toInt() ?? 1,
         );
       case 503:
         // Known AI service error codes

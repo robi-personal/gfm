@@ -10,9 +10,11 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     proxy: {
-      "/admin/login":  "http://app:3000",
-      "/admin/config": "http://app:3000",
-      "/admin/spend":  "http://app:3000",
+      "/admin/login":            "http://app:3000",
+      "/admin/config":           "http://app:3000",
+      "/admin/spend":            "http://app:3000",
+      "/admin/quota-products":   "http://app:3000",
+      "/admin/whitelist":        "http://app:3000",
     },
   },
 });

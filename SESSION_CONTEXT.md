@@ -280,12 +280,55 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-11 session — quota system redesign)
+
+### Quota System — Tasks Q1–Q7 complete
+
+**DB migration** (`gfm_mw/migrations/004_quota_system.sql`, also at `docs/db/migrations/004_quota_system.sql`)
+- Dropped old tier counters (`ai_free_used`, `ai_premium_used`, `free_month_reset_at`, `premium_reset_at`) from `users`
+- Added `quota_balance`, `free_quota_reset_at`, `subscription_product_id` to `users`
+- New tables: `quota_products` (seeded with 7 products), `quota_transactions` (audit log), `quota_whitelist`
+- Developer email seeded into `quota_whitelist`; existing users seeded with free monthly balance
+- Migration registered as `004` in `migrate.ts`
+
+**Backend domain layer**
+- New entities: `quota-product.ts`, `quota-whitelist-entry.ts`
+- New repository interfaces: `quota-product.repository.ts`, `quota-whitelist.repository.ts`
+- New implementations: `pg-quota-product.repository.ts`, `pg-quota-whitelist.repository.ts`
+- `user.entity.ts`: replaced tier counters with `quotaBalance`, `freeQuotaResetAt`, `subscriptionProductId`
+- `user.repository.ts`: removed `incrementFreeUsed`/`incrementPremiumUsed`/`resetFreeQuotaIfExpired`; added `creditQuota`, `debitQuota`, `applyFreeGrantIfDue`, `getQuotaBalance`, `setSubscriptionProduct`
+- `pg-user.repository.ts`: CTE-based atomic debit/credit queries; conditional UPDATE for double-credit prevention
+- `auth.middleware.ts` + `express/index.d.ts`: added `email` to `req.user`
+
+**Backend routes**
+- `ai.routes.ts`: whitelist short-circuit (skip grant + gate + debit), `applyFreeGrantIfDue` before quota gate, balance-based gate, debit after success; `QuotaSnapshot` shape → `{balance, quotaCost, unlimited}`
+- `user.routes.ts`: removed tier constants; returns `quotaBalance` + `unlimited`
+- `webhook.routes.ts`: `INITIAL_PURCHASE`/`RENEWAL` → `creditQuota` + `setSubscriptionProduct`; `NON_RENEWING_PURCHASE` (new top-up handler); `EXPIRATION`/`REFUND` → `setSubscriptionProduct(null)`; `PRODUCT_CHANGE` → updates subscription product
+- `admin.routes.ts`: `GET/PATCH /admin/quota-products`, `GET/POST/DELETE /admin/whitelist`
+- `generator.ts`: removed debit calls from `finalize()` (debit moved to route handler)
+
+**Admin UI**
+- New pages: `QuotaProductsPage.tsx` (inline editable quota amounts, type badges), `WhitelistPage.tsx` (add/remove entries)
+- `App.tsx`: added Quota Products + Whitelist nav items and routes
+- `api.ts`: added typed API helpers for quota products and whitelist
+- `vite.config.ts`: added `/admin/quota-products` and `/admin/whitelist` to Vite proxy
+
+**Flutter**
+- `quota_snapshot.dart`: `{balance, quotaCost, unlimited}` replaces `{tier, used, limit, resetsAt}`; `QuotaTier` enum removed
+- `user_status.dart`: `{quotaBalance, unlimited}` replaces all tier counters; `isQuotaExhausted` uses balance model
+- `failure.dart`: `QuotaExceededFailure` fields → `balance`, `quotaCost` (was `used`, `limit`, `resetsAt`)
+- `ai_form_datasource.dart`: parses new 429 response shape
+- `ai_form_builder_cubit.dart`: `_applyQuota` simplified to balance model; paywall check uses `unlimited`
+- `ai_form_builder_page.dart`: `_QuotaCounter` renders "Unlimited" or "$balance generations remaining"; PDF confirm dialog updated
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
 2. ~~**Google OAuth consent screen verification**~~ — ✅ Done (2026-05-01)
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
-5. **Phase 2 — AI Form Builder** — Backend production-ready. All spec + implementation tasks done. See recent changes below.
+5. ~~**Quota system redesign (Q1–Q7)**~~ — ✅ Done (2026-05-11)
 6. **UI polish** — thumb-zone audit, spacing, typography refinements
 7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup

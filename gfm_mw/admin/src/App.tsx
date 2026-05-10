@@ -5,15 +5,19 @@ import KillSwitchesPage from "./pages/KillSwitchesPage";
 import RateLimitsPage from "./pages/RateLimitsPage";
 import YouTubePage from "./pages/YouTubePage";
 import DocumentsPage from "./pages/DocumentsPage";
+import QuotaProductsPage from "./pages/QuotaProductsPage";
+import WhitelistPage from "./pages/WhitelistPage";
 
 const NAV = [
   {
     section: "Operations",
     items: [
-      { to: "/admin/kill-switches", icon: "⛔", label: "Kill Switches" },
-      { to: "/admin/rate-limits",   icon: "🚦", label: "Rate Limits"   },
-      { to: "/admin/youtube",       icon: "▶",  label: "YouTube"       },
-      { to: "/admin/documents",     icon: "📄", label: "Documents"     },
+      { to: "/admin/kill-switches",   icon: "⛔", label: "Kill Switches"   },
+      { to: "/admin/rate-limits",     icon: "🚦", label: "Rate Limits"     },
+      { to: "/admin/youtube",         icon: "▶",  label: "YouTube"         },
+      { to: "/admin/documents",       icon: "📄", label: "Documents"       },
+      { to: "/admin/quota-products",  icon: "🎟", label: "Quota Products"  },
+      { to: "/admin/whitelist",       icon: "✅", label: "Whitelist"       },
     ],
   },
 ];
@@ -59,10 +63,12 @@ function Sidebar() {
 }
 
 const PAGE_TITLES: Record<string, string> = {
-  "/admin/kill-switches": "Kill Switches",
-  "/admin/rate-limits":   "Rate Limits",
-  "/admin/youtube":       "YouTube",
-  "/admin/documents":     "Documents",
+  "/admin/kill-switches":  "Kill Switches",
+  "/admin/rate-limits":    "Rate Limits",
+  "/admin/youtube":        "YouTube",
+  "/admin/documents":      "Documents",
+  "/admin/quota-products": "Quota Products",
+  "/admin/whitelist":      "Whitelist",
 };
 
 function Layout() {
@@ -79,11 +85,13 @@ function Layout() {
         </header>
         <div className="page-content">
           <Routes>
-            <Route path="/admin/kill-switches" element={<KillSwitchesPage />} />
-            <Route path="/admin/rate-limits"   element={<RateLimitsPage />} />
-            <Route path="/admin/youtube"       element={<YouTubePage />} />
-            <Route path="/admin/documents"     element={<DocumentsPage />} />
-            <Route path="*"                    element={<Navigate to="/admin/kill-switches" replace />} />
+            <Route path="/admin/kill-switches"  element={<KillSwitchesPage />} />
+            <Route path="/admin/rate-limits"    element={<RateLimitsPage />} />
+            <Route path="/admin/youtube"        element={<YouTubePage />} />
+            <Route path="/admin/documents"      element={<DocumentsPage />} />
+            <Route path="/admin/quota-products" element={<QuotaProductsPage />} />
+            <Route path="/admin/whitelist"      element={<WhitelistPage />} />
+            <Route path="*"                     element={<Navigate to="/admin/kill-switches" replace />} />
           </Routes>
         </div>
       </div>

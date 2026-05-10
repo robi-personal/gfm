@@ -13,6 +13,8 @@ import { pool } from "../../infrastructure/db/postgres";
 import { env } from "../../config/env";
 import { PgAiGenerationRepository } from "../../infrastructure/db/repositories/pg-ai-generation.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
+import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
+import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import {
   GenerateRequest,
   decodedBase64Bytes,
@@ -25,16 +27,12 @@ import { quotaExceededTotal } from "../../infrastructure/metrics";
 import { youtubeMinutesMiddleware } from "../middleware/youtube-minutes.middleware";
 import { configService } from "../../config/config-service";
 
-const FREE_LIMIT    = 3;
-const PREMIUM_LIMIT = 50;
-
 const UUIDV4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface QuotaSnapshot {
-  tier: "free" | "premium";
-  used: number;
-  limit: number;
-  resetsAt: string;
+  balance: number;
+  quotaCost: number;
+  unlimited: boolean;
   youtubeMinutesUsed: number;
   youtubeMinutesLimit: number;
   youtubeMinutesResetsAt: string | null;
@@ -42,33 +40,32 @@ interface QuotaSnapshot {
 
 async function getQuotaSnapshot(
   userRepo: PgUserRepository,
+  whitelistRepo: PgQuotaWhitelistRepository,
   userId: number,
+  email: string,
+  quotaCost: number,
 ): Promise<QuotaSnapshot> {
   const user = await userRepo.findById(userId);
   if (!user) {
     throw new HttpError(401, "invalid_token", "User not found.");
   }
   const ytLimit = configService.get<number>("YOUTUBE_MONTHLY_MINUTES", env.YOUTUBE_MONTHLY_MINUTES);
-  const base = {
+  const ytBase = {
     youtubeMinutesUsed:    user.youtubeMinutesUsed,
     youtubeMinutesLimit:   ytLimit,
     youtubeMinutesResetsAt: user.youtubeMinutesResetAt?.toISOString() ?? null,
   };
-  if (env.RC_BYPASS_PREMIUM || user.isPremium) {
-    return {
-      tier: "premium",
-      used: user.aiPremiumUsed,
-      limit: PREMIUM_LIMIT,
-      resetsAt: (user.premiumResetAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000)).toISOString(),
-      ...base,
-    };
+
+  const unlimited = await whitelistRepo.contains(email);
+  if (unlimited) {
+    return { balance: 0, quotaCost, unlimited: true, ...ytBase };
   }
+
   return {
-    tier: "free",
-    used: user.aiFreeUsed,
-    limit: FREE_LIMIT,
-    resetsAt: (user.freeMonthResetAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000)).toISOString(),
-    ...base,
+    balance:   user.quotaBalance,
+    quotaCost,
+    unlimited: false,
+    ...ytBase,
   };
 }
 
@@ -135,9 +132,6 @@ aiRouter.post(
       // ── 2. Body Zod validation ────────────────────────────────────────────
       const parsed = GenerateRequest.safeParse(req.body);
       if (!parsed.success) {
-        // Surface "unsupported_input_type" specifically for inputType errors so
-        // the Flutter client can route to its "App error" modal vs the generic
-        // "Invalid request" modal (feature-spec-flutter.md §4).
         const inputTypeIssue = parsed.error.issues.find(
           (i) => i.path[0] === "inputType",
         );
@@ -169,9 +163,6 @@ aiRouter.post(
         const pagesPerQuota = configService.get<number>("PDF_PAGES_PER_QUOTA", env.PDF_PAGES_PER_QUOTA);
         quotaCost           = pdfQuotaCost(pages, pagesPerQuota);
 
-        // Verify the client confirmed the exact cost shown in the pre-flight dialog.
-        // Mismatch means the config changed between pre-flight and generate — reject
-        // so the user can re-confirm rather than being silently overcharged.
         if (body.confirmedQuotaCost !== quotaCost) {
           throw new HttpError(409, "quota_cost_changed",
             `The quota cost changed (was ${body.confirmedQuotaCost}, now ${quotaCost}). Please try again.`,
@@ -183,12 +174,14 @@ aiRouter.post(
       // ── 4. Hash canonical body for idempotency cache ──────────────────────
       const requestHash = hashRequestBody(body);
 
-      const aiRepo   = new PgAiGenerationRepository(pool);
-      const userRepo = new PgUserRepository(pool);
+      const aiRepo        = new PgAiGenerationRepository(pool);
+      const userRepo      = new PgUserRepository(pool);
+      const whitelistRepo = new PgQuotaWhitelistRepository(pool);
 
-      // ── 5. Resolve idempotency state ──────────────────────────────────────
-      // Existing row first: cached success or cross-body conflict bypasses
-      // every downstream check (premium gate, quota gate, Gemini work).
+      // ── 5. Whitelist check ────────────────────────────────────────────────
+      const isWhitelisted = await whitelistRepo.contains(req.user!.email);
+
+      // ── 6. Resolve idempotency state ──────────────────────────────────────
       const existing = await aiRepo.findByIdempotencyKey(req.user!.id, idempotencyKey);
 
       if (existing) {
@@ -199,8 +192,7 @@ aiRouter.post(
           );
         }
         if (existing.status === "success") {
-          // Cached replay: same generationId + form, fresh quota snapshot.
-          const quota = await getQuotaSnapshot(userRepo, req.user!.id);
+          const quota = await getQuotaSnapshot(userRepo, whitelistRepo, req.user!.id, req.user!.email, quotaCost);
           res.json({
             generationId: existing.generationId,
             status:       "completed",
@@ -216,13 +208,11 @@ aiRouter.post(
             throw new HttpError(409, "idempotency_in_flight",
               "Your previous request is still being processed. Please retry in a moment.");
           }
-          // Row has been processing for >2 min — treat as timed-out and take over.
           req.log.warn({ generationId: existing.generationId, ageMs }, "idempotency_stuck_processing_takeover");
         }
-        // existing.status is gemini_error or validation_error → take over.
       }
 
-      // ── 6. Premium gate (free users blocked from non-text inputs) ─────────
+      // ── 7. Premium gate (free users blocked from non-text inputs) ─────────
       if (req.user!.tier === "free" && premiumOnlyInputType(body.inputType)) {
         throw new HttpError(403, "premium_required",
           "This input type requires a premium subscription.",
@@ -230,32 +220,33 @@ aiRouter.post(
         );
       }
 
-      // ── 7. Quota gate ─────────────────────────────────────────────────────
-      const quotaBefore = await getQuotaSnapshot(userRepo, req.user!.id);
-      if (quotaBefore.used + quotaCost > quotaBefore.limit) {
-        quotaExceededTotal.inc({ tier: quotaBefore.tier });
-        const remaining = Math.max(0, quotaBefore.limit - quotaBefore.used);
-        throw new HttpError(429, "quota_exceeded",
-          quotaBefore.tier === "free"
-            ? `You've used all ${quotaBefore.limit} free generations this month.`
-            : `This request costs ${quotaCost} quota but you only have ${remaining} remaining.`,
-          {
-            tier:      quotaBefore.tier,
-            used:      quotaBefore.used,
-            limit:     quotaBefore.limit,
-            quotaCost,
-            resetsAt:  quotaBefore.resetsAt,
-          },
-        );
+      // ── 8. Quota gate (skipped for whitelisted users) ─────────────────────
+      if (!isWhitelisted) {
+        const productRepo = new PgQuotaProductRepository(pool);
+        const freeProduct = await productRepo.getById("free");
+        if (freeProduct) {
+          await userRepo.applyFreeGrantIfDue(req.user!.id, freeProduct);
+        }
+
+        const balance = await userRepo.getQuotaBalance(req.user!.id);
+        if (balance < quotaCost) {
+          quotaExceededTotal.inc({ tier: req.user!.tier });
+          throw new HttpError(429, "quota_exceeded",
+            `This request costs ${quotaCost} quota but you only have ${balance} remaining.`,
+            {
+              tier:      req.user!.tier,
+              balance,
+              quotaCost,
+            },
+          );
+        }
       }
 
-      // ── 8. Claim a row to own ──────────────────────────────────────────────
+      // ── 9. Claim a row to own ─────────────────────────────────────────────
       let rowId: number;
       let generationId: string;
 
       if (existing) {
-        // Take-over of a previously-failed row. claimFailedForRetry uses a
-        // conditional UPDATE so concurrent retries can't both proceed.
         const claimed = await aiRepo.claimFailedForRetry(existing.id);
         if (!claimed) {
           throw new HttpError(409, "idempotency_in_flight",
@@ -264,7 +255,6 @@ aiRouter.post(
         rowId        = existing.id;
         generationId = existing.generationId;
       } else {
-        // Fresh attempt: tryCreate handles the concurrent-INSERT race.
         const newGenerationId = uuidv4();
         const created = await aiRepo.tryCreate({
           generationId:   newGenerationId,
@@ -279,10 +269,8 @@ aiRouter.post(
           rowId        = created.id;
           generationId = created.generationId;
         } else {
-          // Lost the race. Re-fetch and route the existing row.
           const racingRow = await aiRepo.findByIdempotencyKey(req.user!.id, idempotencyKey);
           if (!racingRow) {
-            // Extremely rare — UNIQUE conflict but no row. DB hiccup; surface as 503.
             throw new HttpError(503, "database_unavailable", "Please retry.");
           }
           if (racingRow.requestHash !== requestHash) {
@@ -292,7 +280,7 @@ aiRouter.post(
             );
           }
           if (racingRow.status === "success") {
-            const quota = await getQuotaSnapshot(userRepo, req.user!.id);
+            const quota = await getQuotaSnapshot(userRepo, whitelistRepo, req.user!.id, req.user!.email, quotaCost);
             res.json({
               generationId: racingRow.generationId,
               status:       "completed",
@@ -302,13 +290,12 @@ aiRouter.post(
             });
             return;
           }
-          // 'processing' or a freshly-failed row that beat us — tell the client to wait.
           throw new HttpError(409, "idempotency_in_flight",
             "Your previous request is still being processed. Please retry in a moment.");
         }
       }
 
-      // ── 9. Run the Gemini pipeline ─────────────────────────────────────────
+      // ── 10. Run the Gemini pipeline ────────────────────────────────────────
       const outcome = await runGeneration({
         user:    { id: req.user!.id, tier: req.user!.tier },
         body,
@@ -320,17 +307,21 @@ aiRouter.post(
         log: req.log,
       });
 
-      // Stash on req for observability middleware (Task 16) to read in finish handler.
       req.geminiInputTokens  = outcome.inputTokens;
       req.geminiOutputTokens = outcome.outputTokens;
 
-      // ── 10. Deduct YouTube minutes if applicable ──────────────────────────
+      // ── 11. Deduct quota (non-whitelisted users only) ──────────────────────
+      if (!isWhitelisted) {
+        await userRepo.debitQuota(req.user!.id, quotaCost, outcome.generationId);
+      }
+
+      // ── 12. Deduct YouTube minutes if applicable ───────────────────────────
       if (req.videoDurationMinutes) {
         await userRepo.incrementYoutubeMinutes(req.user!.id, req.videoDurationMinutes);
       }
 
-      // ── 11. Respond with success + fresh quota snapshot ───────────────────
-      const quotaAfter = await getQuotaSnapshot(userRepo, req.user!.id);
+      // ── 13. Respond with success + fresh quota snapshot ────────────────────
+      const quotaAfter = await getQuotaSnapshot(userRepo, whitelistRepo, req.user!.id, req.user!.email, quotaCost);
       res.json({
         generationId: outcome.generationId,
         status:       "completed",

@@ -6,8 +6,10 @@ import { pool, withTransaction } from "../../infrastructure/db/postgres";
 import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
+import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { rcWebhookTotal, rcWebhookLagMs } from "../../infrastructure/metrics";
+import { logger } from "../../infrastructure/logger";
 
 export const webhookRouter = Router();
 
@@ -41,31 +43,50 @@ function msToDate(ms: number | null | undefined): Date | null {
 // ── Event handlers (see revenuecat-webhook-map.md §3) ─────────────────────────
 
 async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise<void> {
-  const userRepo = new PgUserRepository(db);
+  const userRepo      = new PgUserRepository(db);
+  const productRepo   = new PgQuotaProductRepository(pool);
 
   switch (event.type) {
     case "INITIAL_PURCHASE": {
-      const resetAt = msToDate(event.expiration_at_ms);
-      if (resetAt) await userRepo.setPremium(userId, resetAt);
+      if (!event.product_id) break;
+      const product = await productRepo.getById(event.product_id);
+      if (!product) {
+        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+        break;
+      }
+      await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
+      await userRepo.setSubscriptionProduct(userId, product.productId);
       break;
     }
     case "RENEWAL": {
-      const resetAt = msToDate(event.expiration_at_ms);
-      if (resetAt) await userRepo.renewPremium(userId, resetAt);
+      if (!event.product_id) break;
+      const product = await productRepo.getById(event.product_id);
+      if (!product) {
+        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+        break;
+      }
+      await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
+      await userRepo.setSubscriptionProduct(userId, product.productId);
+      break;
+    }
+    case "NON_RENEWING_PURCHASE": {
+      if (!event.product_id) break;
+      const product = await productRepo.getById(event.product_id);
+      if (!product) {
+        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+        break;
+      }
+      await userRepo.creditQuota(userId, product.quotaAmount, "topup", product.productId, event.id);
       break;
     }
     case "CANCELLATION":
-      // No user update — subscription still active until expiration_at_ms.
-      // Access is revoked by the EXPIRATION event. (§3.3)
+      // No action — subscription stays active until EXPIRATION.
       break;
-    case "EXPIRATION": {
-      // revokePremium uses the "only-revoke-if-not-already-renewed" guard (§3.4).
-      const expiresAt = msToDate(event.expiration_at_ms) ?? new Date();
-      await userRepo.revokePremium(userId, expiresAt);
+    case "EXPIRATION":
+      // Balance rolls forward; just clear premium status.
+      await userRepo.setSubscriptionProduct(userId, null);
       break;
-    }
     case "BILLING_ISSUE": {
-      // GREATEST guard in setGracePeriod prevents duplicate events from shrinking window (§3.5).
       const gracePeriodUntil = event.grace_period_expiration_at_ms
         ? msToDate(event.grace_period_expiration_at_ms)!
         : new Date(Date.now() + 16 * 24 * 60 * 60 * 1_000);
@@ -73,18 +94,20 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
       break;
     }
     case "REFUND":
-      // Revoke immediately regardless of billing period (§3.6).
+      // Revoke premium immediately. Balance is NOT clawed back — audit trail in quota_transactions.
       await userRepo.revokeImmediately(userId);
+      await userRepo.setSubscriptionProduct(userId, null);
       break;
     case "PRODUCT_CHANGE": {
       const stillPremium = event.entitlement_ids?.includes("gfm_premium") ?? false;
       const resetAt = msToDate(event.expiration_at_ms) ?? new Date();
-      // ai_premium_used intentionally NOT reset — quota continues across plan changes (§3.7).
       await userRepo.updateProductChange(userId, stillPremium, resetAt);
+      if (event.product_id) {
+        await userRepo.setSubscriptionProduct(userId, event.product_id);
+      }
       break;
     }
     case "TRANSFER":
-      // transferred_from/to are google_sub arrays; updates go directly via those arrays (§4.4).
       if (event.transferred_from?.length) {
         await userRepo.transferFrom(event.transferred_from);
       }
@@ -93,8 +116,6 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
       }
       break;
     default:
-      // Unknown event type — row is already stored by the common pipeline.
-      // Forward-compatible: new RC event types are stored and acked without error.
       break;
   }
 }
