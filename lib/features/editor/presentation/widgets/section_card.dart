@@ -98,8 +98,8 @@ class SectionCard extends StatelessWidget {
                             fontSize: 13, color: _secondaryText),
                       ),
                     ],
-                    const SizedBox(height: 4),
-                    const Divider(height: 16, color: _separator),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: _separator),
                     // Action row
                     Row(
                       children: [
@@ -407,8 +407,8 @@ class TextBlockCard extends StatelessWidget {
                             fontSize: 13, color: _secondaryText),
                       ),
                     ],
-                    const SizedBox(height: 4),
-                    const Divider(height: 16, color: _separator),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: _separator),
                     Row(
                       children: [
                         _CardActionButton(
