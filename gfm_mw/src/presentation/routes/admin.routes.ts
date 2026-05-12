@@ -151,6 +151,6 @@ adminRouter.delete("/whitelist/:email", async (req, res) => {
   }
 
   await repo.remove(email);
-  res.status(204).end();
+  res.json({ success: true });
 });
 
