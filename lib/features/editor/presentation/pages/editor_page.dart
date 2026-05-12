@@ -78,7 +78,7 @@ class _EditorViewState extends State<_EditorView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this, animationDuration: Duration.zero);
     _tabController.addListener(_onTabChanged);
   }
 
