@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
@@ -115,8 +114,6 @@ class _EditorViewState extends State<_EditorView>
         appBar: _buildAppBar(context),
         body: Column(
           children: [
-            // Action strip: Preview | Share | Save
-            _ActionStrip(formId: widget.formId),
             // Tab bar
             ColoredBox(
               color: _iosBg,
@@ -199,7 +196,8 @@ class _EditorViewState extends State<_EditorView>
       backgroundColor: _iosBg,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      centerTitle: true,
+      centerTitle: false,
+      titleSpacing: 0,
       leading: IconButton(
         icon: const Icon(CupertinoIcons.arrow_left, color: _purple, size: 20),
         onPressed: () => Navigator.of(context).pop(),
@@ -214,18 +212,96 @@ class _EditorViewState extends State<_EditorView>
         overflow: TextOverflow.ellipsis,
       ),
       actions: [
-        GestureDetector(
-          onTap: () => PaywallPage.show(context),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: SvgPicture.asset(
-              'assets/dashboard_premium.svg',
-              width: 26,
-              height: 26,
-            ),
-          ),
+        // Save button
+        BlocSelector<EditorCubit, EditorState,
+            ({bool isLoaded, bool isDirty, bool isSaving})>(
+          selector: (state) => state is EditorLoaded
+              ? (
+                  isLoaded: true,
+                  isDirty: state.isDirty,
+                  isSaving: state.isSaving
+                )
+              : (isLoaded: false, isDirty: false, isSaving: false),
+          builder: (context, data) {
+            if (data.isSaving) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Center(
+                  child: CupertinoActivityIndicator(radius: 9),
+                ),
+              );
+            }
+            final active = data.isLoaded && data.isDirty;
+            return CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              onPressed: active ? () => context.read<EditorCubit>().save() : null,
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: active ? _purple : _secondaryText,
+                ),
+              ),
+            );
+          },
         ),
+        // Options button
+        BlocSelector<EditorCubit, EditorState,
+            ({bool isLoaded, String responderUri, String title})>(
+          selector: (state) => state is EditorLoaded
+              ? (
+                  isLoaded: true,
+                  responderUri: state.form.responderUri,
+                  title: state.form.info.title
+                )
+              : (isLoaded: false, responderUri: '', title: ''),
+          builder: (context, data) {
+            return IconButton(
+              icon: const Icon(CupertinoIcons.ellipsis, color: _purple, size: 22),
+              onPressed: data.isLoaded
+                  ? () => _showOptionsSheet(
+                      context, data.responderUri, data.title)
+                  : null,
+            );
+          },
+        ),
+        const SizedBox(width: 4),
       ],
+    );
+  }
+
+  void _showOptionsSheet(
+      BuildContext context, String responderUri, String title) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => PreviewScreen(
+                  responderUri: responderUri,
+                  formTitle: title,
+                ),
+              ));
+            },
+            child: const Text('Preview'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Share.share(responderUri, subject: title);
+            },
+            child: const Text('Share'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 
@@ -306,162 +382,6 @@ class _EditorViewState extends State<_EditorView>
 }
 
 // ── Action strip: Preview | Share | Save ─────────────────────────────────────
-
-class _ActionStrip extends StatelessWidget {
-  final String formId;
-
-  const _ActionStrip({required this.formId});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState,
-        ({bool isLoaded, bool isDirty, bool isSaving, String responderUri, String title, List<Item> items})>(
-      selector: (state) => state is EditorLoaded
-          ? (
-              isLoaded: true,
-              isDirty: state.isDirty,
-              isSaving: state.isSaving,
-              responderUri: state.form.responderUri,
-              title: state.form.info.title,
-              items: state.form.items,
-            )
-          : (
-              isLoaded: false,
-              isDirty: false,
-              isSaving: false,
-              responderUri: '',
-              title: '',
-              items: const <Item>[],
-            ),
-      builder: (context, data) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: _iosBg,
-            border: Border(
-              bottom: BorderSide(color: _separator),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _StripButton(
-                icon: CupertinoIcons.eye,
-                label: 'Preview',
-                enabled: data.isLoaded,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PreviewScreen(
-                      responderUri: data.responderUri,
-                      formTitle: data.title,
-                    ),
-                  ),
-                ),
-              ),
-              _StripButton(
-                icon: CupertinoIcons.share,
-                label: 'Share',
-                enabled: data.isLoaded,
-                onTap: () => Share.share(data.responderUri, subject: data.title),
-              ),
-              _SaveStripButton(data: data),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _StripButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  const _StripButton({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = enabled ? _primaryText : _secondaryText;
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(fontSize: 11, color: color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SaveStripButton extends StatelessWidget {
-  final ({bool isLoaded, bool isDirty, bool isSaving, String responderUri, String title, List<Item> items}) data;
-
-  const _SaveStripButton({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    if (data.isSaving) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CupertinoActivityIndicator(radius: 10),
-            ),
-            SizedBox(height: 2),
-            Text('Save', style: TextStyle(fontSize: 11, color: _secondaryText)),
-          ],
-        ),
-      );
-    }
-
-    final active = data.isLoaded && data.isDirty;
-    final color = active ? _purple : _secondaryText;
-
-    return InkWell(
-      onTap: active ? () => context.read<EditorCubit>().save() : null,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(CupertinoIcons.checkmark_circle, size: 22, color: color),
-            const SizedBox(height: 2),
-            Text(
-              'Save',
-              style: TextStyle(
-                fontSize: 11,
-                color: color,
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Value objects for BlocSelectors ──────────────────────────────────────────
 
