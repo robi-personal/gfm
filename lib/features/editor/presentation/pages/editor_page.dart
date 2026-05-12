@@ -267,7 +267,7 @@ class _EditorViewState extends State<_EditorView>
               : (isLoaded: false, responderUri: '', title: ''),
           builder: (context, data) {
             return IconButton(
-              icon: Icon(CupertinoIcons.ellipsis, color: _purple, size: 22),
+              icon: Icon(CupertinoIcons.ellipsis_vertical, color: _purple, size: 22),
               onPressed: data.isLoaded
                   ? () => _showOptionsSheet(
                       context, data.responderUri, data.title)
