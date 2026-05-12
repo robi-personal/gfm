@@ -1403,7 +1403,7 @@ class _BottomBar extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF3B1278).withValues(alpha: 0.88),
+                color: const Color(0xFF3B1278).withValues(alpha: 0.60),
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.12),
