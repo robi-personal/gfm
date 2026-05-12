@@ -1513,15 +1513,6 @@ class _BarButton extends StatelessWidget {
               ),
               child: Icon(icon, size: 22, color: iconColor),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: iconColor,
-              ),
-            ),
           ],
         ),
       ),
