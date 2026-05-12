@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,6 +35,10 @@ import '../widgets/question_card.dart';
 import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
 
 const _purple = Color(0xFF772FC0);
+const _iosBg = Colors.white;
+const _separator = Color(0xFFE8E8E8);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
 
 class EditorPage extends StatelessWidget {
   final String formId;
@@ -106,6 +111,7 @@ class _EditorViewState extends State<_EditorView>
         return curr is EditorError;
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFF2F2F7),
         appBar: _buildAppBar(context),
         body: Column(
           children: [
@@ -116,7 +122,12 @@ class _EditorViewState extends State<_EditorView>
               controller: _tabController,
               labelColor: _purple,
               indicatorColor: _purple,
-              unselectedLabelColor: Colors.grey,
+              unselectedLabelColor: _secondaryText,
+              dividerColor: _separator,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 14),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
               tabs: const [
                 Tab(text: 'Questions'),
                 Tab(text: 'Responses'),
@@ -179,13 +190,22 @@ class _EditorViewState extends State<_EditorView>
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
+      backgroundColor: _iosBg,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(CupertinoIcons.arrow_left, color: _purple, size: 20),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: const Text(
-        'Form list',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      title: Text(
+        widget.initialName,
+        style: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: _primaryText,
+        ),
+        overflow: TextOverflow.ellipsis,
       ),
       actions: [
         GestureDetector(
@@ -309,12 +329,10 @@ class _ActionStrip extends StatelessWidget {
             ),
       builder: (context, data) {
         return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+          decoration: const BoxDecoration(
+            color: _iosBg,
             border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
+              bottom: BorderSide(color: _separator),
             ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -322,7 +340,7 @@ class _ActionStrip extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _StripButton(
-                icon: Icons.visibility_outlined,
+                icon: CupertinoIcons.eye,
                 label: 'Preview',
                 enabled: data.isLoaded,
                 onTap: () => Navigator.of(context).push(
@@ -335,7 +353,7 @@ class _ActionStrip extends StatelessWidget {
                 ),
               ),
               _StripButton(
-                icon: Icons.share_outlined,
+                icon: CupertinoIcons.share,
                 label: 'Share',
                 enabled: data.isLoaded,
                 onTap: () => Share.share(data.responderUri, subject: data.title),
@@ -364,9 +382,7 @@ class _StripButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled
-        ? Theme.of(context).colorScheme.onSurface
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
+    final color = enabled ? _primaryText : _secondaryText;
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
@@ -404,29 +420,27 @@ class _SaveStripButton extends StatelessWidget {
             SizedBox(
               width: 22,
               height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CupertinoActivityIndicator(radius: 10),
             ),
             SizedBox(height: 2),
-            Text('Save', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            Text('Save', style: TextStyle(fontSize: 11, color: _secondaryText)),
           ],
         ),
       );
     }
 
     final active = data.isLoaded && data.isDirty;
-    final color = active ? _purple : Colors.grey;
+    final color = active ? _purple : _secondaryText;
 
     return InkWell(
-      onTap: active
-          ? () => context.read<EditorCubit>().save()
-          : null,
+      onTap: active ? () => context.read<EditorCubit>().save() : null,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline, size: 22, color: color),
+            Icon(CupertinoIcons.checkmark_circle, size: 22, color: color),
             const SizedBox(height: 2),
             Text(
               'Save',
@@ -561,47 +575,36 @@ class _EditorBodyState extends State<_EditorBody> {
               physics: physics,
               slivers: [
                 SliverToBoxAdapter(child: header),
-                SliverFillRemaining(
+                const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: EdgeInsets.symmetric(horizontal: 40),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.quiz_outlined,
+                            CupertinoIcons.question_circle,
                             size: 56,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.4),
+                            color: Color(0xFFD1D1D6),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           Text(
                             'No questions yet.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF3C3C43),
+                            ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Text(
                             'Tap + below to add your first question.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                                ),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _secondaryText,
+                            ),
                           ),
                         ],
                       ),
@@ -706,7 +709,7 @@ class _SettingsTabPage extends StatelessWidget {
       ),
       builder: (context, data) {
         if (data.settings == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CupertinoActivityIndicator());
         }
         return _SettingsContent(
           initialSettings: data.settings!,
@@ -861,24 +864,15 @@ class _SettingsContentState extends State<_SettingsContent> {
 
   Future<void> _onQuizToggle(bool value) async {
     if (!value) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Turn off quiz mode?'),
-          content: const Text(
-            'All answer keys and point values will be permanently removed.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Turn off'),
-            ),
-          ],
-        ),
+      bool? confirmed;
+      await ErrorModal.show(
+        context,
+        title: 'Turn off quiz mode?',
+        body: 'All answer keys and point values will be permanently removed.',
+        primaryLabel: 'Turn off',
+        onPrimary: () => confirmed = true,
+        secondaryLabel: 'Cancel',
+        onSecondary: () => confirmed = false,
       );
       if (confirmed != true) return;
     }
@@ -893,90 +887,312 @@ class _SettingsContentState extends State<_SettingsContent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: EdgeInsets.fromLTRB(
+        16, 20, 16, MediaQuery.viewPaddingOf(context).bottom + 20,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Email collection
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              'Collect email addresses',
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(color: theme.colorScheme.primary),
+          // ── Email collection ───────────────────────────────────────────────
+          _IosGroupLabel(
+            label: 'COLLECT EMAIL ADDRESSES',
+            trailing: _isSaving
+                ? const CupertinoActivityIndicator(radius: 7)
+                : null,
+          ),
+          _IosCard(children: [
+            _IosRadioTile(
+              label: "Don't collect",
+              selected: _emailType == EmailCollectionType.doNotCollect,
+              onTap: _isSaving
+                  ? null
+                  : () => _onEmailTypeChange(EmailCollectionType.doNotCollect),
+            ),
+            _IosRadioTile(
+              label: 'Verified (Workspace accounts only)',
+              selected: _emailType == EmailCollectionType.verified,
+              onTap: _isSaving
+                  ? null
+                  : () => _onEmailTypeChange(EmailCollectionType.verified),
+            ),
+            _IosRadioTile(
+              label: 'Ask respondents',
+              selected: _emailType == EmailCollectionType.responderInput,
+              isLast: true,
+              onTap: _isSaving
+                  ? null
+                  : () =>
+                      _onEmailTypeChange(EmailCollectionType.responderInput),
+            ),
+          ]),
+          const SizedBox(height: 28),
+
+          // ── Quiz mode ──────────────────────────────────────────────────────
+          const _IosGroupLabel(label: 'QUIZ'),
+          _IosCard(children: [
+            _IosSwitchTile(
+              label: 'Quiz mode',
+              subtitle: 'Assign point values and set correct answers',
+              value: _isQuiz,
+              isLast: true,
+              onChanged: _isSaving ? null : _onQuizToggle,
+            ),
+          ]),
+          const SizedBox(height: 28),
+
+          // ── Data ───────────────────────────────────────────────────────────
+          const _IosGroupLabel(label: 'DATA'),
+          _IosCard(children: [
+            _IosActionTile(
+              icon: _isExporting
+                  ? null
+                  : CupertinoIcons.arrow_down_circle,
+              leadingWidget: _isExporting
+                  ? const CupertinoActivityIndicator(radius: 10)
+                  : null,
+              label: 'Export responses as CSV',
+              isLast: widget.linkedSheetId == null,
+              onTap: _isExporting ? null : _exportCsv,
+            ),
+            if (widget.linkedSheetId != null)
+              _IosActionTile(
+                icon: CupertinoIcons.table,
+                label: 'Open linked Google Sheet',
+                trailing: const Icon(
+                  CupertinoIcons.arrow_up_right_square,
+                  size: 16,
+                  color: _secondaryText,
+                ),
+                isLast: true,
+                onTap: () => launchUrl(
+                  Uri.parse(
+                    'https://docs.google.com/spreadsheets/d/${widget.linkedSheetId}',
+                  ),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+// ── iOS settings helpers ──────────────────────────────────────────────────────
+
+class _IosGroupLabel extends StatelessWidget {
+  final String label;
+  final Widget? trailing;
+
+  const _IosGroupLabel({required this.label, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: _secondaryText,
+              letterSpacing: 0.4,
             ),
           ),
-          RadioGroup<EmailCollectionType>(
-            groupValue: _emailType,
-            onChanged: _isSaving
-                ? (_) {}
-                : (v) => _onEmailTypeChange(v as EmailCollectionType),
-            child: Column(
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _IosCard extends StatelessWidget {
+  final List<Widget> children;
+
+  const _IosCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _iosBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _IosRadioTile extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final bool isLast;
+  final VoidCallback? onTap;
+
+  const _IosRadioTile({
+    required this.label,
+    required this.selected,
+    this.isLast = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: isLast
+              ? const BorderRadius.vertical(bottom: Radius.circular(12))
+              : BorderRadius.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
-                RadioListTile<EmailCollectionType>(
-                  title: const Text("Don't collect"),
-                  value: EmailCollectionType.doNotCollect,
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                  ),
                 ),
-                RadioListTile<EmailCollectionType>(
-                  title: const Text('Verified (Workspace accounts only)'),
-                  value: EmailCollectionType.verified,
-                ),
-                RadioListTile<EmailCollectionType>(
-                  title: const Text('Ask respondents'),
-                  value: EmailCollectionType.responderInput,
-                ),
+                if (selected)
+                  const Icon(CupertinoIcons.checkmark, size: 18, color: _purple),
               ],
             ),
           ),
-          const Divider(height: 24),
-          // Quiz mode
-          SwitchListTile(
-            title: const Text('Quiz mode'),
-            subtitle: const Text('Assign point values and set correct answers'),
-            value: _isQuiz,
-            onChanged: _isSaving ? null : _onQuizToggle,
+        ),
+        if (!isLast)
+          const Padding(
+            padding: EdgeInsets.only(left: 16),
+            child: Divider(height: 1, color: _separator),
           ),
-          const Divider(height: 24),
-          // Data section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text(
-              'Data',
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(color: theme.colorScheme.primary),
-            ),
-          ),
-          // Export as CSV
-          ListTile(
-            leading: _isExporting
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Icon(Icons.download_outlined),
-            title: const Text('Export responses as CSV'),
-            onTap: _isExporting ? null : _exportCsv,
-          ),
-          // Open linked sheet — only shown if the form has one
-          if (widget.linkedSheetId != null)
-            ListTile(
-              leading: const Icon(Icons.table_chart_outlined),
-              title: const Text('Open linked Google Sheet'),
-              trailing: const Icon(Icons.open_in_new, size: 18),
-              onTap: () => launchUrl(
-                Uri.parse(
-                  'https://docs.google.com/spreadsheets/d/${widget.linkedSheetId}',
+      ],
+    );
+  }
+}
+
+class _IosSwitchTile extends StatelessWidget {
+  final String label;
+  final String? subtitle;
+  final bool value;
+  final bool isLast;
+  final ValueChanged<bool>? onChanged;
+
+  const _IosSwitchTile({
+    required this.label,
+    required this.value,
+    this.subtitle,
+    this.isLast = false,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(fontSize: 15, color: _primaryText),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: _secondaryText,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                mode: LaunchMode.externalApplication,
               ),
+              CupertinoSwitch(
+                value: value,
+                activeTrackColor: _purple,
+                onChanged: onChanged,
+              ),
+            ],
+          ),
+        ),
+        if (!isLast)
+          const Padding(
+            padding: EdgeInsets.only(left: 16),
+            child: Divider(height: 1, color: _separator),
+          ),
+      ],
+    );
+  }
+}
+
+class _IosActionTile extends StatelessWidget {
+  final IconData? icon;
+  final Widget? leadingWidget;
+  final String label;
+  final Widget? trailing;
+  final bool isLast;
+  final VoidCallback? onTap;
+
+  const _IosActionTile({
+    this.icon,
+    this.leadingWidget,
+    required this.label,
+    this.trailing,
+    this.isLast = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = leadingWidget ??
+        (icon != null
+            ? Icon(icon, size: 20, color: _purple)
+            : const SizedBox(width: 20));
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: isLast
+              ? const BorderRadius.vertical(bottom: Radius.circular(12))
+              : BorderRadius.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                leading,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                  ),
+                ),
+                ?trailing,
+              ],
             ),
-          SizedBox(height: MediaQuery.viewPaddingOf(context).bottom + 12),
-        ],
-      ),
+          ),
+        ),
+        if (!isLast)
+          const Padding(
+            padding: EdgeInsets.only(left: 48),
+            child: Divider(height: 1, color: _separator),
+          ),
+      ],
     );
   }
 }
@@ -991,16 +1207,13 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final cubit = context.read<EditorCubit>();
 
     return SafeArea(
       child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border(
-            top: BorderSide(color: theme.colorScheme.outlineVariant),
-          ),
+        decoration: const BoxDecoration(
+          color: _iosBg,
+          border: Border(top: BorderSide(color: _separator)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
@@ -1008,14 +1221,14 @@ class _BottomBar extends StatelessWidget {
           children: [
             // 1. Add question
             _BarButton(
-              icon: Icons.add,
+              icon: CupertinoIcons.add,
               tooltip: 'Add question',
               enabled: enabled,
               onTap: () => cubit.addQuestion(),
             ),
             // 2. Add image
             _BarButton(
-              icon: Icons.image_outlined,
+              icon: CupertinoIcons.photo,
               tooltip: 'Add image',
               enabled: enabled,
               onTap: () async {
@@ -1032,14 +1245,14 @@ class _BottomBar extends StatelessWidget {
             ),
             // 3. Add text block
             _BarButton(
-              icon: Icons.text_fields,
+              icon: CupertinoIcons.textformat,
               tooltip: 'Add text block',
               enabled: enabled,
               onTap: () => cubit.addTextBlock(),
             ),
             // 4. Add video
             _BarButton(
-              icon: Icons.video_library_outlined,
+              icon: CupertinoIcons.play_rectangle,
               tooltip: 'Add video',
               enabled: enabled,
               onTap: () async {
@@ -1051,7 +1264,7 @@ class _BottomBar extends StatelessWidget {
             ),
             // 5. Add section
             _BarButton(
-              icon: Icons.view_agenda_outlined,
+              icon: CupertinoIcons.rectangle_stack,
               tooltip: 'Add section',
               enabled: enabled,
               onTap: () => cubit.addSection(),
@@ -1088,9 +1301,7 @@ class _BarButton extends StatelessWidget {
           child: Icon(
             icon,
             size: 24,
-            color: enabled
-                ? Theme.of(context).colorScheme.onSurface
-                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+            color: enabled ? _purple : const Color(0xFFD1D1D6),
           ),
         ),
       ),
@@ -1105,11 +1316,9 @@ class _EditorSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlight = Theme.of(context).colorScheme.surface;
     return Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: highlight,
+      baseColor: const Color(0xFFE5E5EA),
+      highlightColor: const Color(0xFFF2F2F7),
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: const [
@@ -1193,10 +1402,19 @@ class _ImageCard extends StatelessWidget {
     final imageUrl =
         content.image.sourceUri ?? content.image.contentUri;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: _iosBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -1205,22 +1423,20 @@ class _ImageCard extends StatelessWidget {
               imageUrl,
               width: double.infinity,
               fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Container(
+              errorBuilder: (_, _, _) => const SizedBox(
                 height: 180,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Icon(Icons.broken_image_outlined,
-                    size: 40,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                child: Center(
+                  child: Icon(CupertinoIcons.photo,
+                      size: 40, color: Color(0xFFD1D1D6)),
+                ),
               ),
             )
           else
-            Container(
+            const SizedBox(
               height: 180,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Center(
-                child: Icon(Icons.image_outlined,
-                    size: 40,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                child: Icon(CupertinoIcons.photo,
+                    size: 40, color: Color(0xFFD1D1D6)),
               ),
             ),
           Positioned(
@@ -1237,8 +1453,8 @@ class _ImageCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.edit,
-                        color: Colors.white, size: 18),
+                    child: const Icon(CupertinoIcons.pencil,
+                        color: Colors.white, size: 16),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -1251,8 +1467,8 @@ class _ImageCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.close,
-                        color: Colors.white, size: 18),
+                    child: const Icon(CupertinoIcons.xmark,
+                        color: Colors.white, size: 16),
                   ),
                 ),
               ],
@@ -1298,10 +1514,19 @@ class _VideoCard extends StatelessWidget {
         ? 'https://img.youtube.com/vi/$videoId/mqdefault.jpg'
         : null;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: _iosBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1317,17 +1542,17 @@ class _VideoCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
                     height: 160,
-                    color: Colors.red.shade50,
-                    child: Icon(Icons.play_circle_outline,
-                        size: 48, color: Colors.red.shade300),
+                    color: const Color(0xFFF2F2F7),
+                    child: const Icon(CupertinoIcons.play_circle,
+                        size: 48, color: Color(0xFFD1D1D6)),
                   ),
                 )
               else
                 Container(
                   height: 160,
-                  color: Colors.red.shade50,
-                  child: Icon(Icons.play_circle_outline,
-                      size: 48, color: Colors.red.shade300),
+                  color: const Color(0xFFF2F2F7),
+                  child: const Icon(CupertinoIcons.play_circle,
+                      size: 48, color: Color(0xFFD1D1D6)),
                 ),
               Container(
                 width: 52,
@@ -1336,8 +1561,8 @@ class _VideoCard extends StatelessWidget {
                   color: Colors.red,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.play_arrow,
-                    color: Colors.white, size: 24),
+                child: const Icon(CupertinoIcons.play_arrow_solid,
+                    color: Colors.white, size: 22),
               ),
               Positioned(
                 top: 6,
@@ -1351,8 +1576,8 @@ class _VideoCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.close,
-                        color: Colors.white, size: 18),
+                    child: const Icon(CupertinoIcons.xmark,
+                        color: Colors.white, size: 16),
                   ),
                 ),
               ),
@@ -1364,7 +1589,7 @@ class _VideoCard extends StatelessWidget {
               item.title ?? content.caption ?? 'Video',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: const TextStyle(fontSize: 14, color: _primaryText),
             ),
           ),
         ],
@@ -1389,9 +1614,17 @@ class _FullScreenError extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: _primaryText),
+            ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _purple),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
