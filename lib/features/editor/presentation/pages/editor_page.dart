@@ -1382,67 +1382,72 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<EditorCubit>();
 
-    return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: _iosBg,
-          border: Border(top: BorderSide(color: _separator)),
-        ),
-        padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // 1. Add question
-            _BarButton(
-              icon: CupertinoIcons.add,
-              tooltip: 'Add question',
-              enabled: enabled,
-              onTap: () => cubit.addQuestion(),
-            ),
-            // 2. Add image
-            _BarButton(
-              icon: CupertinoIcons.photo,
-              tooltip: 'Add image',
-              enabled: enabled,
-              onTap: () async {
-                final driveClient = getIt<DriveClient>();
-                final url = await showImageUrlDialog(
-                  context,
-                  onGalleryUpload: (bytes, mimeType) =>
-                      driveClient.uploadImage(bytes, mimeType),
-                );
-                if (url != null && context.mounted) {
-                  cubit.addImageItem(url);
-                }
-              },
-            ),
-            // 3. Add text block
-            _BarButton(
-              icon: CupertinoIcons.textformat,
-              tooltip: 'Add text block',
-              enabled: enabled,
-              onTap: () => cubit.addTextBlock(),
-            ),
-            // 4. Add video
-            _BarButton(
-              icon: CupertinoIcons.play_rectangle,
-              tooltip: 'Add video',
-              enabled: enabled,
-              onTap: () async {
-                final video = await showVideoSearchDialog(context);
-                if (video != null && context.mounted) {
-                  cubit.addVideoItem(video.videoId, video.title);
-                }
-              },
-            ),
-            // 5. Add section
-            _BarButton(
-              icon: CupertinoIcons.rectangle_stack,
-              tooltip: 'Add section',
-              enabled: enabled,
-              onTap: () => cubit.addSection(),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _BarButton(
+                icon: CupertinoIcons.add_circled_solid,
+                label: 'Question',
+                enabled: enabled,
+                primary: true,
+                onTap: () => cubit.addQuestion(),
+              ),
+              _BarButton(
+                icon: CupertinoIcons.photo_fill,
+                label: 'Image',
+                enabled: enabled,
+                onTap: () async {
+                  final driveClient = getIt<DriveClient>();
+                  final url = await showImageUrlDialog(
+                    context,
+                    onGalleryUpload: (bytes, mimeType) =>
+                        driveClient.uploadImage(bytes, mimeType),
+                  );
+                  if (url != null && context.mounted) {
+                    cubit.addImageItem(url);
+                  }
+                },
+              ),
+              _BarButton(
+                icon: CupertinoIcons.textformat_alt,
+                label: 'Text',
+                enabled: enabled,
+                onTap: () => cubit.addTextBlock(),
+              ),
+              _BarButton(
+                icon: CupertinoIcons.play_circle_fill,
+                label: 'Video',
+                enabled: enabled,
+                onTap: () async {
+                  final video = await showVideoSearchDialog(context);
+                  if (video != null && context.mounted) {
+                    cubit.addVideoItem(video.videoId, video.title);
+                  }
+                },
+              ),
+              _BarButton(
+                icon: CupertinoIcons.rectangle_stack_fill,
+                label: 'Section',
+                enabled: enabled,
+                onTap: () => cubit.addSection(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1451,31 +1456,57 @@ class _BottomBar extends StatelessWidget {
 
 class _BarButton extends StatelessWidget {
   final IconData icon;
-  final String tooltip;
+  final String label;
   final bool enabled;
+  final bool primary;
   final VoidCallback? onTap;
 
   const _BarButton({
     required this.icon,
-    required this.tooltip,
+    required this.label,
     required this.enabled,
     required this.onTap,
+    this.primary = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
+    final color = enabled ? _purple : const Color(0xFFD1D1D6);
+
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Icon(
-            icon,
-            size: 24,
-            color: enabled ? _purple : const Color(0xFFD1D1D6),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: enabled
+                    ? (primary
+                        ? _purple
+                        : _purple.withValues(alpha: 0.08))
+                    : const Color(0xFFF2F2F7),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: primary && enabled ? Colors.white : color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
