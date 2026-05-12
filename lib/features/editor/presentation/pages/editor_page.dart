@@ -1382,22 +1382,32 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<EditorCubit>();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
-          child: Row(
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B1278).withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  width: 0.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3B1278).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _BarButton(
@@ -1448,6 +1458,8 @@ class _BottomBar extends StatelessWidget {
             ],
           ),
         ),
+          ),
+        ),
       ),
     );
   }
@@ -1457,7 +1469,6 @@ class _BarButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool enabled;
-  final bool primary;
   final VoidCallback? onTap;
 
   const _BarButton({
@@ -1465,12 +1476,13 @@ class _BarButton extends StatelessWidget {
     required this.label,
     required this.enabled,
     required this.onTap,
-    this.primary = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? _purple : const Color(0xFFD1D1D6);
+    final iconColor = enabled
+        ? Colors.white
+        : Colors.white.withValues(alpha: 0.35);
 
     return Expanded(
       child: GestureDetector(
@@ -1484,17 +1496,11 @@ class _BarButton extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: enabled
-                    ? (primary
-                        ? _purple
-                        : _purple.withValues(alpha: 0.08))
-                    : const Color(0xFFF2F2F7),
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                icon,
-                size: 22,
-                color: primary && enabled ? Colors.white : color,
-              ),
+              child: Icon(icon, size: 22, color: iconColor),
             ),
             const SizedBox(height: 4),
             Text(
@@ -1502,7 +1508,7 @@ class _BarButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: color,
+                color: iconColor,
               ),
             ),
           ],
