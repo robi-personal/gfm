@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,6 +13,9 @@ import 'question_edit_sheet.dart';
 import 'type_chip.dart';
 
 const _purple = Color(0xFF772FC0);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
+const _separator = Color(0xFFE8E8E8);
 
 /// Static (read-only) card for a question item.
 /// All editing happens via [QuestionEditSheet] opened from the Edit button.
@@ -41,25 +45,25 @@ class QuestionCard extends StatelessWidget {
   }
 
   Widget _buildSingle(BuildContext context, Question question) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final kind = question.kind;
     final isRequired = question.required;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: cs.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return _CardShell(
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left purple accent border
-            Container(width: 4, color: _purple),
+            // Left purple accent bar
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
+                ),
+              ),
+            ),
             // Card content
             Expanded(
               child: Padding(
@@ -76,11 +80,12 @@ class QuestionCard extends StatelessWidget {
                             item.title?.isNotEmpty == true
                                 ? item.title!
                                 : 'Question name',
-                            style: theme.textTheme.bodyLarge?.copyWith(
+                            style: TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: item.title?.isNotEmpty == true
-                                  ? null
-                                  : cs.onSurfaceVariant,
+                                  ? _primaryText
+                                  : _secondaryText,
                             ),
                           ),
                         ),
@@ -99,36 +104,31 @@ class QuestionCard extends StatelessWidget {
                           context, item, sections,
                           isQuiz: isQuiz,
                         ),
-                        child: Text(
-                          'Add Option  Or  Add "Other"',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _purple,
+                        child: const Text(
+                          'Add Option  ·  Add "Other"',
+                          style: TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
+                            color: _purple,
                           ),
                         ),
                       ),
                     ],
                     const SizedBox(height: 4),
-                    const Divider(height: 12),
+                    const Divider(height: 16, color: _separator),
                     // ── Bottom action row ─────────────────────────────────
                     Row(
                       children: [
                         // Delete
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _ActionButton(
+                          icon: CupertinoIcons.trash,
                           tooltip: 'Delete',
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
                         ),
                         // Edit
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _ActionButton(
+                          icon: CupertinoIcons.pencil,
                           tooltip: 'Edit',
                           onPressed: () => QuestionEditSheet.show(
                             context, item, sections,
@@ -137,29 +137,28 @@ class QuestionCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         // Required label + compact switch
-                        Text(
+                        const Text(
                           'Required',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: cs.onSurfaceVariant),
+                          style: TextStyle(fontSize: 12, color: _secondaryText),
                         ),
+                        const SizedBox(width: 6),
                         Transform.scale(
                           scale: 0.75,
-                          child: Switch(
+                          child: CupertinoSwitch(
                             value: isRequired,
-                            activeColor: _purple,
+                            activeTrackColor: _purple,
                             onChanged: (value) {
                               final content =
                                   item.content as QuestionItemContent;
-                              final updatedItem = item.copyWith(
-                                content: content.copyWith(
-                                  question: question.copyWith(
-                                    required: value,
-                                  ),
-                                ),
-                              );
-                              context
-                                  .read<EditorCubit>()
-                                  .updateItemFull(updatedItem);
+                              context.read<EditorCubit>().updateItemFull(
+                                    item.copyWith(
+                                      content: content.copyWith(
+                                        question: question.copyWith(
+                                          required: value,
+                                        ),
+                                      ),
+                                    ),
+                                  );
                             },
                           ),
                         ),
@@ -176,24 +175,24 @@ class QuestionCard extends StatelessWidget {
   }
 
   Widget _buildGroup(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final content = item.content as QuestionGroupItemContent;
     final colCount = content.grid?.columns.options.length ?? 0;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: cs.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return _CardShell(
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 4, color: _purple),
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
+                ),
+              ),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
@@ -208,8 +207,11 @@ class QuestionCard extends StatelessWidget {
                             item.title?.isNotEmpty == true
                                 ? item.title!
                                 : 'Question group',
-                            style: theme.textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w500),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: _primaryText,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -222,18 +224,15 @@ class QuestionCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         '${content.questions.length} rows · $colCount columns',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: cs.onSurfaceVariant),
+                        style: const TextStyle(
+                            fontSize: 12, color: _secondaryText),
                       ),
                     ],
-                    const Divider(height: 20),
+                    const Divider(height: 20, color: _separator),
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _ActionButton(
+                          icon: CupertinoIcons.trash,
                           tooltip: 'Delete',
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
@@ -251,6 +250,60 @@ class QuestionCard extends StatelessWidget {
   }
 }
 
+// ── Shared card shell ─────────────────────────────────────────────────────────
+
+class _CardShell extends StatelessWidget {
+  final Widget child;
+  const _CardShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+}
+
+// ── Action icon button ────────────────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _ActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        minSize: 0,
+        onPressed: onPressed,
+        child: Icon(icon, size: 18, color: _secondaryText),
+      ),
+    );
+  }
+}
+
 // ── Content preview widget ────────────────────────────────────────────────────
 
 class _ContentPreview extends StatelessWidget {
@@ -259,9 +312,6 @@ class _ContentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return switch (kind) {
       ChoiceQuestion(:final options, :final type) =>
         _OptionsPreview(options: options, type: type),
@@ -269,16 +319,17 @@ class _ContentPreview extends StatelessWidget {
           paragraph ? 'Long answer text' : 'Short answer text'),
       ScaleQuestion(:final low, :final high) => Text(
           'Scale $low – $high',
-          style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+          style: const TextStyle(
+              fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
         ),
       DateQuestion() =>
-        _IconLine(Icons.calendar_today, 'Date'),
+        _IconLine(CupertinoIcons.calendar, 'Date'),
       TimeQuestion(:final duration) =>
-        _IconLine(Icons.access_time, duration ? 'Duration' : 'Time'),
+        _IconLine(CupertinoIcons.clock, duration ? 'Duration' : 'Time'),
       RatingQuestion(:final ratingScaleLevel, :final iconType) =>
         _RatingLine(count: ratingScaleLevel, iconType: iconType),
       FileUploadQuestion() =>
-        _IconLine(Icons.upload_file, 'File upload'),
+        _IconLine(CupertinoIcons.arrow_up_doc, 'File upload'),
       RowQuestion() => const SizedBox.shrink(),
     };
   }
@@ -291,16 +342,11 @@ class _OptionsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     if (options.isEmpty) {
-      return Text(
+      return const Text(
         'No options — tap Edit to add some.',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: cs.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
+        style: TextStyle(
+            fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
       );
     }
 
@@ -309,9 +355,9 @@ class _OptionsPreview extends StatelessWidget {
     final overflow = options.length - maxShown;
 
     final leadingIcon = switch (type) {
-      ChoiceType.radio => Icons.radio_button_unchecked,
-      ChoiceType.checkbox => Icons.check_box_outline_blank,
-      ChoiceType.dropDown => Icons.arrow_drop_down_circle_outlined,
+      ChoiceType.radio => CupertinoIcons.circle,
+      ChoiceType.checkbox => CupertinoIcons.square,
+      ChoiceType.dropDown => CupertinoIcons.chevron_down_circle,
     };
 
     return Column(
@@ -321,12 +367,12 @@ class _OptionsPreview extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
                 children: [
-                  Icon(leadingIcon, size: 16, color: cs.onSurfaceVariant),
+                  Icon(leadingIcon, size: 14, color: _secondaryText),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       o.value,
-                      style: theme.textTheme.bodySmall,
+                      style: const TextStyle(fontSize: 13, color: _primaryText),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -336,11 +382,13 @@ class _OptionsPreview extends StatelessWidget {
             )),
         if (overflow > 0)
           Padding(
-            padding: const EdgeInsets.only(left: 24, top: 2),
+            padding: const EdgeInsets.only(left: 22, top: 2),
             child: Text(
               '+ $overflow more',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: cs.onSurfaceVariant, fontStyle: FontStyle.italic),
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: _secondaryText,
+                  fontStyle: FontStyle.italic),
             ),
           ),
       ],
@@ -357,15 +405,13 @@ class _PreviewLine extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: _separator)),
       ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
+      child: const Text(
+        'Answer',
+        style: TextStyle(
+            fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
       ),
     );
   }
@@ -378,15 +424,15 @@ class _IconLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        Icon(icon, size: 15, color: _secondaryText),
         const SizedBox(width: 6),
-        Text(label,
-            style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic)),
+        Text(
+          label,
+          style: const TextStyle(
+              fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
+        ),
       ],
     );
   }
@@ -400,8 +446,8 @@ class _RatingLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = switch (iconType) {
-      RatingIconType.star => Icons.star_border,
-      RatingIconType.heart => Icons.favorite_border,
+      RatingIconType.star => Icons.star_border_rounded,
+      RatingIconType.heart => Icons.favorite_border_rounded,
       RatingIconType.thumbUp => Icons.thumb_up_outlined,
     };
     return Row(
@@ -409,8 +455,7 @@ class _RatingLine extends StatelessWidget {
         count.clamp(1, 10),
         (_) => Padding(
           padding: const EdgeInsets.only(right: 3),
-          child: Icon(icon, size: 18,
-              color: Theme.of(context).colorScheme.primary),
+          child: Icon(icon, size: 18, color: _purple),
         ),
       ),
     );

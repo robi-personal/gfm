@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../cubit/editor_cubit.dart';
 
+const _purple = Color(0xFF772FC0);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
+
 /// Editable form title and description at the top of the editor.
 /// Pushes to the cubit only on focus-lost (not on every keystroke).
 class FormHeaderCard extends StatefulWidget {
@@ -57,53 +61,92 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: theme.colorScheme.primary, width: 2),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _titleCtrl,
-              focusNode: _titleFocus,
-              style: theme.textTheme.titleLarge,
-              decoration: InputDecoration(
-                hintText: 'Form title',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: theme.colorScheme.primary),
+            // Purple left accent — thicker to distinguish header
+            Container(
+              width: 5,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
                 ),
-                contentPadding: EdgeInsets.zero,
               ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descCtrl,
-              focusNode: _descFocus,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              decoration: InputDecoration(
-                hintText: 'Form description (optional)',
-                hintStyle: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outlineVariant),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: theme.colorScheme.onSurfaceVariant),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _titleCtrl,
+                      focusNode: _titleFocus,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: _primaryText,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Form title',
+                        hintStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFAEAEB2),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: _purple, width: 1.5),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _descCtrl,
+                      focusNode: _descFocus,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: _secondaryText,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Form description (optional)',
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFAEAEB2),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                              BorderSide(color: _secondaryText, width: 1),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      minLines: 1,
+                      maxLines: 4,
+                    ),
+                  ],
                 ),
-                contentPadding: EdgeInsets.zero,
               ),
-              minLines: 1,
-              maxLines: 4,
             ),
           ],
         ),

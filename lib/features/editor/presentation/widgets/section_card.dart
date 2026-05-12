@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -5,6 +6,9 @@ import '../../../../core/models/item.dart';
 import '../cubit/editor_cubit.dart';
 
 const _purple = Color(0xFF772FC0);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
+const _separator = Color(0xFFE8E8E8);
 
 /// Section break card — same card design as question cards.
 class SectionCard extends StatelessWidget {
@@ -14,23 +18,35 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: cs.outlineVariant),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left purple accent border
-            Container(width: 4, color: _purple),
+            // Left purple accent bar
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
+                ),
+              ),
+            ),
             // Card content
             Expanded(
               child: Padding(
@@ -47,7 +63,8 @@ class SectionCard extends StatelessWidget {
                             item.title?.isNotEmpty == true
                                 ? item.title!
                                 : 'Section',
-                            style: theme.textTheme.bodyLarge?.copyWith(
+                            style: const TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: _purple,
                             ),
@@ -77,29 +94,23 @@ class SectionCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         item.description!,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: cs.onSurfaceVariant),
+                        style: const TextStyle(
+                            fontSize: 13, color: _secondaryText),
                       ),
                     ],
                     const SizedBox(height: 4),
-                    const Divider(height: 12),
+                    const Divider(height: 16, color: _separator),
                     // Action row
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _CardActionButton(
+                          icon: CupertinoIcons.trash,
                           tooltip: 'Delete section',
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _CardActionButton(
+                          icon: CupertinoIcons.pencil,
                           tooltip: 'Edit section',
                           onPressed: () =>
                               _SectionEditSheet.show(context, item),
@@ -112,6 +123,33 @@ class SectionCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Shared action button ──────────────────────────────────────────────────────
+
+class _CardActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _CardActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        minSize: 0,
+        onPressed: onPressed,
+        child: Icon(icon, size: 18, color: _secondaryText),
       ),
     );
   }
@@ -286,22 +324,34 @@ class TextBlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: cs.outlineVariant),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 4, color: _purple),
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
+                ),
+              ),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
@@ -316,9 +366,10 @@ class TextBlockCard extends StatelessWidget {
                             item.title?.isNotEmpty == true
                                 ? item.title!
                                 : 'Text block',
-                            style: theme.textTheme.bodyLarge?.copyWith(
+                            style: const TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: _primaryText,
                             ),
                           ),
                         ),
@@ -345,28 +396,22 @@ class TextBlockCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         item.description!,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: cs.onSurfaceVariant),
+                        style: const TextStyle(
+                            fontSize: 13, color: _secondaryText),
                       ),
                     ],
                     const SizedBox(height: 4),
-                    const Divider(height: 12),
+                    const Divider(height: 16, color: _separator),
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _CardActionButton(
+                          icon: CupertinoIcons.trash,
                           tooltip: 'Delete text block',
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          iconSize: 20,
-                          color: cs.onSurfaceVariant,
-                          visualDensity: VisualDensity.compact,
+                        _CardActionButton(
+                          icon: CupertinoIcons.pencil,
                           tooltip: 'Edit text block',
                           onPressed: () =>
                               TextBlockEditSheet.show(context, item),
