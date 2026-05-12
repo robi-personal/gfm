@@ -419,7 +419,8 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                 final isSelected = i == selected;
                 return Expanded(
                   child: GestureDetector(
-                    onTap: () => widget.controller.animateTo(i),
+                    onTap: () => widget.controller.animateTo(i,
+                    duration: const Duration(milliseconds: 160)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -437,8 +438,8 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                         alpha: isSelected ? 1.0 : 0.55),
                                   ),
                                   const SizedBox(width: 5),
-                                  AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 180),
+                                  Text(
+                                    _tabs[i].label,
                                     style: TextStyle(
                                       fontSize: isSelected ? 14 : 12,
                                       fontWeight: isSelected
@@ -447,14 +448,13 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                       color: Colors.white.withValues(
                                           alpha: isSelected ? 1.0 : 0.55),
                                     ),
-                                    child: Text(_tabs[i].label),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeInOut,
+                                duration: const Duration(milliseconds: 130),
+                                curve: Curves.easeOut,
                                 height: isSelected ? 2.5 : 0,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
