@@ -115,25 +115,7 @@ class _EditorViewState extends State<_EditorView>
         body: Column(
           children: [
             // Tab bar
-            ColoredBox(
-              color: _iosBg,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: _purple,
-                indicatorColor: _purple,
-                unselectedLabelColor: _secondaryText,
-                dividerColor: _separator,
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: const TextStyle(fontSize: 14),
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                tabs: const [
-                  Tab(icon: Icon(CupertinoIcons.list_bullet, size: 16), text: 'Questions'),
-                  Tab(icon: Icon(CupertinoIcons.chart_bar, size: 16), text: 'Responses'),
-                  Tab(icon: Icon(CupertinoIcons.settings, size: 16), text: 'Settings'),
-                ],
-              ),
-            ),
+            _SegmentedTabBar(controller: _tabController),
             // Tab content area
             Expanded(
               child: ColoredBox(
@@ -381,7 +363,102 @@ class _EditorViewState extends State<_EditorView>
   }
 }
 
-// ── Action strip: Preview | Share | Save ─────────────────────────────────────
+// ── Segmented tab bar ─────────────────────────────────────────────────────────
+
+class _SegmentedTabBar extends StatefulWidget {
+  final TabController controller;
+  const _SegmentedTabBar({required this.controller});
+
+  @override
+  State<_SegmentedTabBar> createState() => _SegmentedTabBarState();
+}
+
+class _SegmentedTabBarState extends State<_SegmentedTabBar> {
+  static const _tabs = [
+    (icon: CupertinoIcons.list_bullet, label: 'Questions'),
+    (icon: CupertinoIcons.chart_bar_alt_fill, label: 'Responses'),
+    (icon: CupertinoIcons.settings_solid, label: 'Settings'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.controller.index;
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEEF0),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: List.generate(_tabs.length, (i) {
+            final isSelected = i == selected;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => widget.controller.animateTo(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _tabs[i].icon,
+                        size: 15,
+                        color: isSelected ? _purple : _secondaryText,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _tabs[i].label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isSelected ? _purple : _secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
 
 // ── Value objects for BlocSelectors ──────────────────────────────────────────
 
