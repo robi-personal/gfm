@@ -281,7 +281,62 @@ class _CardShell extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: child,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DragHandleHint(),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class DragHandleHint extends StatelessWidget {
+  const DragHandleHint({super.key});
+
+  static const _dot = BoxDecoration(
+    color: Color(0xFFD1D1D6),
+    shape: BoxShape.circle,
+  );
+
+  Widget _dotBox() => Container(
+        width: 3,
+        height: 3,
+        decoration: _dot,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 9, bottom: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _dotBox(),
+              const SizedBox(height: 3),
+              _dotBox(),
+              const SizedBox(height: 3),
+              _dotBox(),
+            ],
+          ),
+          const SizedBox(width: 4),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _dotBox(),
+              const SizedBox(height: 3),
+              _dotBox(),
+              const SizedBox(height: 3),
+              _dotBox(),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

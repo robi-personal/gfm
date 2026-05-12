@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/item.dart';
 import '../cubit/editor_cubit.dart';
+import 'question_card.dart' show DragHandleHint;
 
 const _purple = Color(0xFF772FC0);
 const _primaryText = Color(0xFF1C1C1E);
@@ -32,30 +33,34 @@ class SectionCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left purple accent bar
-            Container(
-              width: 4,
-              decoration: const BoxDecoration(
-                color: _purple,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DragHandleHint(),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left purple accent bar
+                Container(
+                  width: 4,
+                  decoration: const BoxDecoration(
+                    color: _purple,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(14),
+                      bottomLeft: Radius.circular(14),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            // Card content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title + section chip
-                    Row(
+                // Card content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title + section chip
+                        Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
@@ -124,6 +129,8 @@ class SectionCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }
@@ -346,93 +353,99 @@ class TextBlockCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 4,
-              decoration: const BoxDecoration(
-                color: _purple,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const DragHandleHint(),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  decoration: const BoxDecoration(
+                    color: _purple,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(14),
+                      bottomLeft: Radius.circular(14),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            item.title?.isNotEmpty == true
-                                ? item.title!
-                                : 'Text block',
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title?.isNotEmpty == true
+                                    ? item.title!
+                                    : 'Text block',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _primaryText,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Text',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _purple,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (item.description?.isNotEmpty == true) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.description!,
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _primaryText,
+                                fontSize: 13, color: _secondaryText),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: _separator),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _CardActionButton(
+                              icon: CupertinoIcons.trash,
+                              tooltip: 'Delete text block',
+                              onPressed: () =>
+                                  context.read<EditorCubit>().deleteItem(item.itemId),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Text',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _purple,
+                            _CardActionButton(
+                              icon: CupertinoIcons.pencil,
+                              tooltip: 'Edit text block',
+                              onPressed: () =>
+                                  TextBlockEditSheet.show(context, item),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
-                    if (item.description?.isNotEmpty == true) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        item.description!,
-                        style: const TextStyle(
-                            fontSize: 13, color: _secondaryText),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    const Divider(height: 1, color: _separator),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _CardActionButton(
-                          icon: CupertinoIcons.trash,
-                          tooltip: 'Delete text block',
-                          onPressed: () =>
-                              context.read<EditorCubit>().deleteItem(item.itemId),
-                        ),
-                        _CardActionButton(
-                          icon: CupertinoIcons.pencil,
-                          tooltip: 'Edit text block',
-                          onPressed: () =>
-                              TextBlockEditSheet.show(context, item),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
