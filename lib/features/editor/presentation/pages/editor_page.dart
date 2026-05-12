@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -397,63 +398,73 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
   @override
   Widget build(BuildContext context) {
     final selected = widget.controller.index;
-    return Container(
-      color: Colors.white,
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0xFFEEEEF0),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: List.generate(_tabs.length, (i) {
-            final isSelected = i == selected;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => widget.controller.animateTo(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  margin: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.10),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _tabs[i].icon,
-                        size: 15,
-                        color: isSelected ? _purple : _secondaryText,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        _tabs[i].label,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color: isSelected ? _purple : _secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B1278).withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.12),
+                width: 0.5,
               ),
-            );
-          }),
+            ),
+            child: Row(
+              children: List.generate(_tabs.length, (i) {
+                final isSelected = i == selected;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => widget.controller.animateTo(i),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _tabs[i].icon,
+                              size: isSelected ? 16 : 15,
+                              color: Colors.white
+                                  .withValues(alpha: isSelected ? 1.0 : 0.55),
+                            ),
+                            const SizedBox(width: 5),
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 180),
+                              style: TextStyle(
+                                fontSize: isSelected ? 14 : 12,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: Colors.white.withValues(
+                                    alpha: isSelected ? 1.0 : 0.55),
+                              ),
+                              child: Text(_tabs[i].label),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          height: 2.5,
+                          width: isSelected ? 36 : 0,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );
