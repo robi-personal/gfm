@@ -423,39 +423,45 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _tabs[i].icon,
-                              size: isSelected ? 16 : 15,
-                              color: Colors.white
-                                  .withValues(alpha: isSelected ? 1.0 : 0.55),
-                            ),
-                            const SizedBox(width: 5),
-                            AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 180),
-                              style: TextStyle(
-                                fontSize: isSelected ? 14 : 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                                color: Colors.white.withValues(
-                                    alpha: isSelected ? 1.0 : 0.55),
+                        IntrinsicWidth(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _tabs[i].icon,
+                                    size: isSelected ? 16 : 15,
+                                    color: Colors.white.withValues(
+                                        alpha: isSelected ? 1.0 : 0.55),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  AnimatedDefaultTextStyle(
+                                    duration: const Duration(milliseconds: 180),
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 14 : 12,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      color: Colors.white.withValues(
+                                          alpha: isSelected ? 1.0 : 0.55),
+                                    ),
+                                    child: Text(_tabs[i].label),
+                                  ),
+                                ],
                               ),
-                              child: Text(_tabs[i].label),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          height: 2.5,
-                          width: isSelected ? 36 : 0,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(2),
+                              const SizedBox(height: 4),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeInOut,
+                                height: isSelected ? 2.5 : 0,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
