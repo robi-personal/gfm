@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
@@ -12,6 +13,11 @@ import '../../../../core/widgets/skeleton_bone.dart';
 import '../cubit/responses_cubit.dart';
 
 const _purple = Color(0xFF772FC0);
+const _iosBg = Colors.white;
+const _separator = Color(0xFFE8E8E8);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
+const _groupedBg = Color(0xFFF2F2F7);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 
@@ -66,49 +72,47 @@ class _ResponsesViewState extends State<_ResponsesView>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildTabBar(context),
+        ColoredBox(
+          color: _iosBg,
+          child: TabBar(
+            controller: _tabController,
+            dividerColor: _separator,
+            tabs: const [Tab(text: 'Summary'), Tab(text: 'Individual')],
+            labelColor: _purple,
+            indicatorColor: _purple,
+            indicatorSize: TabBarIndicatorSize.tab,
+            unselectedLabelColor: _secondaryText,
+            labelStyle:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 13),
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
+          ),
+        ),
         Expanded(
-          child: BlocBuilder<ResponsesCubit, ResponsesState>(
-            builder: (context, state) => switch (state) {
-              ResponsesLoading() => const _ResponsesSkeleton(),
-              ResponsesError(:final message) => _FullScreenError(
-                  message: message,
-                  onRetry: () =>
-                      context.read<ResponsesCubit>().loadResponses(widget.formId),
-                ),
-              ResponsesLoaded(:final responses) => TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _SummaryTab(items: widget.items, responses: responses),
-                    _IndividualTab(responses: responses, items: widget.items),
-                  ],
-                ),
-            },
+          child: ColoredBox(
+            color: _groupedBg,
+            child: BlocBuilder<ResponsesCubit, ResponsesState>(
+              builder: (context, state) => switch (state) {
+                ResponsesLoading() => const _ResponsesSkeleton(),
+                ResponsesError(:final message) => _FullScreenError(
+                    message: message,
+                    onRetry: () => context
+                        .read<ResponsesCubit>()
+                        .loadResponses(widget.formId),
+                  ),
+                ResponsesLoaded(:final responses) => TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _SummaryTab(items: widget.items, responses: responses),
+                      _IndividualTab(
+                          responses: responses, items: widget.items),
+                    ],
+                  ),
+              },
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildTabBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor),
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        dividerColor: Colors.transparent,
-        tabs: const [Tab(text: 'Summary'), Tab(text: 'Individual')],
-        labelColor: _purple,
-        indicatorColor: _purple,
-        indicatorSize: TabBarIndicatorSize.label,
-        unselectedLabelColor: Colors.grey,
-        labelStyle:
-            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontSize: 13),
-      ),
     );
   }
 }
@@ -120,20 +124,47 @@ class _ResponsesSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlight = Theme.of(context).colorScheme.surface;
     return Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: highlight,
+      baseColor: const Color(0xFFE5E5EA),
+      highlightColor: _groupedBg,
       child: ListView.separated(
-        itemCount: 6,
-        separatorBuilder: (context, i) => const Divider(height: 1),
-        itemBuilder: (context, i) => const ListTile(
-          leading: SkeletonBone(width: 24, height: 24, radius: 12),
-          title: SkeletonBone(width: double.infinity, height: 14, radius: 4),
-          subtitle: SkeletonBone(width: 100, height: 11, radius: 4),
-          trailing: SkeletonBone(width: 16, height: 16, radius: 4),
+        padding: const EdgeInsets.all(16),
+        itemCount: 5,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, _) => Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 52, color: const Color(0xFFD1D1D6)),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 15, color: _secondaryText),
+          ),
+        ],
       ),
     );
   }
@@ -150,22 +181,9 @@ class _IndividualTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (responses.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.inbox_outlined, size: 48,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(height: 12),
-              Text('No responses yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            ],
-          ),
-        ),
+      return const _EmptyState(
+        icon: CupertinoIcons.tray,
+        message: 'No responses yet.',
       );
     }
 
@@ -173,23 +191,27 @@ class _IndividualTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
           child: Text(
             '${responses.length} response${responses.length == 1 ? '' : 's'}',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: _secondaryText,
+              letterSpacing: 0.3,
+            ),
           ),
         ),
-        const Divider(height: 1),
         Expanded(
           child: ListView.separated(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom),
+            padding: EdgeInsets.fromLTRB(
+                16, 0, 16, 16 + MediaQuery.paddingOf(context).bottom),
             itemCount: responses.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const SizedBox(height: 1),
             itemBuilder: (context, i) => _ResponseTile(
               response: responses[i],
+              isFirst: i == 0,
+              isLast: i == responses.length - 1,
               onTap: () => _openDetail(context, responses[i]),
             ),
           ),
@@ -209,21 +231,73 @@ class _IndividualTab extends StatelessWidget {
 
 class _ResponseTile extends StatelessWidget {
   final FormResponse response;
+  final bool isFirst;
+  final bool isLast;
   final VoidCallback onTap;
 
-  const _ResponseTile({required this.response, required this.onTap});
+  const _ResponseTile({
+    required this.response,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final label = response.respondentEmail?.isNotEmpty == true
         ? response.respondentEmail!
         : 'Anonymous';
-    return ListTile(
-      leading: const Icon(Icons.person_outline),
-      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(_formatDate(response.createTime)),
-      trailing: const Icon(Icons.chevron_right),
+
+    final radius = BorderRadius.vertical(
+      top: isFirst ? const Radius.circular(14) : Radius.zero,
+      bottom: isLast ? const Radius.circular(14) : Radius.zero,
+    );
+
+    return GestureDetector(
       onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(color: _iosBg, borderRadius: radius),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _purple.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(CupertinoIcons.person,
+                  size: 18, color: _purple),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: _primaryText),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(response.createTime),
+                    style: const TextStyle(
+                        fontSize: 12, color: _secondaryText),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(CupertinoIcons.chevron_right,
+                size: 16, color: _secondaryText),
+          ],
+        ),
+      ),
     );
   }
 
@@ -259,46 +333,24 @@ class _SummaryTab extends StatelessWidget {
     final questions = _buildQuestionEntries(items);
 
     if (questions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.help_outline, size: 48,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text('No questions in this form.',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ],
-        ),
+      return const _EmptyState(
+        icon: CupertinoIcons.question_circle,
+        message: 'No questions in this form.',
       );
     }
 
     if (responses.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.inbox_outlined, size: 48,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(height: 12),
-              Text('No responses yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            ],
-          ),
-        ),
+      return const _EmptyState(
+        icon: CupertinoIcons.tray,
+        message: 'No responses yet.',
       );
     }
 
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(
-          12, 12, 12, 12 + MediaQuery.paddingOf(context).bottom),
+          16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
       itemCount: questions.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) =>
           _SummaryCard(entry: questions[i], responses: responses),
     );
@@ -352,38 +404,40 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final allAnswers = _allAnswers;
     final answeredCount = allAnswers.where((a) => a.isNotEmpty).length;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: theme.dividerColor),
+    return Container(
+      decoration: BoxDecoration(
+        color: _iosBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              entry.title,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '$answeredCount of ${responses.length} answered',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildBody(allAnswers),
-          ],
-        ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            entry.title,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _primaryText),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '$answeredCount of ${responses.length} answered',
+            style: const TextStyle(fontSize: 12, color: _secondaryText),
+          ),
+          const SizedBox(height: 14),
+          _buildBody(allAnswers),
+        ],
       ),
     );
   }
@@ -439,7 +493,6 @@ class _ChoiceSummaryBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tally each defined option
     final tally = {for (final o in options) o: 0};
     final totalResponded = allAnswers.where((a) => a.isNotEmpty).length;
 
@@ -460,7 +513,7 @@ class _ChoiceSummaryBody extends StatelessWidget {
             totalResponded: totalResponded,
             maxCount: maxCount,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
         ],
       ],
     );
@@ -482,7 +535,6 @@ class _ChoiceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final barFraction = maxCount > 0 ? count / maxCount : 0.0;
     final pct =
         totalResponded > 0 ? (count / totalResponded * 100).round() : 0;
@@ -494,8 +546,10 @@ class _ChoiceBar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: theme.textTheme.bodySmall),
-              const SizedBox(height: 4),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 13, color: _primaryText)),
+              const SizedBox(height: 5),
               LayoutBuilder(
                 builder: (context, constraints) => Stack(
                   children: [
@@ -503,7 +557,7 @@ class _ChoiceBar extends StatelessWidget {
                       height: 6,
                       width: constraints.maxWidth,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
+                        color: const Color(0xFFE5E5EA),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -521,14 +575,12 @@ class _ChoiceBar extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         SizedBox(
           width: 52,
           child: Text(
             '$count ($pct%)',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: const TextStyle(fontSize: 12, color: _secondaryText),
             textAlign: TextAlign.right,
           ),
         ),
@@ -546,19 +598,16 @@ class _TextSummaryBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final flat = [
       for (final ans in allAnswers)
         if (ans.isNotEmpty) ans.first,
     ];
 
     if (flat.isEmpty) {
-      return Text(
+      return const Text(
         'No answers yet.',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
+        style: TextStyle(
+            fontSize: 13, color: _secondaryText, fontStyle: FontStyle.italic),
       );
     }
 
@@ -573,21 +622,19 @@ class _TextSummaryBody extends StatelessWidget {
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 6),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(6),
+              color: _groupedBg,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(v, style: theme.textTheme.bodySmall),
+            child: Text(v,
+                style: const TextStyle(
+                    fontSize: 13, color: _primaryText)),
           ),
         if (overflow > 0)
           Text(
             '+ $overflow more',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: const TextStyle(fontSize: 12, color: _secondaryText),
           ),
       ],
     );
@@ -609,19 +656,16 @@ class _NumericSummaryBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final values = [
       for (final ans in allAnswers)
         if (ans.isNotEmpty) double.tryParse(ans.first),
     ].whereType<double>().toList();
 
     if (values.isEmpty) {
-      return Text(
+      return const Text(
         'No answers yet.',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
+        style: TextStyle(
+            fontSize: 13, color: _secondaryText, fontStyle: FontStyle.italic),
       );
     }
 
@@ -640,18 +684,17 @@ class _NumericSummaryBody extends StatelessWidget {
               ],
               Text(
                 avg.toStringAsFixed(1),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: _purple,
+                style: const TextStyle(
+                  fontSize: 34,
                   fontWeight: FontWeight.w700,
+                  color: _purple,
                 ),
               ),
             ],
           ),
           Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: const TextStyle(fontSize: 12, color: _secondaryText),
           ),
         ],
       ),
@@ -679,26 +722,37 @@ class ResponseDetailScreen extends StatelessWidget {
     final questions = _buildQuestionIndex(items);
 
     return Scaffold(
-      appBar: AppBar(title: Text(label, overflow: TextOverflow.ellipsis)),
+      backgroundColor: _groupedBg,
+      appBar: AppBar(
+        backgroundColor: _iosBg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(CupertinoIcons.arrow_left,
+              color: _purple, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: _primaryText,
+          ),
+        ),
+      ),
       body: questions.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.help_outline, size: 48,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(height: 12),
-                  Text('No questions in this form.',
-                      style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant)),
-                ],
-              ),
+          ? const _EmptyState(
+              icon: CupertinoIcons.question_circle,
+              message: 'No questions in this form.',
             )
           : ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.fromLTRB(
+                  16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
               itemCount: questions.length,
-              separatorBuilder: (context, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final q = questions[i];
                 final values = response.answers[q.questionId];
@@ -751,30 +805,47 @@ class _AnswerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final answered = values != null && values!.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _iosBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             questionTitle,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _secondaryText),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           if (!answered)
-            Text(
+            const Text(
               '— No answer —',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
+              style: TextStyle(
+                  fontSize: 15,
+                  color: _secondaryText,
+                  fontStyle: FontStyle.italic),
             )
           else
-            ...values!.map((v) => Text(v, style: theme.textTheme.bodyMedium)),
+            ...values!.map((v) => Text(
+                  v,
+                  style: const TextStyle(
+                      fontSize: 15, color: _primaryText),
+                )),
         ],
       ),
     );
@@ -797,9 +868,17 @@ class _FullScreenError extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: _primaryText),
+            ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _purple),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
