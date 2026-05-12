@@ -181,7 +181,8 @@ class _EditorViewState extends State<_EditorView>
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: true,
+      centerTitle: false,
+      titleSpacing: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new, color: _purple, size: 18),
         onPressed: () => Navigator.of(context).pop(),
