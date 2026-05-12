@@ -832,6 +832,35 @@ class _EmptyState extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _purple.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: _purple.withValues(alpha: 0.15)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(CupertinoIcons.info_circle,
+                      size: 15,
+                      color: _purple.withValues(alpha: 0.70)),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Forms created on Google Forms web won\'t appear here automatically. Use the Import Form button to add them.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _purple,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
