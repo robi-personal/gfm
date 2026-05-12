@@ -145,11 +145,18 @@ class _CardActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        minSize: 0,
-        onPressed: onPressed,
-        child: Icon(icon, size: 18, color: _secondaryText),
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          margin: const EdgeInsets.only(right: 8, bottom: 6),
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: _purple.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 16, color: _purple),
+        ),
       ),
     );
   }
