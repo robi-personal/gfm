@@ -127,6 +127,8 @@ class _DashboardViewState extends State<_DashboardView> {
           icon: Icons.edit_note_rounded,
           label: 'Create Form',
           color: _purple,
+          lottieAsset: 'assets/lottie/createForm.json',
+          lottieSize: 75,
           onTap: isCreating
               ? null
               : () {
@@ -497,6 +499,8 @@ class _FabAction extends StatelessWidget {
   final String label;
   final Color color;
   final String? lottieAsset;
+  final double buttonSize;
+  final double? lottieSize;
   final VoidCallback? onTap;
 
   const _FabAction({
@@ -504,11 +508,28 @@ class _FabAction extends StatelessWidget {
     required this.label,
     required this.color,
     this.lottieAsset,
+    this.buttonSize = 52,
+    this.lottieSize,
     this.onTap,
   });
 
+  static Future<LottieComposition?> _dotLottieDecoder(
+      List<int> bytes) {
+    return LottieComposition.decodeZip(
+      bytes,
+      filePicker: (files) => files.firstWhere(
+        (f) =>
+            f.name.startsWith('animations/') &&
+            f.name.endsWith('.json'),
+        orElse: () => files.first,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDotLottie = lottieAsset?.endsWith('.lottie') ?? false;
+
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -539,24 +560,43 @@ class _FabAction extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          FloatingActionButton(
-            heroTag: null,
-            onPressed: onTap,
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.white,
-            elevation: 6,
-            shape: const CircleBorder(),
-            child: lottieAsset != null
-                ? Lottie.asset(
-                    lottieAsset!,
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                    repeat: true,
-                    errorBuilder: (context, error, stack) =>
-                        Icon(icon, size: 26, color: color),
-                  )
-                : Icon(icon, size: 26, color: color),
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: buttonSize,
+              height: buttonSize,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.30),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: lottieAsset != null
+                    ? OverflowBox(
+                        maxWidth: double.infinity,
+                        maxHeight: double.infinity,
+                        child: Lottie.asset(
+                          lottieAsset!,
+                          width: lottieSize ?? buttonSize,
+                          height: lottieSize ?? buttonSize,
+                          fit: BoxFit.contain,
+                          repeat: true,
+                          decoder: isDotLottie ? _dotLottieDecoder : null,
+                          errorBuilder: (context, error, stack) {
+                            debugPrint('Lottie error: $error');
+                            return Icon(icon, size: 28, color: color);
+                          },
+                        ),
+                      )
+                    : Icon(icon, size: 28, color: color),
+              ),
+            ),
           ),
         ],
       ),

@@ -102,6 +102,7 @@ flutter:
     - assets/
     - assets/template_image/
     - assets/lottie/
+    - assets/lottie/images/
 
 flutter_launcher_icons:
   android: true
