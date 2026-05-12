@@ -180,17 +180,17 @@ class _EditorViewState extends State<_EditorView>
       backgroundColor: _iosBg,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      centerTitle: false,
-      titleSpacing: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: true,
       leading: IconButton(
-        icon: Icon(CupertinoIcons.arrow_left, color: _purple, size: 20),
+        icon: const Icon(Icons.arrow_back_ios_new, color: _purple, size: 18),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
         widget.initialName,
         style: const TextStyle(
           fontSize: 17,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: _primaryText,
         ),
         overflow: TextOverflow.ellipsis,
