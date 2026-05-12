@@ -208,24 +208,48 @@ class _EditorViewState extends State<_EditorView>
                 )
               : (isLoaded: false, isDirty: false, isSaving: false),
           builder: (context, data) {
-            if (data.isSaving) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Center(
-                  child: CupertinoActivityIndicator(radius: 9),
-                ),
-              );
-            }
             final active = data.isLoaded && data.isDirty;
-            return CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              onPressed: active ? () => context.read<EditorCubit>().save() : null,
-              child: Text(
-                'Save',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: active ? _purple : _secondaryText,
+            return GestureDetector(
+              onTap: active && !data.isSaving
+                  ? () => context.read<EditorCubit>().save()
+                  : null,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: active
+                      ? _purple
+                      : _purple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (data.isSaving)
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CupertinoActivityIndicator(
+                          radius: 6,
+                          color: active ? Colors.white : _secondaryText,
+                        ),
+                      )
+                    else
+                      Icon(
+                        CupertinoIcons.checkmark_circle_fill,
+                        size: 13,
+                        color: active ? Colors.white : _secondaryText,
+                      ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: active ? Colors.white : _secondaryText,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
