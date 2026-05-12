@@ -12,6 +12,9 @@ import '../../features/dashboard/domain/repositories/form_repository.dart';
 import '../../features/dashboard/domain/usecases/create_form.dart';
 import '../../features/dashboard/domain/usecases/delete_form.dart';
 import '../../features/dashboard/domain/usecases/get_forms.dart';
+import '../../features/dashboard/domain/usecases/get_imported_forms.dart';
+import '../../features/dashboard/domain/usecases/import_form.dart';
+import '../../features/dashboard/domain/usecases/remove_imported_form.dart';
 import '../../features/dashboard/domain/usecases/rename_form.dart';
 import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import '../../features/sign_in/data/repositories/auth_repository_impl.dart';
@@ -111,6 +114,15 @@ void configureDependencies() {
   getIt.registerLazySingleton(
     () => RenameForm(getIt<FormRepository>()),
   );
+  getIt.registerLazySingleton(
+    () => GetImportedForms(getIt<FormRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => ImportForm(getIt<FormRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => RemoveImportedForm(getIt<FormRepository>()),
+  );
 
   getIt.registerFactory(
     () => DashboardCubit(
@@ -118,6 +130,9 @@ void configureDependencies() {
       createForm: getIt(),
       deleteForm: getIt(),
       renameForm: getIt(),
+      getImportedForms: getIt(),
+      importForm: getIt(),
+      removeImportedForm: getIt(),
     ),
   );
 

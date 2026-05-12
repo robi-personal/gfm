@@ -7,6 +7,7 @@ class FormEntryModel extends FormEntry {
     super.modifiedTime,
     super.createdTime,
     super.webViewLink,
+    super.isOwned = true,
   });
 
   factory FormEntryModel.fromDriveFile(dynamic file) => FormEntryModel(
@@ -15,5 +16,6 @@ class FormEntryModel extends FormEntry {
         modifiedTime: file.modifiedTime as DateTime?,
         createdTime: file.createdTime as DateTime?,
         webViewLink: file.webViewLink as String?,
+        isOwned: (file.ownedByMe as bool?) ?? true,
       );
 }

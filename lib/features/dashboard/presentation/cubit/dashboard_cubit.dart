@@ -1,11 +1,15 @@
 import 'package:bloc/bloc.dart';
 
 import '../../../../core/models/item.dart' as domain;
+import '../../../../core/usecases/usecase.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/form_entry.dart';
 import '../../domain/usecases/create_form.dart';
 import '../../domain/usecases/delete_form.dart';
 import '../../domain/usecases/get_forms.dart';
+import '../../domain/usecases/get_imported_forms.dart';
+import '../../domain/usecases/import_form.dart';
+import '../../domain/usecases/remove_imported_form.dart';
 import '../../domain/usecases/rename_form.dart';
 
 part 'dashboard_state.dart';
@@ -15,16 +19,25 @@ class DashboardCubit extends Cubit<DashboardState> {
   final CreateForm _createForm;
   final DeleteForm _deleteForm;
   final RenameForm _renameForm;
+  final GetImportedForms _getImportedForms;
+  final ImportForm _importForm;
+  final RemoveImportedForm _removeImportedForm;
 
   DashboardCubit({
     required GetForms getForms,
     required CreateForm createForm,
     required DeleteForm deleteForm,
     required RenameForm renameForm,
+    required GetImportedForms getImportedForms,
+    required ImportForm importForm,
+    required RemoveImportedForm removeImportedForm,
   })  : _getForms = getForms,
         _createForm = createForm,
         _deleteForm = deleteForm,
         _renameForm = renameForm,
+        _getImportedForms = getImportedForms,
+        _importForm = importForm,
+        _removeImportedForm = removeImportedForm,
         super(const DashboardInitial());
 
   // ── List ──────────────────────────────────────────────────────────────────
@@ -45,17 +58,26 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     if (cached == null) emit(const DashboardLoading());
 
-    final result = await _getForms(
+    final formsResult = await _getForms(
       GetFormsParams(query: query, sortOrder: currentSort),
     );
+    final importedResult = await _getImportedForms(const NoParams());
 
-    result.fold(
+    formsResult.fold(
       (failure) => _emitError(failure.message, cached, currentSort),
-      (forms) => emit(DashboardLoaded(
-        forms: forms,
-        query: query,
-        sortOrder: currentSort,
-      )),
+      (owned) {
+        final imported = importedResult.getOrElse(() => []);
+        final ownedIds = owned.map((f) => f.id).toSet();
+        final merged = [
+          ...owned,
+          ...imported.where((f) => !ownedIds.contains(f.id)),
+        ];
+        emit(DashboardLoaded(
+          forms: merged,
+          query: query,
+          sortOrder: currentSort,
+        ));
+      },
     );
   }
 
@@ -143,15 +165,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     emit(loaded.copyWith(
       renamingId: fileId,
       forms: loaded.forms
-          .map((f) => f.id == fileId
-              ? FormEntry(
-                  id: f.id,
-                  name: title,
-                  modifiedTime: f.modifiedTime,
-                  createdTime: f.createdTime,
-                  webViewLink: f.webViewLink,
-                )
-              : f)
+          .map((f) => f.id == fileId ? f.copyWith(name: title) : f)
           .toList(),
     ));
 
@@ -166,6 +180,52 @@ class DashboardCubit extends Cubit<DashboardState> {
           emit((state as DashboardLoaded).copyWith(clearRenaming: true));
         }
       },
+    );
+  }
+
+  // ── Import ─────────────────────────────────────────────────────────────────
+
+  Future<void> importForm(String formId) async {
+    if (state is! DashboardLoaded) return;
+    final loaded = state as DashboardLoaded;
+
+    emit(loaded.copyWith(isImporting: true));
+
+    final result = await _importForm(ImportFormParams(formId));
+
+    result.fold(
+      (failure) {
+        emit(loaded.copyWith(isImporting: false));
+        throw Exception(failure.message);
+      },
+      (entry) {
+        final alreadyIn = loaded.forms.any((f) => f.id == formId);
+        emit(loaded.copyWith(
+          isImporting: false,
+          forms: alreadyIn
+              ? loaded.forms
+              : [...loaded.forms, entry],
+        ));
+      },
+    );
+  }
+
+  Future<void> removeImportedForm(String formId) async {
+    if (state is! DashboardLoaded) return;
+    final loaded = state as DashboardLoaded;
+
+    emit(loaded.copyWith(
+      forms: loaded.forms.where((f) => f.id != formId).toList(),
+    ));
+
+    final result =
+        await _removeImportedForm(RemoveImportedFormParams(formId));
+    result.fold(
+      (failure) {
+        emit(loaded);
+        throw Exception(failure.message);
+      },
+      (_) {},
     );
   }
 

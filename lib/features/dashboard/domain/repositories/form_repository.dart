@@ -19,4 +19,10 @@ abstract class FormRepository {
   Future<Either<Failure, Unit>> deleteForm(String fileId);
 
   Future<Either<Failure, Unit>> renameForm(String fileId, String title);
+
+  Future<Either<Failure, List<FormEntry>>> getImportedForms();
+
+  Future<Either<Failure, FormEntry>> importForm(String formId);
+
+  Future<Either<Failure, Unit>> removeImportedForm(String formId);
 }

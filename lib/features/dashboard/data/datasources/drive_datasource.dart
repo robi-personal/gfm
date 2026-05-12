@@ -1,11 +1,16 @@
-import 'package:googleapis/drive/v3.dart' show File;
+import 'dart:convert';
+
+import 'package:googleapis/drive/v3.dart';
 
 import '../../../../core/api/drive_client.dart';
 import '../../domain/entities/form_entry.dart';
 import '../models/form_entry_model.dart';
 
+const _kAppDataFileName = 'gfm_data.json';
+
 class DriveDataSource {
   final DriveClient _client;
+  String? _appDataFileId;
 
   DriveDataSource(this._client);
 
@@ -23,7 +28,7 @@ class DriveDataSource {
     final result = await _client.api.files.list(
       q: q.toString(),
       orderBy: orderBy,
-      $fields: 'files(id,name,modifiedTime,createdTime,webViewLink)',
+      $fields: 'files(id,name,modifiedTime,createdTime,webViewLink,ownedByMe)',
     );
 
     return (result.files ?? []).map(FormEntryModel.fromDriveFile).toList();
@@ -35,5 +40,62 @@ class DriveDataSource {
 
   Future<void> renameFile(String fileId, String name) async {
     await _client.api.files.update(File()..name = name, fileId);
+  }
+
+  // ── App data (imported forms list) ─────────────────────────────────────────
+
+  Future<List<String>> readImportedFormIds() async {
+    final fileId = await _findAppDataFileId();
+    if (fileId == null) return [];
+    try {
+      final media = await _client.api.files.get(
+        fileId,
+        downloadOptions: DownloadOptions.fullMedia,
+      ) as Media;
+      final bytes = await media.stream
+          .fold<List<int>>([], (buf, chunk) => buf..addAll(chunk));
+      final json =
+          jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      return (json['importedForms'] as List<dynamic>? ?? [])
+          .whereType<String>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> writeImportedFormIds(List<String> ids) async {
+    final bytes =
+        utf8.encode(jsonEncode({'importedForms': ids}));
+    final media = Media(
+      Stream.value(bytes),
+      bytes.length,
+      contentType: 'application/json',
+    );
+
+    final existingId = await _findAppDataFileId();
+    if (existingId != null) {
+      await _client.api.files.update(File(), existingId,
+          uploadMedia: media);
+    } else {
+      final created = await _client.api.files.create(
+        File()
+          ..name = _kAppDataFileName
+          ..mimeType = 'application/json',
+        uploadMedia: media,
+      );
+      _appDataFileId = created.id;
+    }
+  }
+
+  Future<String?> _findAppDataFileId() async {
+    if (_appDataFileId != null) return _appDataFileId;
+    final result = await _client.api.files.list(
+      q: "name='$_kAppDataFileName' and trashed=false",
+      $fields: 'files(id)',
+      spaces: 'drive',
+    );
+    _appDataFileId = result.files?.firstOrNull?.id;
+    return _appDataFileId;
   }
 }

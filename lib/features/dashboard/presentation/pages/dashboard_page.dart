@@ -136,6 +136,17 @@ class _DashboardViewState extends State<_DashboardView> {
                   _onNewForm(context);
                 },
         ),
+        _FabAction(
+          icon: CupertinoIcons.link,
+          label: 'Import Form',
+          color: _purple,
+          onTap: isCreating
+              ? null
+              : () {
+                  _fabKey.currentState?.toggle();
+                  _openImport(context);
+                },
+        ),
       ],
     );
   }
@@ -455,6 +466,10 @@ class _DashboardViewState extends State<_DashboardView> {
         child: const TemplatePickerPage(),
       ),
     ));
+  }
+
+  Future<void> _openImport(BuildContext context) async {
+    await showImportFormDialog(context, context.read<DashboardCubit>());
   }
 
   Future<void> _openAiBuilder(BuildContext context) async {
@@ -920,6 +935,25 @@ class _FormCard extends StatelessWidget {
                         color: Color(0xFF1C1C1E),
                       ),
                     ),
+                    if (!form.isOwned) ...[
+                      const SizedBox(height: 3),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _purple.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Imported',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: _purple,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     if (form.modifiedTime != null)
                       Row(
@@ -946,56 +980,65 @@ class _FormCard extends StatelessWidget {
                 const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CupertinoActivityIndicator(radius: 10, color: _purple),
+                  child: CupertinoActivityIndicator(
+                      radius: 10, color: _purple),
                 )
               else
-              PopupMenuButton<_RowAction>(
-                onSelected: (a) => _handleAction(context, a),
-                icon: const Icon(
-                  CupertinoIcons.ellipsis,
-                  color: Color(0xFFC7C7CC),
-                  size: 20,
-                ),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: _RowAction.open,
-                    child: Row(
-                      children: [
+                PopupMenuButton<_RowAction>(
+                  onSelected: (a) => _handleAction(context, a),
+                  icon: const Icon(
+                    CupertinoIcons.ellipsis,
+                    color: Color(0xFFC7C7CC),
+                    size: 20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: _RowAction.open,
+                      child: Row(children: [
                         Icon(CupertinoIcons.arrow_up_right_square,
                             size: 16, color: Color(0xFF3C3C43)),
                         SizedBox(width: 10),
                         Text('Open'),
-                      ],
+                      ]),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: _RowAction.rename,
-                    child: Row(
-                      children: [
-                        Icon(CupertinoIcons.pencil,
-                            size: 16, color: Color(0xFF3C3C43)),
-                        SizedBox(width: 10),
-                        Text('Rename'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: _RowAction.delete,
-                    child: Row(
-                      children: [
-                        Icon(CupertinoIcons.trash,
-                            size: 16, color: Color(0xFFFF3B30)),
-                        SizedBox(width: 10),
-                        Text('Delete',
-                            style: TextStyle(
-                                color: Color(0xFFFF3B30))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                    if (form.isOwned)
+                      const PopupMenuItem(
+                        value: _RowAction.rename,
+                        child: Row(children: [
+                          Icon(CupertinoIcons.pencil,
+                              size: 16, color: Color(0xFF3C3C43)),
+                          SizedBox(width: 10),
+                          Text('Rename'),
+                        ]),
+                      ),
+                    if (form.isOwned)
+                      const PopupMenuItem(
+                        value: _RowAction.delete,
+                        child: Row(children: [
+                          Icon(CupertinoIcons.trash,
+                              size: 16, color: Color(0xFFFF3B30)),
+                          SizedBox(width: 10),
+                          Text('Delete',
+                              style:
+                                  TextStyle(color: Color(0xFFFF3B30))),
+                        ]),
+                      )
+                    else
+                      const PopupMenuItem(
+                        value: _RowAction.removeImport,
+                        child: Row(children: [
+                          Icon(CupertinoIcons.minus_circle,
+                              size: 16, color: Color(0xFFFF3B30)),
+                          SizedBox(width: 10),
+                          Text('Remove from list',
+                              style:
+                                  TextStyle(color: Color(0xFFFF3B30))),
+                        ]),
+                      ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1018,7 +1061,36 @@ class _FormCard extends StatelessWidget {
         _renameForm(context);
       case _RowAction.delete:
         _confirmDelete(context);
+      case _RowAction.removeImport:
+        _removeImport(context);
     }
+  }
+
+  void _removeImport(BuildContext context) {
+    ErrorModal.show(
+      context,
+      title: 'Remove from list?',
+      body: 'This will remove "${form.name}" from your imported list. The original form won\'t be affected.',
+      secondaryLabel: 'Cancel',
+      onSecondary: () {},
+      primaryLabel: 'Remove',
+      onPrimary: () async {
+        try {
+          await context.read<DashboardCubit>().removeImportedForm(form.id);
+        } catch (_) {
+          if (!context.mounted) return;
+          ErrorModal.show(
+            context,
+            title: "Couldn't remove form.",
+            body: 'Check your connection and try again.',
+            secondaryLabel: 'Cancel',
+            onSecondary: () {},
+            primaryLabel: 'Retry',
+            onPrimary: () => _removeImport(context),
+          );
+        }
+      },
+    );
   }
 
   void _renameForm(BuildContext context) async {
@@ -1079,7 +1151,232 @@ class _FormCard extends StatelessWidget {
   }
 }
 
-enum _RowAction { open, rename, delete }
+enum _RowAction { open, rename, delete, removeImport }
+
+String? _parseFormId(String input) {
+  final trimmed = input.trim();
+  // Full URL: https://docs.google.com/forms/d/{id}/edit  or /viewform
+  final urlMatch = RegExp(r'/forms/d/([a-zA-Z0-9_-]+)').firstMatch(trimmed);
+  if (urlMatch != null) return urlMatch.group(1);
+  // Raw ID — alphanumeric + dash/underscore, reasonable length
+  if (RegExp(r'^[a-zA-Z0-9_-]{20,}$').hasMatch(trimmed)) return trimmed;
+  return null;
+}
+
+Future<void> showImportFormDialog(
+    BuildContext context, DashboardCubit cubit) async {
+  final controller = TextEditingController();
+  const green = _purple;
+
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      String? errorText;
+      bool isLoading = false;
+
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          Future<void> onImport() async {
+            final formId = _parseFormId(controller.text);
+            if (formId == null) {
+              setState(
+                  () => errorText = 'Paste a valid Google Form URL or ID.');
+              return;
+            }
+
+            setState(() {
+              isLoading = true;
+              errorText = null;
+            });
+
+            try {
+              await cubit.importForm(formId);
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            } catch (e) {
+              setState(() {
+                isLoading = false;
+                errorText = e.toString().replaceFirst('Exception: ', '');
+              });
+            }
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 32),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: green.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(CupertinoIcons.link,
+                            color: green, size: 15),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Import Form',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1C1C1E),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF2F2F7)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Paste a Google Form URL or form ID.',
+                    style: TextStyle(
+                        fontSize: 13, color: Color(0xFF6E6E73)),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: const TextStyle(
+                        fontSize: 14, color: Color(0xFF1C1C1E)),
+                    cursorColor: green,
+                    decoration: InputDecoration(
+                      hintText:
+                          'https://docs.google.com/forms/d/…',
+                      hintStyle: const TextStyle(
+                          color: Color(0xFFC7C7CC), fontSize: 13),
+                      filled: true,
+                      fillColor: const Color(0xFFF2F2F7),
+                      isDense: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                      errorText: errorText,
+                      errorMaxLines: 2,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: green, width: 1.5),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFFFF3B30), width: 1.5),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFFFF3B30), width: 1.5),
+                      ),
+                    ),
+                    onChanged: (_) {
+                      if (errorText != null) {
+                        setState(() => errorText = null);
+                      }
+                    },
+                    onSubmitted: (_) => onImport(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: isLoading
+                              ? null
+                              : () => Navigator.of(ctx).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 13),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF2F2F7),
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF8E8E93),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: isLoading ? null : onImport,
+                          child: AnimatedContainer(
+                            duration:
+                                const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 13),
+                            decoration: BoxDecoration(
+                              color: green,
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: green.withValues(
+                                      alpha: 0.30),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: isLoading
+                                  ? const CupertinoActivityIndicator(
+                                      radius: 9,
+                                      color: Colors.white)
+                                  : const Text(
+                                      'Import',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
 Future<String?> _showRenameDialog(BuildContext context,
     {required String current}) {

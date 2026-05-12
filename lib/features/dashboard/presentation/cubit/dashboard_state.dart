@@ -30,6 +30,7 @@ class DashboardLoaded extends DashboardState {
   final SortOrder sortOrder;
   final bool isShowingCache;
   final bool isCreating;
+  final bool isImporting;
   final String? renamingId;
   final CreateNavigation? createNav;
 
@@ -39,6 +40,7 @@ class DashboardLoaded extends DashboardState {
     this.sortOrder = SortOrder.modifiedDesc,
     this.isShowingCache = false,
     this.isCreating = false,
+    this.isImporting = false,
     this.renamingId,
     this.createNav,
   });
@@ -49,6 +51,7 @@ class DashboardLoaded extends DashboardState {
     SortOrder? sortOrder,
     bool? isShowingCache,
     bool? isCreating,
+    bool? isImporting,
     String? renamingId,
     bool clearRenaming = false,
     CreateNavigation? createNav,
@@ -60,6 +63,7 @@ class DashboardLoaded extends DashboardState {
         sortOrder: sortOrder ?? this.sortOrder,
         isShowingCache: isShowingCache ?? this.isShowingCache,
         isCreating: isCreating ?? this.isCreating,
+        isImporting: isImporting ?? this.isImporting,
         renamingId: clearRenaming ? null : (renamingId ?? this.renamingId),
         createNav: clearNav ? null : (createNav ?? this.createNav),
       );

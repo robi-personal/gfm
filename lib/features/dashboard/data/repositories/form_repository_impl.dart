@@ -116,6 +116,77 @@ class FormRepositoryImpl implements FormRepository {
       return Left(ServerFailure("Couldn't rename the form."));
     }
   }
+
+  @override
+  Future<Either<Failure, List<FormEntry>>> getImportedForms() async {
+    try {
+      final ids = await _drive.readImportedFormIds();
+      if (ids.isEmpty) return const Right([]);
+
+      final entries = await Future.wait(
+        ids.map((id) async {
+          try {
+            final f = await _forms.getForm(id);
+            return FormEntry(
+              id: id,
+              name: f.info?.title ?? 'Untitled form',
+              isOwned: false,
+            );
+          } catch (_) {
+            return null;
+          }
+        }),
+      );
+
+      return Right(entries.whereType<FormEntry>().toList());
+    } on SocketException catch (e) {
+      dev.log('[FormRepository] getImportedForms network error: $e', name: 'API');
+      return const Right([]);
+    } catch (e, st) {
+      dev.log('[FormRepository] getImportedForms error: $e', name: 'API', error: e, stackTrace: st);
+      return const Right([]);
+    }
+  }
+
+  @override
+  Future<Either<Failure, FormEntry>> importForm(String formId) async {
+    try {
+      final form = await _forms.getForm(formId);
+      final name = form.info?.title ?? 'Untitled form';
+
+      final ids = await _drive.readImportedFormIds();
+      if (!ids.contains(formId)) {
+        await _drive.writeImportedFormIds([...ids, formId]);
+      }
+
+      return Right(FormEntry(id: formId, name: name, isOwned: false));
+    } on SocketException catch (e) {
+      dev.log('[FormRepository] importForm network error: $e', name: 'API');
+      return Left(NetworkFailure("Couldn't import. Check your connection."));
+    } catch (e, st) {
+      dev.log('[FormRepository] importForm error: $e', name: 'API', error: e, stackTrace: st);
+      final status = _tryGetStatus(e);
+      if (status == 404) return Left(NotFoundFailure("Form not found."));
+      if (status == 403) return Left(PermissionFailure("You don't have access to this form."));
+      return Left(ServerFailure("Couldn't import form."));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> removeImportedForm(String formId) async {
+    try {
+      final ids = await _drive.readImportedFormIds();
+      await _drive.writeImportedFormIds(
+          ids.where((id) => id != formId).toList());
+      return const Right(unit);
+    } on SocketException catch (e) {
+      dev.log('[FormRepository] removeImportedForm network error: $e', name: 'API');
+      return Left(NetworkFailure("Couldn't remove. Check your connection."));
+    } catch (e, st) {
+      dev.log('[FormRepository] removeImportedForm error: $e', name: 'API', error: e, stackTrace: st);
+      return Left(ServerFailure("Couldn't remove imported form."));
+    }
+  }
 }
 
 int? _tryGetStatus(Object e) {
