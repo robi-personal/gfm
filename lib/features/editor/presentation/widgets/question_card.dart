@@ -402,13 +402,9 @@ class _PreviewLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _separator)),
-      ),
-      child: const Text(
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 6),
+      child: Text(
         'Answer',
         style: TextStyle(
             fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
