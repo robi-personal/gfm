@@ -116,6 +116,7 @@ class QuestionCard extends StatelessWidget {
                     ],
                     const SizedBox(height: 12),
                     const Divider(height: 1, color: _separator),
+                    const SizedBox(height: 6),
                     // ── Bottom action row ─────────────────────────────────
                     Row(
                       children: [
