@@ -416,7 +416,7 @@ class _OptionsSheet extends StatelessWidget {
                   icon: CupertinoIcons.share_solid,
                   label: 'Share',
                   subtitle: 'Send the form link to respondents',
-                  color: const Color(0xFF30A05E),
+                  color: _purple,
                   onTap: () {
                     Navigator.of(context).pop();
                     Share.share(responderUri, subject: title);
