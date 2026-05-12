@@ -420,6 +420,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                 final isSelected = i == selected;
                 return Expanded(
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => widget.controller.index = i,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
