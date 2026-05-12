@@ -17,7 +17,7 @@ class YouTubeVideo {
 }
 
 class YouTubeClient {
-  static const _apiKey = 'AIzaSyA1GvPj9u0RtoVZo6QSm3eDiCGQMg_Tf7Y';
+  static const _apiKey = 'AIzaSyDonQeuBX7OqKAeggFiZCPoS-Q6XMPd5Y0';
 
   static const _searchUrl =
       'https://www.googleapis.com/youtube/v3/search';
