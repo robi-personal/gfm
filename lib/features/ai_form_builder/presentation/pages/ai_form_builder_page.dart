@@ -526,6 +526,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
   int? _questionCountHint = 10;
   bool _isQuiz = false;
+  bool _isCheckingQuota = false;
 
   @override
   void initState() {
@@ -690,6 +691,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
     final context = this.context;
     if (!context.mounted) return;
 
+    setState(() => _isCheckingQuota = true);
     PdfPageInfo info;
     try {
       final dataSource = getIt<AiFormDataSource>();
@@ -698,6 +700,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
         inputType: inputType,
       );
     } catch (_) {
+      setState(() => _isCheckingQuota = false);
       if (!context.mounted) return;
       showDialog<void>(
         context: context,
@@ -719,6 +722,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
     }
 
     if (!context.mounted) return;
+    setState(() => _isCheckingQuota = false);
 
     final isUnlimited = widget.status.unlimited;
     final balance = widget.status.quotaBalance;
@@ -876,7 +880,8 @@ class _ReadyBodyState extends State<_ReadyBody> {
 
           // Generate button
           _GenerateButton(
-            enabled: _canGenerate,
+            enabled: _canGenerate && !_isCheckingQuota,
+            isLoading: _isCheckingQuota,
             onPressed: _onGeneratePressed,
           ),
         ],
@@ -1181,9 +1186,14 @@ class _IosTextField extends StatelessWidget {
 
 class _GenerateButton extends StatelessWidget {
   final bool enabled;
+  final bool isLoading;
   final VoidCallback onPressed;
 
-  const _GenerateButton({required this.enabled, required this.onPressed});
+  const _GenerateButton({
+    required this.enabled,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1193,9 +1203,9 @@ class _GenerateButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         height: 52,
         decoration: BoxDecoration(
-          color: enabled ? _purple : const Color(0xFFD1D1D6),
+          color: (enabled || isLoading) ? _purple : const Color(0xFFD1D1D6),
           borderRadius: BorderRadius.circular(14),
-          boxShadow: enabled
+          boxShadow: (enabled || isLoading)
               ? [
                   BoxShadow(
                     color: _purple.withValues(alpha: 0.35),
@@ -1206,26 +1216,28 @@ class _GenerateButton extends StatelessWidget {
               : [],
         ),
         child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: enabled ? Colors.white : const Color(0xFF8E8E93),
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Generate',
-                style: TextStyle(
-                  color: enabled ? Colors.white : const Color(0xFF8E8E93),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+          child: isLoading
+              ? const CupertinoActivityIndicator(color: Colors.white, radius: 11)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Generate',
+                      style: TextStyle(
+                        color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
