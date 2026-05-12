@@ -324,6 +324,178 @@ class _TabChip extends StatelessWidget {
   }
 }
 
+// ── Form name dialog ──────────────────────────────────────────────────────────
+
+Future<String?> _showFormNameDialog(
+  BuildContext context, {
+  String prefill = '',
+}) {
+  final controller = TextEditingController(text: prefill);
+  if (prefill.isNotEmpty) {
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: prefill.length,
+    );
+  }
+
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: _purple.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.doc_text,
+                    color: _purple,
+                    size: 15,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Form Name',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+            const SizedBox(height: 12),
+            const Text(
+              'Give your form a name to get started.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6E6E73)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(fontSize: 15, color: _textPrimary),
+              cursorColor: _purple,
+              decoration: InputDecoration(
+                hintText: 'e.g. Customer Feedback',
+                hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                filled: true,
+                fillColor: const Color(0xFFF2F2F7),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: _purple, width: 1.5),
+                ),
+              ),
+              onSubmitted: (v) {
+                final name = v.trim();
+                if (name.isNotEmpty) Navigator.of(ctx).pop(name);
+              },
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(null),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F2F7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StatefulBuilder(
+                    builder: (ctx2, setLocal) {
+                      controller.addListener(() => setLocal(() {}));
+                      final canCreate = controller.text.trim().isNotEmpty;
+                      return GestureDetector(
+                        onTap: canCreate
+                            ? () => Navigator.of(ctx)
+                                .pop(controller.text.trim())
+                            : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: canCreate
+                                ? _purple
+                                : _purple.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: canCreate
+                                ? [
+                                    BoxShadow(
+                                      color: _purple.withValues(alpha: 0.30),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Create',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 // ── Blank cards row ───────────────────────────────────────────────────────────
 
 class _BlankCardsRow extends StatelessWidget {
@@ -353,16 +525,20 @@ class _BlankCardsRow extends StatelessWidget {
   }
 
   void _create(BuildContext context, {required bool quiz}) async {
+    final defaultName = quiz ? 'Untitled quiz' : 'Untitled form';
+    final name = await _showFormNameDialog(context, prefill: defaultName);
+    if (name == null || !context.mounted) return;
+
     final cubit = context.read<DashboardCubit>();
     try {
       if (quiz) {
         await cubit.createForm(
-          title: 'Untitled quiz',
+          title: name,
           items: kBlankQuizTemplate.items,
           enableQuiz: true,
         );
       } else {
-        await cubit.createForm(title: 'Untitled form');
+        await cubit.createForm(title: name);
       }
     } catch (_) {
       if (!context.mounted) return;
@@ -596,10 +772,14 @@ class _TemplateCard extends StatelessWidget {
 
   void _createFromTemplate(
       BuildContext context, FormTemplate template) async {
+    final name =
+        await _showFormNameDialog(context, prefill: template.title);
+    if (name == null || !context.mounted) return;
+
     final cubit = context.read<DashboardCubit>();
     try {
       await cubit.createForm(
-        title: template.title,
+        title: name,
         items: template.items,
         enableQuiz: template.quizMode,
       );

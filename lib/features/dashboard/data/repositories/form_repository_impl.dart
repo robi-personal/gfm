@@ -49,7 +49,7 @@ class FormRepositoryImpl implements FormRepository {
   }) async {
     final forms_api.Form created;
     try {
-      created = await _forms.createForm(title);
+      created = await _forms.createForm(title, documentTitle: title);
     } catch (e, st) {
       dev.log('[FormRepository] createForm error: $e', name: 'API', error: e, stackTrace: st);
       return Left(ServerFailure("Couldn't create form."));
