@@ -99,6 +99,23 @@ class FormRepositoryImpl implements FormRepository {
       return Left(ServerFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, Unit>> renameForm(String fileId, String title) async {
+    try {
+      await Future.wait([
+        _drive.renameFile(fileId, title),
+        _forms.updateTitle(fileId, title),
+      ]);
+      return const Right(unit);
+    } on SocketException catch (e) {
+      dev.log('[FormRepository] renameForm network error: $e', name: 'API');
+      return Left(NetworkFailure("Couldn't rename. Check your connection."));
+    } catch (e, st) {
+      dev.log('[FormRepository] renameForm error: $e', name: 'API', error: e, stackTrace: st);
+      return Left(ServerFailure("Couldn't rename the form."));
+    }
+  }
 }
 
 int? _tryGetStatus(Object e) {

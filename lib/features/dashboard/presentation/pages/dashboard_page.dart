@@ -406,6 +406,7 @@ class _DashboardViewState extends State<_DashboardView> {
         :final query,
         :final isShowingCache,
         :final sortOrder,
+        :final renamingId,
       ) =>
         Column(
           children: [
@@ -417,7 +418,13 @@ class _DashboardViewState extends State<_DashboardView> {
               onSort: () =>
                   context.read<DashboardCubit>().toggleSort(),
             ),
-            Expanded(child: _FormList(forms: forms, query: query)),
+            Expanded(
+              child: _FormList(
+                forms: forms,
+                query: query,
+                renamingId: renamingId,
+              ),
+            ),
           ],
         ),
       DashboardError(:final message, :final cachedForms) =>
@@ -508,7 +515,7 @@ class _FabAction extends StatelessWidget {
     required this.label,
     required this.color,
     this.lottieAsset,
-    this.buttonSize = 52,
+    this.buttonSize = 52, // ignore: unused_element_parameter
     this.lottieSize,
     this.onTap,
   });
@@ -738,8 +745,13 @@ class _SkeletonCard extends StatelessWidget {
 class _FormList extends StatelessWidget {
   final List<FormEntry> forms;
   final String query;
+  final String? renamingId;
 
-  const _FormList({required this.forms, required this.query});
+  const _FormList({
+    required this.forms,
+    required this.query,
+    this.renamingId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -760,7 +772,10 @@ class _FormList extends StatelessWidget {
           MediaQuery.viewPaddingOf(context).bottom + 90,
         ),
         itemCount: forms.length,
-        itemBuilder: (_, i) => _FormCard(form: forms[i]),
+        itemBuilder: (_, i) => _FormCard(
+          form: forms[i],
+          isRenaming: forms[i].id == renamingId,
+        ),
       ),
     );
   }
@@ -850,8 +865,9 @@ class _SearchEmptyState extends StatelessWidget {
 
 class _FormCard extends StatelessWidget {
   final FormEntry form;
+  final bool isRenaming;
 
-  const _FormCard({required this.form});
+  const _FormCard({required this.form, this.isRenaming = false});
 
   @override
   Widget build(BuildContext context) {
@@ -926,6 +942,13 @@ class _FormCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (isRenaming)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CupertinoActivityIndicator(radius: 10, color: _purple),
+                )
+              else
               PopupMenuButton<_RowAction>(
                 onSelected: (a) => _handleAction(context, a),
                 icon: const Icon(
@@ -944,6 +967,17 @@ class _FormCard extends StatelessWidget {
                             size: 16, color: Color(0xFF3C3C43)),
                         SizedBox(width: 10),
                         Text('Open'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: _RowAction.rename,
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.pencil,
+                            size: 16, color: Color(0xFF3C3C43)),
+                        SizedBox(width: 10),
+                        Text('Rename'),
                       ],
                     ),
                   ),
@@ -980,8 +1014,29 @@ class _FormCard extends StatelessWidget {
     switch (action) {
       case _RowAction.open:
         _openForm(context);
+      case _RowAction.rename:
+        _renameForm(context);
       case _RowAction.delete:
         _confirmDelete(context);
+    }
+  }
+
+  void _renameForm(BuildContext context) async {
+    final name = await _showRenameDialog(context, current: form.name);
+    if (name == null || !context.mounted) return;
+    try {
+      await context.read<DashboardCubit>().renameForm(form.id, name);
+    } catch (_) {
+      if (!context.mounted) return;
+      ErrorModal.show(
+        context,
+        title: "Couldn't rename form.",
+        body: 'Check your connection and try again.',
+        secondaryLabel: 'Cancel',
+        onSecondary: () {},
+        primaryLabel: 'Retry',
+        onPrimary: () => _renameForm(context),
+      );
     }
   }
 
@@ -1024,7 +1079,171 @@ class _FormCard extends StatelessWidget {
   }
 }
 
-enum _RowAction { open, delete }
+enum _RowAction { open, rename, delete }
+
+Future<String?> _showRenameDialog(BuildContext context,
+    {required String current}) {
+  final controller = TextEditingController(text: current);
+  controller.selection =
+      TextSelection(baseOffset: 0, extentOffset: current.length);
+
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: _purple.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.pencil,
+                    color: _purple,
+                    size: 15,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Rename Form',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1C1C1E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+            const SizedBox(height: 12),
+            const Text(
+              'Enter a new name for your form.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6E6E73)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(fontSize: 15, color: Color(0xFF1C1C1E)),
+              cursorColor: _purple,
+              decoration: InputDecoration(
+                hintText: 'Form name',
+                hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                filled: true,
+                fillColor: const Color(0xFFF2F2F7),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: _purple, width: 1.5),
+                ),
+              ),
+              onSubmitted: (v) {
+                final name = v.trim();
+                if (name.isNotEmpty) Navigator.of(ctx).pop(name);
+              },
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(null),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F2F7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF8E8E93),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StatefulBuilder(
+                    builder: (ctx2, setLocal) {
+                      controller.addListener(() => setLocal(() {}));
+                      final canSave = controller.text.trim().isNotEmpty;
+                      return GestureDetector(
+                        onTap: canSave
+                            ? () =>
+                                Navigator.of(ctx).pop(controller.text.trim())
+                            : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: canSave
+                                ? _purple
+                                : _purple.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: canSave
+                                ? [
+                                    BoxShadow(
+                                      color: _purple.withValues(alpha: 0.30),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Save',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 // ── Error / banner widgets ────────────────────────────────────────────────────
 

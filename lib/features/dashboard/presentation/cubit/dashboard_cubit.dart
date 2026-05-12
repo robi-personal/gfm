@@ -6,6 +6,7 @@ import '../../domain/entities/form_entry.dart';
 import '../../domain/usecases/create_form.dart';
 import '../../domain/usecases/delete_form.dart';
 import '../../domain/usecases/get_forms.dart';
+import '../../domain/usecases/rename_form.dart';
 
 part 'dashboard_state.dart';
 
@@ -13,14 +14,17 @@ class DashboardCubit extends Cubit<DashboardState> {
   final GetForms _getForms;
   final CreateForm _createForm;
   final DeleteForm _deleteForm;
+  final RenameForm _renameForm;
 
   DashboardCubit({
     required GetForms getForms,
     required CreateForm createForm,
     required DeleteForm deleteForm,
+    required RenameForm renameForm,
   })  : _getForms = getForms,
         _createForm = createForm,
         _deleteForm = deleteForm,
+        _renameForm = renameForm,
         super(const DashboardInitial());
 
   // ── List ──────────────────────────────────────────────────────────────────
@@ -126,6 +130,42 @@ class DashboardCubit extends Cubit<DashboardState> {
         throw Exception(failure.message);
       },
       (_) {},
+    );
+  }
+
+  // ── Rename ─────────────────────────────────────────────────────────────────
+
+  Future<void> renameForm(String fileId, String title) async {
+    if (state is! DashboardLoaded) return;
+    final loaded = state as DashboardLoaded;
+
+    // Optimistic update + show loader on the card
+    emit(loaded.copyWith(
+      renamingId: fileId,
+      forms: loaded.forms
+          .map((f) => f.id == fileId
+              ? FormEntry(
+                  id: f.id,
+                  name: title,
+                  modifiedTime: f.modifiedTime,
+                  createdTime: f.createdTime,
+                  webViewLink: f.webViewLink,
+                )
+              : f)
+          .toList(),
+    ));
+
+    final result = await _renameForm(RenameFormParams(fileId, title));
+    result.fold(
+      (failure) {
+        emit(loaded); // revert on failure
+        throw Exception(failure.message);
+      },
+      (_) {
+        if (state case DashboardLoaded()) {
+          emit((state as DashboardLoaded).copyWith(clearRenaming: true));
+        }
+      },
     );
   }
 

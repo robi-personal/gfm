@@ -77,6 +77,16 @@ class FormsDataSource {
         ),
       ]);
 
+  Future<void> updateTitle(String formId, String title) =>
+      batchUpdate(formId, [
+        forms_api.Request(
+          updateFormInfo: forms_api.UpdateFormInfoRequest(
+            info: forms_api.Info(title: title),
+            updateMask: 'title',
+          ),
+        ),
+      ]);
+
   Future<void> publishForm(String formId) =>
       _client.api.forms.setPublishSettings(
         forms_api.SetPublishSettingsRequest(

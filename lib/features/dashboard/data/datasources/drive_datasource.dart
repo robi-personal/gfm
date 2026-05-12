@@ -32,4 +32,8 @@ class DriveDataSource {
   Future<void> trashFile(String fileId) async {
     await _client.api.files.update(File()..trashed = true, fileId);
   }
+
+  Future<void> renameFile(String fileId, String name) async {
+    await _client.api.files.update(File()..name = name, fileId);
+  }
 }

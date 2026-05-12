@@ -12,6 +12,7 @@ import '../../features/dashboard/domain/repositories/form_repository.dart';
 import '../../features/dashboard/domain/usecases/create_form.dart';
 import '../../features/dashboard/domain/usecases/delete_form.dart';
 import '../../features/dashboard/domain/usecases/get_forms.dart';
+import '../../features/dashboard/domain/usecases/rename_form.dart';
 import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import '../../features/sign_in/data/repositories/auth_repository_impl.dart';
 import '../../features/sign_in/domain/repositories/auth_repository.dart';
@@ -107,12 +108,16 @@ void configureDependencies() {
   getIt.registerLazySingleton(
     () => DeleteForm(getIt<FormRepository>()),
   );
+  getIt.registerLazySingleton(
+    () => RenameForm(getIt<FormRepository>()),
+  );
 
   getIt.registerFactory(
     () => DashboardCubit(
       getForms: getIt(),
       createForm: getIt(),
       deleteForm: getIt(),
+      renameForm: getIt(),
     ),
   );
 

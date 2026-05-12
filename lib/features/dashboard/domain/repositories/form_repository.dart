@@ -17,4 +17,6 @@ abstract class FormRepository {
   });
 
   Future<Either<Failure, Unit>> deleteForm(String fileId);
+
+  Future<Either<Failure, Unit>> renameForm(String fileId, String title);
 }
