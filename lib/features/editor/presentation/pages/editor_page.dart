@@ -128,9 +128,9 @@ class _EditorViewState extends State<_EditorView>
                 unselectedLabelStyle: const TextStyle(fontSize: 14),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 tabs: const [
-                  Tab(text: 'Questions'),
-                  Tab(text: 'Responses'),
-                  Tab(text: 'Settings'),
+                  Tab(icon: Icon(CupertinoIcons.list_bullet, size: 16), text: 'Questions'),
+                  Tab(icon: Icon(CupertinoIcons.chart_bar, size: 16), text: 'Responses'),
+                  Tab(icon: Icon(CupertinoIcons.settings, size: 16), text: 'Settings'),
                 ],
               ),
             ),
@@ -199,7 +199,7 @@ class _EditorViewState extends State<_EditorView>
       centerTitle: false,
       titleSpacing: 0,
       leading: IconButton(
-        icon: const Icon(CupertinoIcons.arrow_left, color: _purple, size: 20),
+        icon: Icon(CupertinoIcons.arrow_left, color: _purple, size: 20),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
@@ -258,7 +258,7 @@ class _EditorViewState extends State<_EditorView>
               : (isLoaded: false, responderUri: '', title: ''),
           builder: (context, data) {
             return IconButton(
-              icon: const Icon(CupertinoIcons.ellipsis, color: _purple, size: 22),
+              icon: Icon(CupertinoIcons.ellipsis, color: _purple, size: 22),
               onPressed: data.isLoaded
                   ? () => _showOptionsSheet(
                       context, data.responderUri, data.title)
