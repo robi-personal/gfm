@@ -118,56 +118,62 @@ class _EditorViewState extends State<_EditorView>
             // Action strip: Preview | Share | Save
             _ActionStrip(formId: widget.formId),
             // Tab bar
-            TabBar(
-              controller: _tabController,
-              labelColor: _purple,
-              indicatorColor: _purple,
-              unselectedLabelColor: _secondaryText,
-              dividerColor: _separator,
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: const TextStyle(fontSize: 14),
-              overlayColor: WidgetStateProperty.all(Colors.transparent),
-              tabs: const [
-                Tab(text: 'Questions'),
-                Tab(text: 'Responses'),
-                Tab(text: 'Settings'),
-              ],
+            ColoredBox(
+              color: _iosBg,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: _purple,
+                indicatorColor: _purple,
+                unselectedLabelColor: _secondaryText,
+                dividerColor: _separator,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                unselectedLabelStyle: const TextStyle(fontSize: 14),
+                overlayColor: WidgetStateProperty.all(Colors.transparent),
+                tabs: const [
+                  Tab(text: 'Questions'),
+                  Tab(text: 'Responses'),
+                  Tab(text: 'Settings'),
+                ],
+              ),
             ),
             // Tab content area
             Expanded(
-              child: BlocBuilder<EditorCubit, EditorState>(
-                buildWhen: (prev, curr) {
-                  if (prev.runtimeType != curr.runtimeType) return true;
-                  if (prev is EditorLoaded && curr is EditorLoaded) {
-                    return prev.isSaving != curr.isSaving;
-                  }
-                  return false;
-                },
-                builder: (context, state) => switch (state) {
-                  EditorLoading() => const _EditorSkeleton(),
-                  EditorLoaded(:final isSaving) when isSaving =>
-                    const _EditorSkeleton(),
-                  EditorError(:final kind, :final message)
-                      when kind == EditorErrorKind.network =>
-                    _FullScreenError(
-                      message: message,
-                      onRetry: () =>
-                          context.read<EditorCubit>().loadForm(widget.formId),
-                    ),
-                  EditorError() => const SizedBox.shrink(),
-                  EditorLoaded(:final form) => TabBarView(
-                      controller: _tabController,
-                      children: [
-                        const _EditorBody(),
-                        ResponsesScreen(
-                          formId: widget.formId,
-                          items: form.items,
-                        ),
-                        _SettingsTabPage(formId: widget.formId),
-                      ],
-                    ),
-                },
+              child: ColoredBox(
+                color: const Color(0xFFF2F2F7),
+                child: BlocBuilder<EditorCubit, EditorState>(
+                  buildWhen: (prev, curr) {
+                    if (prev.runtimeType != curr.runtimeType) return true;
+                    if (prev is EditorLoaded && curr is EditorLoaded) {
+                      return prev.isSaving != curr.isSaving;
+                    }
+                    return false;
+                  },
+                  builder: (context, state) => switch (state) {
+                    EditorLoading() => const _EditorSkeleton(),
+                    EditorLoaded(:final isSaving) when isSaving =>
+                      const _EditorSkeleton(),
+                    EditorError(:final kind, :final message)
+                        when kind == EditorErrorKind.network =>
+                      _FullScreenError(
+                        message: message,
+                        onRetry: () =>
+                            context.read<EditorCubit>().loadForm(widget.formId),
+                      ),
+                    EditorError() => const SizedBox.shrink(),
+                    EditorLoaded(:final form) => TabBarView(
+                        controller: _tabController,
+                        children: [
+                          const _EditorBody(),
+                          ResponsesScreen(
+                            formId: widget.formId,
+                            items: form.items,
+                          ),
+                          _SettingsTabPage(formId: widget.formId),
+                        ],
+                      ),
+                  },
+                ),
               ),
             ),
             // Bottom toolbar — only visible on the Questions tab
