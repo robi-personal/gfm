@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  flutter_expandable_fab: ^2.5.2
+  lottie: ^3.3.1
 
   # State management
   flutter_bloc: ^9.1.0
@@ -99,6 +101,7 @@ flutter:
   assets:
     - assets/
     - assets/template_image/
+    - assets/lottie/
 
 flutter_launcher_icons:
   android: true

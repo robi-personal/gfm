@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
@@ -74,6 +76,7 @@ class _DashboardViewState extends State<_DashboardView> {
           appBar: _buildAppBar(context, state),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
+          floatingActionButtonLocation: ExpandableFab.location,
           floatingActionButton: _buildFab(context, isCreating),
         );
       },
@@ -82,52 +85,56 @@ class _DashboardViewState extends State<_DashboardView> {
 
   // ── FAB ────────────────────────────────────────────────────────────────────
 
+  final _fabKey = GlobalKey<ExpandableFabState>();
+
   Widget _buildFab(BuildContext context, bool isCreating) {
-    return GestureDetector(
-      onLongPress: isCreating ? null : () => _openAiBuilder(context),
-      child: GestureDetector(
-        onTap: isCreating ? null : () => _onNewForm(context),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: isCreating ? const Color(0xFFD1D1D6) : _purple,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: isCreating
-                ? []
-                : [
-                    BoxShadow(
-                      color: _purple.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              isCreating
-                  ? const CupertinoActivityIndicator(
-                      radius: 9, color: Colors.white)
-                  : const Icon(Icons.add_rounded,
-                      color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                isCreating ? 'Creating…' : 'New Form',
-                style: TextStyle(
-                  color: isCreating
-                      ? const Color(0xFF8E8E93)
-                      : Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return ExpandableFab(
+      key: _fabKey,
+      type: ExpandableFabType.up,
+      distance: 75,
+      duration: const Duration(milliseconds: 220),
+      openButtonBuilder: RotateFloatingActionButtonBuilder(
+        child: isCreating
+            ? const CupertinoActivityIndicator(
+                radius: 10, color: Colors.white)
+            : const Icon(Icons.add_rounded, size: 26),
+        fabSize: ExpandableFabSize.regular,
+        foregroundColor: Colors.white,
+        backgroundColor: _purple,
+        shape: const CircleBorder(),
       ),
+      closeButtonBuilder: DefaultFloatingActionButtonBuilder(
+        child: const Icon(Icons.close_rounded, size: 22),
+        fabSize: ExpandableFabSize.regular,
+        foregroundColor: Colors.white,
+        backgroundColor: _purple,
+        shape: const CircleBorder(),
+      ),
+      children: [
+        _FabAction(
+          icon: Icons.auto_awesome_rounded,
+          label: 'AI Form Builder',
+          color: const Color(0xFF9B4FE8),
+          lottieAsset: 'assets/lottie/aiFormBuilder.json',
+          onTap: isCreating
+              ? null
+              : () {
+                  _fabKey.currentState?.toggle();
+                  _openAiBuilder(context);
+                },
+        ),
+        _FabAction(
+          icon: Icons.edit_note_rounded,
+          label: 'Create Form',
+          color: _purple,
+          onTap: isCreating
+              ? null
+              : () {
+                  _fabKey.currentState?.toggle();
+                  _onNewForm(context);
+                },
+        ),
+      ],
     );
   }
 
@@ -217,12 +224,6 @@ class _DashboardViewState extends State<_DashboardView> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.auto_awesome_rounded,
-              color: _purple, size: 22),
-          tooltip: 'AI Form Builder',
-          onPressed: () => _openAiBuilder(context),
-        ),
         IconButton(
           icon: const Icon(Icons.search_rounded,
               color: Color(0xFF8E8E93), size: 22),
@@ -486,6 +487,80 @@ class _DashboardViewState extends State<_DashboardView> {
     if (context.mounted) {
       context.read<DashboardCubit>().loadForms();
     }
+  }
+}
+
+// ── FAB action child ─────────────────────────────────────────────────────────
+
+class _FabAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String? lottieAsset;
+  final VoidCallback? onTap;
+
+  const _FabAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.lottieAsset,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Label pill
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          FloatingActionButton(
+            heroTag: null,
+            onPressed: onTap,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.white,
+            elevation: 6,
+            shape: const CircleBorder(),
+            child: lottieAsset != null
+                ? Lottie.asset(
+                    lottieAsset!,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    errorBuilder: (context, error, stack) =>
+                        Icon(icon, size: 26, color: color),
+                  )
+                : Icon(icon, size: 26, color: color),
+          ),
+        ],
+      ),
+    );
   }
 }
 
