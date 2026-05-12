@@ -177,7 +177,7 @@ class _EditorViewState extends State<_EditorView>
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: _iosBg,
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
