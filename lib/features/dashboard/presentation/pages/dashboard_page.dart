@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -14,7 +15,10 @@ import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_picker_page.dart';
 
+// Exact same palette as ai_form_builder_page.dart
 const _purple = Color(0xFF772FC0);
+const _iosBg  = Colors.white;
+const _cardBg = Colors.white;
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -66,31 +70,372 @@ class _DashboardViewState extends State<_DashboardView> {
         };
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: _iosBg,
           appBar: _buildAppBar(context, state),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
-          floatingActionButton: GestureDetector(
-            onLongPress: isCreating ? null : () => _openAiBuilder(context),
-            child: FloatingActionButton(
-              onPressed: isCreating ? null : () => _onNewForm(context),
-              backgroundColor: _purple,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              child: isCreating
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white),
-                    )
-                  : const Icon(Icons.add, size: 28),
-            ),
-          ),
+          floatingActionButton: _buildFab(context, isCreating),
         );
       },
     );
   }
+
+  // ── FAB ────────────────────────────────────────────────────────────────────
+
+  Widget _buildFab(BuildContext context, bool isCreating) {
+    return GestureDetector(
+      onLongPress: isCreating ? null : () => _openAiBuilder(context),
+      child: GestureDetector(
+        onTap: isCreating ? null : () => _onNewForm(context),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: isCreating ? const Color(0xFFD1D1D6) : _purple,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isCreating
+                ? []
+                : [
+                    BoxShadow(
+                      color: _purple.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              isCreating
+                  ? const CupertinoActivityIndicator(
+                      radius: 9, color: Colors.white)
+                  : const Icon(Icons.add_rounded,
+                      color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                isCreating ? 'Creating…' : 'New Form',
+                style: TextStyle(
+                  color: isCreating
+                      ? const Color(0xFF8E8E93)
+                      : Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── AppBar ─────────────────────────────────────────────────────────────────
+
+  PreferredSizeWidget _buildAppBar(
+      BuildContext context, DashboardState state) {
+    if (_searchOpen) {
+      return AppBar(
+        backgroundColor: _iosBg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new,
+              size: 18, color: _purple),
+          onPressed: () {
+            setState(() => _searchOpen = false);
+            _searchController.clear();
+            context.read<DashboardCubit>().loadForms();
+          },
+        ),
+        title: TextField(
+          controller: _searchController,
+          autofocus: true,
+          style: const TextStyle(
+              fontSize: 15, color: Color(0xFF1C1C1E)),
+          cursorColor: _purple,
+          decoration: InputDecoration(
+            hintText: 'Search forms…',
+            hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+            filled: true,
+            fillColor: Colors.white,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 9),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: _purple, width: 1.5),
+            ),
+          ),
+          onChanged: (q) =>
+              context.read<DashboardCubit>().search(q),
+        ),
+      );
+    }
+
+    return AppBar(
+      backgroundColor: _iosBg,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleSpacing: 0,
+      leading: Builder(
+        builder: (ctx) => IconButton(
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
+          icon: SvgPicture.asset(
+            'assets/dashboard_hamburger.svg',
+            width: 24,
+            height: 24,
+          ),
+        ),
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset('assets/app_logo.png', width: 28, height: 28),
+          const SizedBox(width: 8),
+          const Text(
+            'GFM',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1C1C1E),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.auto_awesome_rounded,
+              color: _purple, size: 22),
+          tooltip: 'AI Form Builder',
+          onPressed: () => _openAiBuilder(context),
+        ),
+        IconButton(
+          icon: const Icon(Icons.search_rounded,
+              color: Color(0xFF8E8E93), size: 22),
+          onPressed: () => setState(() => _searchOpen = true),
+        ),
+        GestureDetector(
+          onTap: () => PaywallPage.show(context),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SvgPicture.asset(
+              'assets/dashboard_premium.svg',
+              width: 26,
+              height: 26,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Drawer ─────────────────────────────────────────────────────────────────
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: _iosBg,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF5418A0), _purple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 20,
+              bottom: 28,
+              left: 20,
+              right: 20,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Form list',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Google Forms Manager',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    PaywallPage.show(context);
+                  },
+                  child: SvgPicture.asset(
+                    'assets/dashboard_premium.svg',
+                    width: 28,
+                    height: 28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Menu
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              children: [
+                _DrawerSection(
+                  label: 'SUBSCRIPTION',
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/upgrade_to_premium.png',
+                      title: 'Upgrade to Premium',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        PaywallPage.show(context);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _DrawerSection(
+                  label: 'SUPPORT US',
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/nav_share.png',
+                      title: 'Share on the App Store',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    _DrawerItem(
+                      assetIcon: 'assets/rate_us.png',
+                      title: 'Rate the app',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _DrawerSection(
+                  label: 'FEEDBACK',
+                  items: [
+                    _DrawerItem(
+                      icon: CupertinoIcons.mail,
+                      title: 'Email us',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _DrawerSection(
+                  label: 'LEGAL',
+                  items: [
+                    _DrawerItem(
+                      icon: CupertinoIcons.lock_shield,
+                      title: 'Privacy Policy',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    _DrawerItem(
+                      icon: CupertinoIcons.doc_text,
+                      title: 'Terms of Use',
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _DrawerSection(
+                  label: 'ACCOUNT',
+                  labelColor: Colors.red,
+                  items: [
+                    _DrawerItem(
+                      assetIcon: 'assets/logout.png',
+                      assetColor: Colors.red,
+                      title: 'Sign out',
+                      textColor: Colors.red,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.read<SignInCubit>().signOut();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Body ───────────────────────────────────────────────────────────────────
+
+  Widget _buildBody(BuildContext context, DashboardState state) {
+    return switch (state) {
+      DashboardInitial() ||
+      DashboardLoading() =>
+        const _DashboardSkeleton(),
+      DashboardLoaded(
+        :final forms,
+        :final query,
+        :final isShowingCache,
+        :final sortOrder,
+      ) =>
+        Column(
+          children: [
+            if (isShowingCache) const _CacheBanner(),
+            _SubHeader(
+              count: forms.length,
+              query: query,
+              sortOrder: sortOrder,
+              onSort: () =>
+                  context.read<DashboardCubit>().toggleSort(),
+            ),
+            Expanded(child: _FormList(forms: forms, query: query)),
+          ],
+        ),
+      DashboardError(:final message, :final cachedForms) =>
+        cachedForms != null
+            ? Column(
+                children: [
+                  _InlineBanner(message: message),
+                  Expanded(
+                      child:
+                          _FormList(forms: cachedForms, query: '')),
+                ],
+              )
+            : _FullScreenError(
+                message: message,
+                onRetry: () =>
+                    context.read<DashboardCubit>().refresh(),
+              ),
+    };
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   void _onNewForm(BuildContext context) {
     final cubit = context.read<DashboardCubit>();
@@ -120,7 +465,8 @@ class _DashboardViewState extends State<_DashboardView> {
       ErrorModal.show(
         context,
         title: 'Form created but not published.',
-        body: "Responders can't submit until it's published. Publish now?",
+        body:
+            "Responders can't submit until it's published. Publish now?",
         secondaryLabel: 'Later',
         onSecondary: () => _navigateToForm(context, nav),
         primaryLabel: 'Publish',
@@ -141,221 +487,79 @@ class _DashboardViewState extends State<_DashboardView> {
       context.read<DashboardCubit>().loadForms();
     }
   }
+}
 
-  PreferredSizeWidget _buildAppBar(
-      BuildContext context, DashboardState state) {
-    if (_searchOpen) {
-      return AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            setState(() => _searchOpen = false);
-            _searchController.clear();
-            context.read<DashboardCubit>().loadForms();
-          },
-        ),
-        title: TextField(
-          controller: _searchController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search forms…',
-            border: InputBorder.none,
-          ),
-          onChanged: (q) => context.read<DashboardCubit>().search(q),
-        ),
-      );
-    }
+// ── Sub-header ────────────────────────────────────────────────────────────────
 
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: Builder(
-        builder: (ctx) => IconButton(
-          onPressed: () => Scaffold.of(ctx).openDrawer(),
-          icon: SvgPicture.asset('assets/dashboard_hamburger.svg',
-              width: 24, height: 24),
-        ),
-      ),
-      title: const Text(
-        'Form list',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.auto_awesome, color: _purple),
-          tooltip: 'AI Form Builder',
-          onPressed: () => _openAiBuilder(context),
-        ),
-        IconButton(
-          icon: const Icon(Icons.search, color: Colors.black54),
-          onPressed: () => setState(() => _searchOpen = true),
-        ),
-        GestureDetector(
-          onTap: () => PaywallPage.show(context),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: SvgPicture.asset('assets/dashboard_premium.svg',
-                width: 28, height: 28),
-          ),
-        ),
-      ],
-    );
-  }
+class _SubHeader extends StatelessWidget {
+  final int count;
+  final String query;
+  final SortOrder sortOrder;
+  final VoidCallback onSort;
 
-  Widget _buildDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: const Color(0xFFF5F5F5),
-      child: Column(
+  const _SubHeader({
+    required this.count,
+    required this.query,
+    required this.sortOrder,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.isNotEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Row(
         children: [
-          // ── Purple header ──────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            color: _purple,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 20,
-              bottom: 24,
-              left: 20,
-              right: 20,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Form list',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    PaywallPage.show(context);
-                  },
-                  child: SvgPicture.asset(
-                    'assets/dashboard_premium.svg',
-                    width: 28,
-                    height: 28,
-                  ),
-                ),
-              ],
+          Text(
+            count == 1 ? '1 form' : '$count forms',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF8E8E93),
+              letterSpacing: 0.1,
             ),
           ),
-          // ── Menu items ─────────────────────────────────────────────────────
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _DrawerSection(
-                  label: 'Subscription',
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/upgrade_to_premium.png',
-                      title: 'Upgrade to Premium',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        PaywallPage.show(context);
-                      },
+          const Spacer(),
+          GestureDetector(
+            onTap: onSort,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _cardBg,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.arrow_up_arrow_down,
+                      size: 12, color: _purple),
+                  const SizedBox(width: 5),
+                  Text(
+                    sortOrder == SortOrder.modifiedDesc
+                        ? 'Last modified'
+                        : 'Date created',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _purple,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _DrawerSection(
-                  label: 'Support Us',
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/nav_share.png',
-                      title: 'Share the AppStore link',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                    _DrawerItem(
-                      assetIcon: 'assets/rate_us.png',
-                      title: 'Rate the app on AppStore',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _DrawerSection(
-                  label: 'Feedback',
-                  items: [
-                    _DrawerItem(
-                      icon: Icons.mail_outline,
-                      title: 'Email',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _DrawerSection(
-                  label: 'Policy',
-                  items: [
-                    _DrawerItem(
-                      title: 'Privacy policy',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                    _DrawerItem(
-                      title: 'Term of Use',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _DrawerSection(
-                  label: 'Sign Out',
-                  labelColor: Colors.red,
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/logout.png',
-                      assetColor: Colors.red,
-                      title: 'Sign out',
-                      textColor: Colors.red,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        context.read<SignInCubit>().signOut();
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildBody(BuildContext context, DashboardState state) {
-    return switch (state) {
-      DashboardInitial() || DashboardLoading() => const _DashboardSkeleton(),
-      DashboardLoaded(:final forms, :final query, :final isShowingCache) =>
-        Column(
-          children: [
-            if (isShowingCache) const _CacheBanner(),
-            Expanded(child: _FormList(forms: forms, query: query)),
-          ],
-        ),
-      DashboardError(:final message, :final cachedForms) =>
-        cachedForms != null
-            ? Column(
-                children: [
-                  _InlineBanner(message: message),
-                  Expanded(child: _FormList(forms: cachedForms, query: '')),
-                ],
-              )
-            : _FullScreenError(
-                message: message,
-                onRetry: () => context.read<DashboardCubit>().refresh(),
-              ),
-    };
   }
 }
 
@@ -367,10 +571,10 @@ class _DashboardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFEEEEEE),
-      highlightColor: const Color(0xFFFAFAFA),
+      baseColor: const Color(0xFFE5E5EA),
+      highlightColor: const Color(0xFFF2F2F7),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         itemCount: 6,
         itemBuilder: (context, i) => const _SkeletonCard(),
       ),
@@ -385,22 +589,24 @@ class _SkeletonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: const Row(
         children: [
-          SkeletonBone(width: 44, height: 56, radius: 6),
+          SkeletonBone(width: 44, height: 56, radius: 8),
           SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SkeletonBone(width: double.infinity, height: 14, radius: 4),
+                SkeletonBone(
+                    width: double.infinity, height: 13, radius: 4),
                 SizedBox(height: 8),
-                SkeletonBone(width: 120, height: 11, radius: 4),
+                SkeletonBone(width: 100, height: 11, radius: 4),
               ],
             ),
           ),
@@ -429,20 +635,23 @@ class _FormList extends StatelessWidget {
     }
 
     return RefreshIndicator(
+      color: _purple,
       onRefresh: () => context.read<DashboardCubit>().refresh(),
       child: ListView.builder(
         padding: EdgeInsets.fromLTRB(
-          12,
+          16,
           8,
-          12,
-          MediaQuery.viewPaddingOf(context).bottom + 80,
+          16,
+          MediaQuery.viewPaddingOf(context).bottom + 90,
         ),
         itemCount: forms.length,
-        itemBuilder: (context, i) => _FormCard(form: forms[i]),
+        itemBuilder: (_, i) => _FormCard(form: forms[i]),
       ),
     );
   }
 }
+
+// ── Empty states ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -457,22 +666,26 @@ class _EmptyState extends StatelessWidget {
           children: [
             SvgPicture.asset(
               'assets/dashboard_no_form_banner.svg',
-              width: 200,
+              width: 180,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             const Text(
-              'No forms yet.',
+              'No forms yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Colors.black87,
+                color: Color(0xFF1C1C1E),
               ),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Forms you create here will appear in this list.',
+              'Tap "New Form" to get started,\nor use AI to build one instantly.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8E8E93),
+                height: 1.5,
+              ),
             ),
           ],
         ),
@@ -493,21 +706,23 @@ class _SearchEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off_rounded, size: 56, color: Colors.grey[350]),
+            Icon(CupertinoIcons.search,
+                size: 48, color: const Color(0xFFC7C7CC)),
             const SizedBox(height: 20),
             Text(
-              'No forms match "$query".',
+              'No results for "$query"',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: Color(0xFF1C1C1E),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             const Text(
               'Try a different search term.',
-              style: TextStyle(fontSize: 14, color: Colors.black54),
+              style: TextStyle(
+                  fontSize: 14, color: Color(0xFF8E8E93)),
             ),
           ],
         ),
@@ -515,6 +730,8 @@ class _SearchEmptyState extends StatelessWidget {
     );
   }
 }
+
+// ── Form card ─────────────────────────────────────────────────────────────────
 
 class _FormCard extends StatelessWidget {
   final FormEntry form;
@@ -526,25 +743,37 @@ class _FormCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: InkWell(
         onTap: () => _openForm(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        splashColor: _purple.withValues(alpha: 0.06),
+        highlightColor: _purple.withValues(alpha: 0.03),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              SvgPicture.asset('assets/dashboard_form_icon.svg',
-                  width: 44, height: 56),
+              SvgPicture.asset(
+                'assets/dashboard_form_icon.svg',
+                width: 44,
+                height: 56,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -557,27 +786,65 @@ class _FormCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: Color(0xFF1C1C1E),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      form.modifiedTime != null
-                          ? _formatDate(form.modifiedTime!)
-                          : '',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black45),
-                    ),
+                    if (form.modifiedTime != null)
+                      Row(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.clock,
+                            size: 11,
+                            color: Color(0xFFC7C7CC),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDate(form.modifiedTime!),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF8E8E93),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
               PopupMenuButton<_RowAction>(
-                onSelected: (action) => _handleAction(context, action),
-                icon: const Icon(Icons.more_vert, color: Colors.black45),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: _RowAction.open, child: Text('Open')),
-                  PopupMenuItem(
-                      value: _RowAction.delete, child: Text('Delete')),
+                onSelected: (a) => _handleAction(context, a),
+                icon: const Icon(
+                  CupertinoIcons.ellipsis,
+                  color: Color(0xFFC7C7CC),
+                  size: 20,
+                ),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: _RowAction.open,
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.arrow_up_right_square,
+                            size: 16, color: Color(0xFF3C3C43)),
+                        SizedBox(width: 10),
+                        Text('Open'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: _RowAction.delete,
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.trash,
+                            size: 16, color: Color(0xFFFF3B30)),
+                        SizedBox(width: 10),
+                        Text('Delete',
+                            style: TextStyle(
+                                color: Color(0xFFFF3B30))),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -589,7 +856,8 @@ class _FormCard extends StatelessWidget {
 
   void _openForm(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditorPage(formId: form.id, formName: form.name),
+      builder: (_) =>
+          EditorPage(formId: form.id, formName: form.name),
     ));
   }
 
@@ -643,13 +911,14 @@ class _FormCard extends StatelessWidget {
 
 enum _RowAction { open, delete }
 
-// ── Error / Banner widgets ────────────────────────────────────────────────────
+// ── Error / banner widgets ────────────────────────────────────────────────────
 
 class _FullScreenError extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _FullScreenError({required this.message, required this.onRetry});
+  const _FullScreenError(
+      {required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -659,12 +928,51 @@ class _FullScreenError extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(backgroundColor: _purple),
-              child: const Text('Retry'),
+            const Icon(CupertinoIcons.wifi_slash,
+                size: 48, color: Color(0xFFC7C7CC)),
+            const SizedBox(height: 20),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF8E8E93),
+                  height: 1.4),
+            ),
+            const SizedBox(height: 28),
+            GestureDetector(
+              onTap: onRetry,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 13),
+                decoration: BoxDecoration(
+                  color: _purple,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _purple.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.refresh,
+                        size: 16, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Retry',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -682,11 +990,22 @@ class _InlineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.orange[50],
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Text(
-        message,
-        style: TextStyle(color: Colors.orange[900], fontSize: 13),
+      color: const Color(0xFFFFF9EC),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.exclamationmark_circle,
+              size: 15, color: Color(0xFFFF9500)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                  color: Color(0xFF7D4E00), fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -699,11 +1018,20 @@ class _CacheBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.blue[50],
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Text(
-        'Showing cached list',
-        style: TextStyle(color: Colors.blue[900], fontSize: 13),
+      color: const Color(0xFFEEF4FF),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.cloud_download,
+              size: 15, color: Color(0xFF0A84FF)),
+          const SizedBox(width: 8),
+          Text(
+            'Showing cached list',
+            style: const TextStyle(
+                color: Color(0xFF0A58CA), fontSize: 13),
+          ),
+        ],
       ),
     );
   }
@@ -719,7 +1047,7 @@ class _DrawerSection extends StatelessWidget {
   const _DrawerSection({
     required this.label,
     required this.items,
-    this.labelColor = _purple,
+    this.labelColor = const Color(0xFF8E8E93),
   });
 
   @override
@@ -727,19 +1055,29 @@ class _DrawerSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: labelColor,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+              letterSpacing: 0.6,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: _cardBg,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -747,8 +1085,12 @@ class _DrawerSection extends StatelessWidget {
                 items[i],
                 if (i < items.length - 1)
                   const Divider(
-                      height: 1, thickness: 1, color: Color(0xFFF0F0F0),
-                      indent: 16, endIndent: 16),
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFF2F2F7),
+                    indent: 50,
+                    endIndent: 0,
+                  ),
               ],
             ],
           ),
@@ -771,37 +1113,43 @@ class _DrawerItem extends StatelessWidget {
     required this.onTap,
     this.assetIcon,
     this.icon,
-    this.assetColor = Colors.black87,
-    this.textColor = Colors.black87,
+    this.assetColor = const Color(0xFF3C3C43),
+    this.textColor = const Color(0xFF1C1C1E),
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            if (assetIcon != null) ...[
-              Image.asset(assetIcon!, width: 22, height: 22, color: assetColor),
-              const SizedBox(width: 14),
-            ] else if (icon != null) ...[
-              Icon(icon, size: 22, color: Colors.black87),
-              const SizedBox(width: 14),
-            ],
+            SizedBox(
+              width: 22,
+              child: assetIcon != null
+                  ? Image.asset(assetIcon!,
+                      width: 20, height: 20, color: assetColor)
+                  : icon != null
+                      ? Icon(icon,
+                          size: 20, color: const Color(0xFF3C3C43))
+                      : const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   color: textColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: Colors.black38),
+            const Icon(CupertinoIcons.chevron_right,
+                size: 14, color: Color(0xFFC7C7CC)),
           ],
         ),
       ),
