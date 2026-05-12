@@ -390,20 +390,34 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
+                  const Text('Question title', style: labelStyle),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _titleCtrl,
                     style: bodyStyle.copyWith(fontWeight: FontWeight.w500),
-                    decoration: _inputDec('Question title'),
+                    decoration: _inputDec('').copyWith(
+                      labelText: null,
+                      hintText: 'e.g. What is your name?',
+                      hintStyle: const TextStyle(
+                          fontSize: 15, color: Colors.black26),
+                    ),
                     minLines: 1,
                     maxLines: 4,
                     textInputAction: TextInputAction.next,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   // Description
+                  const Text('Description', style: labelStyle),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _descCtrl,
                     style: bodyStyle,
-                    decoration: _inputDec('Description (optional)'),
+                    decoration: _inputDec('').copyWith(
+                      labelText: null,
+                      hintText: 'Optional',
+                      hintStyle: const TextStyle(
+                          fontSize: 15, color: Colors.black26),
+                    ),
                     minLines: 1,
                     maxLines: 3,
                   ),
