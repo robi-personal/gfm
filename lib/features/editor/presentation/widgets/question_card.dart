@@ -53,7 +53,7 @@ class QuestionCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left purple accent bar
+            // Left purple accent bar — full card height including drag handle
             Container(
               width: 4,
               decoration: const BoxDecoration(
@@ -64,15 +64,19 @@ class QuestionCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Card content
+            // Right column: drag handle + card content
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Title + type chip ─────────────────────────────────
-                    Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DragHandleHint(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Title + type chip ─────────────────────────────────
+                        Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
@@ -176,6 +180,8 @@ class QuestionCard extends StatelessWidget {
                   ],
                 ),
               ),
+                ],
+              ),
             ),
           ],
         ),
@@ -203,53 +209,59 @@ class QuestionCard extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DragHandleHint(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            item.title?.isNotEmpty == true
-                                ? item.title!
-                                : 'Question group',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: _primaryText,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title?.isNotEmpty == true
+                                    ? item.title!
+                                    : 'Question group',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: _primaryText,
+                                ),
+                              ),
                             ),
+                            const SizedBox(width: 8),
+                            const TypeChip(
+                                kind: ChoiceQuestion(
+                                    type: ChoiceType.radio, options: [])),
+                          ],
+                        ),
+                        if (colCount > 0) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '${content.questions.length} rows · $colCount columns',
+                            style: const TextStyle(
+                                fontSize: 12, color: _secondaryText),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const TypeChip(
-                            kind: ChoiceQuestion(
-                                type: ChoiceType.radio, options: [])),
-                      ],
-                    ),
-                    if (colCount > 0) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        '${content.questions.length} rows · $colCount columns',
-                        style: const TextStyle(
-                            fontSize: 12, color: _secondaryText),
-                      ),
-                    ],
-                    const Divider(height: 20, color: _separator),
-                    Row(
-                      children: [
-                        _ActionButton(
-                          icon: CupertinoIcons.trash,
-                          tooltip: 'Delete',
-                          onPressed: () =>
-                              context.read<EditorCubit>().deleteItem(item.itemId),
+                        ],
+                        const Divider(height: 20, color: _separator),
+                        Row(
+                          children: [
+                            _ActionButton(
+                              icon: CupertinoIcons.trash,
+                              tooltip: 'Delete',
+                              onPressed: () =>
+                                  context.read<EditorCubit>().deleteItem(item.itemId),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -281,13 +293,7 @@ class _CardShell extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const DragHandleHint(),
-          child,
-        ],
-      ),
+      child: child,
     );
   }
 }

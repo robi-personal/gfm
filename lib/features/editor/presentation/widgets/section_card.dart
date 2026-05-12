@@ -33,104 +33,101 @@ class SectionCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const DragHandleHint(),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Left purple accent bar
-                Container(
-                  width: 4,
-                  decoration: const BoxDecoration(
-                    color: _purple,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(14),
-                      bottomLeft: Radius.circular(14),
-                    ),
-                  ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Full-height purple accent bar
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
                 ),
-                // Card content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+              ),
+            ),
+            // Right: drag handle + content
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DragHandleHint(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title + section chip
                         Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title?.isNotEmpty == true
-                                ? item.title!
-                                : 'Section',
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title?.isNotEmpty == true
+                                    ? item.title!
+                                    : 'Section',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _purple,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Section',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _purple,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (item.description?.isNotEmpty == true) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.description!,
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _purple,
+                                fontSize: 13, color: _secondaryText),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: _separator),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _CardActionButton(
+                              icon: CupertinoIcons.trash,
+                              tooltip: 'Delete section',
+                              onPressed: () =>
+                                  context.read<EditorCubit>().deleteItem(item.itemId),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Section',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _purple,
+                            _CardActionButton(
+                              icon: CupertinoIcons.pencil,
+                              tooltip: 'Edit section',
+                              onPressed: () =>
+                                  _SectionEditSheet.show(context, item),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
-                    // Description
-                    if (item.description?.isNotEmpty == true) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        item.description!,
-                        style: const TextStyle(
-                            fontSize: 13, color: _secondaryText),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    const Divider(height: 1, color: _separator),
-                    const SizedBox(height: 12),
-                    // Action row
-                    Row(
-                      children: [
-                        _CardActionButton(
-                          icon: CupertinoIcons.trash,
-                          tooltip: 'Delete section',
-                          onPressed: () =>
-                              context.read<EditorCubit>().deleteItem(item.itemId),
-                        ),
-                        _CardActionButton(
-                          icon: CupertinoIcons.pencil,
-                          tooltip: 'Edit section',
-                          onPressed: () =>
-                              _SectionEditSheet.show(context, item),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-        ],
       ),
     );
   }
@@ -353,27 +350,29 @@ class TextBlockCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const DragHandleHint(),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 4,
-                  decoration: const BoxDecoration(
-                    color: _purple,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(14),
-                      bottomLeft: Radius.circular(14),
-                    ),
-                  ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Full-height purple accent bar
+            Container(
+              width: 4,
+              decoration: const BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  bottomLeft: Radius.circular(14),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+              ),
+            ),
+            // Right: drag handle + content
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DragHandleHint(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -441,11 +440,11 @@ class TextBlockCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
