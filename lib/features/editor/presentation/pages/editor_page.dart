@@ -117,57 +117,68 @@ class _EditorViewState extends State<_EditorView>
           children: [
             // Tab bar
             _SegmentedTabBar(controller: _tabController),
-            // Tab content area
+            // Tab content + floating bottom bar
             Expanded(
-              child: ColoredBox(
-                color: const Color(0xFFF2F2F7),
-                child: BlocBuilder<EditorCubit, EditorState>(
-                  buildWhen: (prev, curr) {
-                    if (prev.runtimeType != curr.runtimeType) return true;
-                    if (prev is EditorLoaded && curr is EditorLoaded) {
-                      return prev.isSaving != curr.isSaving;
-                    }
-                    return false;
-                  },
-                  builder: (context, state) => switch (state) {
-                    EditorLoading() => const _EditorSkeleton(),
-                    EditorLoaded(:final isSaving) when isSaving =>
-                      const _EditorSkeleton(),
-                    EditorError(:final kind, :final message)
-                        when kind == EditorErrorKind.network =>
-                      _FullScreenError(
-                        message: message,
-                        onRetry: () =>
-                            context.read<EditorCubit>().loadForm(widget.formId),
-                      ),
-                    EditorError() => const SizedBox.shrink(),
-                    EditorLoaded(:final form) => TabBarView(
-                        controller: _tabController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          const _EditorBody(),
-                          ResponsesScreen(
-                            formId: widget.formId,
-                            items: form.items,
+              child: Stack(
+                children: [
+                  SizedBox.expand(
+                   child: ColoredBox(
+                    color: const Color(0xFFF2F2F7),
+                    child: BlocBuilder<EditorCubit, EditorState>(
+                      buildWhen: (prev, curr) {
+                        if (prev.runtimeType != curr.runtimeType) return true;
+                        if (prev is EditorLoaded && curr is EditorLoaded) {
+                          return prev.isSaving != curr.isSaving;
+                        }
+                        return false;
+                      },
+                      builder: (context, state) => switch (state) {
+                        EditorLoading() => const _EditorSkeleton(),
+                        EditorLoaded(:final isSaving) when isSaving =>
+                          const _EditorSkeleton(),
+                        EditorError(:final kind, :final message)
+                            when kind == EditorErrorKind.network =>
+                          _FullScreenError(
+                            message: message,
+                            onRetry: () =>
+                                context.read<EditorCubit>().loadForm(widget.formId),
                           ),
-                          _SettingsTabPage(formId: widget.formId),
-                        ],
-                      ),
-                  },
-                ),
+                        EditorError() => const SizedBox.shrink(),
+                        EditorLoaded(:final form) => TabBarView(
+                            controller: _tabController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              const _EditorBody(),
+                              ResponsesScreen(
+                                formId: widget.formId,
+                                items: form.items,
+                              ),
+                              _SettingsTabPage(formId: widget.formId),
+                            ],
+                          ),
+                      },
+                    ),
+                  )),
+                  // Floating bottom toolbar — only on Questions tab
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: AnimatedBuilder(
+                      animation: _tabController,
+                      builder: (context, _) {
+                        if (_tabController.index != 0) return const SizedBox.shrink();
+                        return BlocSelector<EditorCubit, EditorState, bool>(
+                          selector: (state) =>
+                              state is EditorLoaded && !state.isSaving,
+                          builder: (context, enabled) =>
+                              _BottomBar(enabled: enabled, formId: widget.formId),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-            // Bottom toolbar — only visible on the Questions tab
-            AnimatedBuilder(
-              animation: _tabController,
-              builder: (context, _) {
-                if (_tabController.index != 0) return const SizedBox.shrink();
-                return BlocSelector<EditorCubit, EditorState, bool>(
-                  selector: (state) => state is EditorLoaded && !state.isSaving,
-                  builder: (context, enabled) =>
-                      _BottomBar(enabled: enabled, formId: widget.formId),
-                );
-              },
             ),
           ],
         ),
