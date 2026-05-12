@@ -1440,7 +1440,7 @@ class _QuizToggleRow extends StatelessWidget {
 
 // ── Input type picker ─────────────────────────────────────────────────────────
 
-class _InputTypePicker extends StatelessWidget {
+class _InputTypePicker extends StatefulWidget {
   final AiInputType selected;
   final bool enabled;
   final ValueChanged<AiInputType> onChanged;
@@ -1451,17 +1451,77 @@ class _InputTypePicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  @override
+  State<_InputTypePicker> createState() => _InputTypePickerState();
+}
+
+class _InputTypePickerState extends State<_InputTypePicker> {
   static const _items = <(AiInputType, String, IconData)>[
-    (AiInputType.text, 'Text', CupertinoIcons.text_alignleft),
-    (AiInputType.pdf, 'PDF', CupertinoIcons.doc_text),
+    (AiInputType.pdf,     'PDF',     CupertinoIcons.doc_text),
     (AiInputType.youtube, 'YouTube', CupertinoIcons.play_rectangle),
-    (AiInputType.urls, 'URLs', CupertinoIcons.link),
-    (AiInputType.book, 'Book', CupertinoIcons.book),
+    (AiInputType.text,    'Text',    CupertinoIcons.text_alignleft),
+    (AiInputType.urls,    'URLs',    CupertinoIcons.link),
+    (AiInputType.book,    'Book',    CupertinoIcons.book),
   ];
+
+  final _scrollController = ScrollController();
+  final _scrollKey = GlobalKey();
+  final _itemKeys = <AiInputType, GlobalKey>{
+    AiInputType.pdf:     GlobalKey(),
+    AiInputType.youtube: GlobalKey(),
+    AiInputType.text:    GlobalKey(),
+    AiInputType.urls:    GlobalKey(),
+    AiInputType.book:    GlobalKey(),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+  }
+
+  @override
+  void didUpdateWidget(_InputTypePicker old) {
+    super.didUpdateWidget(old);
+    if (old.selected != widget.selected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelected() {
+    if (!_scrollController.hasClients) return;
+    final itemKey = _itemKeys[widget.selected];
+    if (itemKey == null) return;
+    final itemCtx = itemKey.currentContext;
+    final scrollCtx = _scrollKey.currentContext;
+    if (itemCtx == null || scrollCtx == null) return;
+
+    final itemBox   = itemCtx.findRenderObject()   as RenderBox;
+    final scrollBox = scrollCtx.findRenderObject() as RenderBox;
+
+    final itemGlobalX  = itemBox.localToGlobal(Offset.zero).dx;
+    final scrollGlobalX = scrollBox.localToGlobal(Offset.zero).dx;
+
+    final itemOffsetInContent = (itemGlobalX - scrollGlobalX) + _scrollController.offset;
+    final targetOffset = itemOffsetInContent + itemBox.size.width / 2 - scrollBox.size.width / 2;
+
+    _scrollController.animateTo(
+      targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: _scrollKey,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -1473,32 +1533,22 @@ class _InputTypePicker extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Colors.white, Colors.white, Colors.transparent],
-            stops: [0.0, 0.75, 1.0],
-          ).createShader(bounds),
-          blendMode: BlendMode.dstIn,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(4, 4, 36, 4),
-            child: Row(
-              children: [
-                for (final (type, label, icon) in _items)
-                  _TypeChip(
-                    label: label,
-                    icon: icon,
-                    selected: selected == type,
-                    enabled: enabled,
-                    onTap: () => onChanged(type),
-                  ),
-              ],
-            ),
-          ),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            for (final (type, label, icon) in _items)
+              _TypeChip(
+                key: _itemKeys[type],
+                label: label,
+                icon: icon,
+                selected: widget.selected == type,
+                enabled: widget.enabled,
+                onTap: () => widget.onChanged(type),
+              ),
+          ],
         ),
       ),
     );
@@ -1513,6 +1563,7 @@ class _TypeChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TypeChip({
+    super.key,
     required this.label,
     required this.icon,
     required this.selected,
