@@ -806,7 +806,7 @@ class _EditorBodyState extends State<_EditorBody> {
             slivers: [
               SliverToBoxAdapter(child: header),
               SliverPadding(
-                padding: const EdgeInsets.only(top: 4, bottom: 100),
+                padding: const EdgeInsets.only(top: 4, bottom: 140),
                 sliver: SliverReorderableList(
                   itemCount: data.itemIds.length,
                   onReorder: (oldIndex, newIndex) {
