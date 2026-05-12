@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,8 +7,11 @@ import '../../../editor/presentation/pages/editor_page.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_data.dart';
 
-const _purple = Color(0xFF772FC0);
-const _bgGray = Color(0xFFF5F5F5);
+const _purple     = Color(0xFF772FC0);
+const _cardBg     = Colors.white;
+const _iosBg      = Colors.white;
+const _textPrimary   = Color(0xFF1C1C1E);
+const _textSecondary = Color(0xFF8E8E93);
 
 class TemplatePickerPage extends StatefulWidget {
   const TemplatePickerPage({super.key});
@@ -33,19 +37,31 @@ class _TemplatePickerPageState extends State<TemplatePickerPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: _bgGray,
+        backgroundColor: _iosBg,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: _iosBg,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 1,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new,
+                size: 18, color: _purple),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
           title: const Text(
             'Create Form',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+            ),
           ),
         ),
         body: _TemplatePickerBody(
           selectedCategory: _selectedCategory,
-          onCategorySelected: (cat) => setState(() => _selectedCategory = cat),
+          onCategorySelected: (cat) =>
+              setState(() => _selectedCategory = cat),
         ),
       ),
     );
@@ -62,9 +78,7 @@ class _TemplatePickerPageState extends State<TemplatePickerPage> {
               EditorPage(formId: nav.formId, formName: nav.formName),
         ),
       );
-      if (context.mounted) {
-        cubit.loadForms();
-      }
+      if (context.mounted) cubit.loadForms();
     }
 
     if (nav.publishFailed && context.mounted) {
@@ -84,6 +98,8 @@ class _TemplatePickerPageState extends State<TemplatePickerPage> {
   }
 }
 
+// ── Body ──────────────────────────────────────────────────────────────────────
+
 class _TemplatePickerBody extends StatelessWidget {
   final String selectedCategory;
   final ValueChanged<String> onCategorySelected;
@@ -96,8 +112,7 @@ class _TemplatePickerBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCreating = context.select<DashboardCubit, bool>((c) {
-      final s = c.state;
-      return switch (s) {
+      return switch (c.state) {
         DashboardLoaded(:final isCreating) => isCreating,
         DashboardError(:final isCreating) => isCreating,
         _ => false,
@@ -106,7 +121,9 @@ class _TemplatePickerBody extends StatelessWidget {
 
     final visibleCategories = selectedCategory == 'All'
         ? kTemplateCategories
-        : kTemplateCategories.where((c) => c == selectedCategory).toList();
+        : kTemplateCategories
+            .where((c) => c == selectedCategory)
+            .toList();
 
     return AbsorbPointer(
       absorbing: isCreating,
@@ -114,81 +131,69 @@ class _TemplatePickerBody extends StatelessWidget {
         children: [
           CustomScrollView(
             slivers: [
-              // ── header ───────────────────────────────────
-              const SliverToBoxAdapter(
+              // ── Blank cards ──────────────────────────────────────────────
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 28, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Start From Scratch or Select From Gallery',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 16),
+                      const _SectionLabel('START FROM SCRATCH'),
+                      const SizedBox(height: 12),
+                      const _BlankCardsRow(),
                     ],
                   ),
                 ),
               ),
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 0),
-                sliver: SliverToBoxAdapter(child: _BlankCardsRow()),
-              ),
-              // ── Template Gallery header ───────────────────────────────────
+
+              // ── Template gallery header ──────────────────────────────────
               const SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 28, 16, 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Template Gallery',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                    ],
-                  ),
+                  padding: EdgeInsets.fromLTRB(16, 28, 16, 12),
+                  child: _SectionLabel('TEMPLATE GALLERY'),
                 ),
               ),
-              // ── Category tab bar ──────────────────────────────────────────
+
+              // ── Category tabs ────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: _CategoryTabBar(
                   selected: selectedCategory,
                   onSelected: onCategorySelected,
                 ),
               ),
-              // ── Category sections ─────────────────────────────────────────
+
+              // ── Template sections ────────────────────────────────────────
               SliverPadding(
                 padding: const EdgeInsets.only(top: 20),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final category = visibleCategories[index];
-                    final templates = kFormTemplates
-                        .where((t) => t.category == category)
-                        .toList();
-                    return _CategorySection(
-                      category: category,
-                      templates: templates,
-                    );
-                  }, childCount: visibleCategories.length),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final category = visibleCategories[index];
+                      final templates = kFormTemplates
+                          .where((t) => t.category == category)
+                          .toList();
+                      return _CategorySection(
+                        category: category,
+                        templates: templates,
+                      );
+                    },
+                    childCount: visibleCategories.length,
+                  ),
                 ),
               ),
-              const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
             ],
           ),
+
+          // ── Creating overlay ─────────────────────────────────────────────
           if (isCreating)
             const Positioned.fill(
               child: ColoredBox(
-                color: Colors.black26,
-                child: Center(child: CircularProgressIndicator(color: _purple)),
+                color: Color(0x33000000),
+                child: Center(
+                  child: CupertinoActivityIndicator(
+                      radius: 14, color: Colors.white),
+                ),
               ),
             ),
         ],
@@ -197,76 +202,129 @@ class _TemplatePickerBody extends StatelessWidget {
   }
 }
 
+// ── Section label ─────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: _textSecondary,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
 // ── Category tab bar ──────────────────────────────────────────────────────────
 
 const _kTabDefs = [
-  ('All', null),
-  ('Work', Icons.work_outline),
-  ('Personal', Icons.person_outline),
-  ('Education', Icons.school_outlined),
+  ('All',       null),
+  ('Work',      CupertinoIcons.briefcase),
+  ('Personal',  CupertinoIcons.person),
+  ('Education', CupertinoIcons.book),
 ];
 
 class _CategoryTabBar extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelected;
 
-  const _CategoryTabBar({required this.selected, required this.onSelected});
+  const _CategoryTabBar(
+      {required this.selected, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-        itemCount: _kTabDefs.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final (label, icon) = _kTabDefs[index];
-          final isSelected = selected == label;
-          return GestureDetector(
-            onTap: () => onSelected(label),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? _purple : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? _purple : const Color(0xFFDDDDDD),
-                  width: 1,
-                ),
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            for (final (label, icon) in _kTabDefs)
+              _TabChip(
+                label: label,
+                icon: icon,
+                selected: selected == label,
+                onTap: () => onSelected(label),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(
-                      icon,
-                      size: 15,
-                      color: isSelected ? Colors.white : Colors.black54,
-                    ),
-                    const SizedBox(width: 5),
-                  ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Blank cards ───────────────────────────────────────────────────────────────
+class _TabChip extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? _purple : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 13,
+                color: selected ? Colors.white : _textSecondary,
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : _textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Blank cards row ───────────────────────────────────────────────────────────
 
 class _BlankCardsRow extends StatelessWidget {
   const _BlankCardsRow();
@@ -277,17 +335,17 @@ class _BlankCardsRow extends StatelessWidget {
       children: [
         Expanded(
           child: _BlankCard(
-            icon: Icons.add,
-            title: 'Blank form',
-            onCreate: (context) => _create(context, quiz: false),
+            icon: CupertinoIcons.add,
+            title: 'Blank Form',
+            onCreate: (ctx) => _create(ctx, quiz: false),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _BlankCard(
-            icon: Icons.question_mark,
-            title: 'Blank quiz',
-            onCreate: (context) => _create(context, quiz: true),
+            icon: CupertinoIcons.question,
+            title: 'Blank Quiz',
+            onCreate: (ctx) => _create(ctx, quiz: true),
           ),
         ),
       ],
@@ -334,39 +392,48 @@ class _BlankCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Column(
-          children: [
-            Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: () => onCreate(context),
-                borderRadius: BorderRadius.circular(12),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    color: Color(0xFFEDE7F6).withValues(alpha: .7),
-                  ),
-                  height: 112,
-                  child: Center(child: Icon(icon, color: _purple, size: 40)),
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => onCreate(context),
+        borderRadius: BorderRadius.circular(14),
+        splashColor: _purple.withValues(alpha: 0.06),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: _purple.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: _purple, size: 26),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -379,44 +446,69 @@ class _CategorySection extends StatelessWidget {
   final String category;
   final List<FormTemplate> templates;
 
-  const _CategorySection({required this.category, required this.templates});
+  const _CategorySection(
+      {required this.category, required this.templates});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: Card(
-        color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
+              // Header
               Row(
                 children: [
-                  _categoryEmoji(category),
-                  const SizedBox(width: 8),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: _purple.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _categoryIcon(category),
+                      color: _purple,
+                      size: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Text(
                     category,
                     style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _textPrimary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Divider(color: Color(0xFFD1C4E9), height: 2),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+              const Divider(
+                  height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+              const SizedBox(height: 14),
               // Grid
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: templates.length,
                 padding: EdgeInsets.zero,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
@@ -432,21 +524,12 @@ class _CategorySection extends StatelessWidget {
     );
   }
 
-  Widget _categoryEmoji(String category) {
-    final IconData icon = switch (category) {
-      'Work' => (Icons.work_outline),
-      'Personal' => (Icons.school_outlined),
-      'Education' => (Icons.school),
-      _ => (Icons.disabled_by_default),
-    };
-    return Container(
-      width: 24,
-      height: 24,
-      padding: EdgeInsets.all(4),
-      decoration: BoxDecoration(shape: BoxShape.circle, color: _purple),
-      child: Center(child: Icon(icon, color: Colors.white, size: 14)),
-    );
-  }
+  IconData _categoryIcon(String category) => switch (category) {
+        'Work'      => CupertinoIcons.briefcase,
+        'Personal'  => CupertinoIcons.person,
+        'Education' => CupertinoIcons.book,
+        _           => CupertinoIcons.doc_text,
+      };
 }
 
 // ── Template card ─────────────────────────────────────────────────────────────
@@ -458,24 +541,31 @@ class _TemplateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: () => _createFromTemplate(context, template),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: InkWell(
+        onTap: () => _createFromTemplate(context, template),
+        borderRadius: BorderRadius.circular(12),
+        splashColor: _purple.withValues(alpha: 0.06),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12)),
                 child: Image.asset(
                   template.imagePath,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stack) => Container(
-                    color: const Color(0xFFF3F0FA),
+                    color: _purple.withValues(alpha: 0.06),
                     child: const Center(
                       child: Icon(
-                        Icons.description_outlined,
+                        CupertinoIcons.doc_text,
                         color: _purple,
                         size: 32,
                       ),
@@ -483,28 +573,29 @@ class _TemplateCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Text(
-                  template.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    color: Colors.black87,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Text(
+                template.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                  height: 1.3,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _createFromTemplate(BuildContext context, FormTemplate template) async {
+  void _createFromTemplate(
+      BuildContext context, FormTemplate template) async {
     final cubit = context.read<DashboardCubit>();
     try {
       await cubit.createForm(
