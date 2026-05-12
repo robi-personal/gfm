@@ -1404,7 +1404,6 @@ class _BottomBar extends StatelessWidget {
                 icon: CupertinoIcons.add_circled_solid,
                 label: 'Question',
                 enabled: enabled,
-                primary: true,
                 onTap: () => cubit.addQuestion(),
               ),
               _BarButton(
