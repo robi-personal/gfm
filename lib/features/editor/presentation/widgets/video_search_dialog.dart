@@ -48,6 +48,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
   Future<void> _search() async {
     final query = _controller.text.trim();
     if (query.isEmpty) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _loading = true;
       _error = null;
