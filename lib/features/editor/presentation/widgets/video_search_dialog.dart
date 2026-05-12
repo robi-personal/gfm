@@ -1,28 +1,38 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/api/youtube_client.dart';
 
 const _purple = Color(0xFF772FC0);
+const _primaryText = Color(0xFF1C1C1E);
+const _secondaryText = Color(0xFF8E8E93);
+const _separator = Color(0xFFE8E8E8);
 
-/// Shows a dialog that lets the user search YouTube and pick a video.
+/// Shows a bottom sheet that lets the user search YouTube and pick a video.
 /// Returns the selected [YouTubeVideo], or null if cancelled.
 Future<YouTubeVideo?> showVideoSearchDialog(BuildContext context) {
-  return showDialog<YouTubeVideo>(
+  return showModalBottomSheet<YouTubeVideo>(
     context: context,
-    builder: (_) => const _VideoSearchDialog(),
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => const _VideoSearchSheet(),
   );
 }
 
-class _VideoSearchDialog extends StatefulWidget {
-  const _VideoSearchDialog();
+class _VideoSearchSheet extends StatefulWidget {
+  const _VideoSearchSheet();
 
   @override
-  State<_VideoSearchDialog> createState() => _VideoSearchDialogState();
+  State<_VideoSearchSheet> createState() => _VideoSearchSheetState();
 }
 
-class _VideoSearchDialogState extends State<_VideoSearchDialog> {
+class _VideoSearchSheetState extends State<_VideoSearchSheet> {
   final _client = YouTubeClient();
   final _controller = TextEditingController();
   List<YouTubeVideo> _results = [];
@@ -57,103 +67,162 @@ class _VideoSearchDialogState extends State<_VideoSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Video'),
-      contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 420,
-        child: Column(
-          children: [
-            _SearchField(
-              controller: _controller,
-              onSubmit: _search,
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.75,
+      child: Column(
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 12),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Add Video',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: _primaryText,
+                    ),
+                  ),
+                ),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 0,
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: _purple, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: _separator),
+          // Search field
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    textInputAction: TextInputAction.search,
+                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                    decoration: InputDecoration(
+                      hintText: 'Search YouTube',
+                      hintStyle: const TextStyle(
+                          fontSize: 15, color: _secondaryText),
+                      prefixIcon: const Icon(CupertinoIcons.search,
+                          size: 18, color: _secondaryText),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F0FA),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: _purple, width: 1.5),
+                      ),
+                    ),
+                    onSubmitted: (_) => _search(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: _search,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: _purple,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(CupertinoIcons.search,
+                        size: 18, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Results area
+          Expanded(
+            child: Padding(
+              padding:
+                  EdgeInsets.only(bottom: viewInsets > 0 ? viewInsets : safeBottom),
+              child: _buildBody(),
+            ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ],
     );
   }
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
     if (_error != null) {
       return Center(
-        child: Text(_error!, textAlign: TextAlign.center),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, color: _secondaryText),
+          ),
+        ),
       );
     }
     if (_results.isEmpty) {
       return const Center(
-        child: Text(
-          'Search for a YouTube video above.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.play_rectangle,
+                size: 48, color: Color(0xFFD1D1D6)),
+            SizedBox(height: 12),
+            Text(
+              'Search for a YouTube video above.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: _secondaryText),
+            ),
+          ],
         ),
       );
     }
     return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       itemCount: _results.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1, color: _separator),
       itemBuilder: (context, i) => _VideoTile(
         video: _results[i],
         onTap: () => Navigator.of(context).pop(_results[i]),
       ),
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onSubmit;
-
-  const _SearchField({required this.controller, required this.onSubmit});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Search YouTube',
-              filled: true,
-              fillColor: const Color(0xFFF3F0FA),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onSubmitted: (_) => onSubmit(),
-          ),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
-          onPressed: onSubmit,
-          style: FilledButton.styleFrom(
-            backgroundColor: _purple,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-          ),
-          child: const Icon(Icons.search, size: 20),
-        ),
-      ],
     );
   }
 }
@@ -168,33 +237,54 @@ class _VideoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                video.thumbnailUrl,
-                width: 100,
-                height: 56,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  width: 100,
-                  height: 56,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.video_library_outlined,
-                      color: Colors.grey),
-                ),
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(
+                    video.thumbnailUrl,
+                    width: 110,
+                    height: 62,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 110,
+                      height: 62,
+                      color: const Color(0xFFF2F2F7),
+                      child: const Icon(CupertinoIcons.play_rectangle,
+                          color: Color(0xFFD1D1D6)),
+                    ),
+                  ),
+                  Container(
+                    width: 32,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: const Icon(CupertinoIcons.play_arrow_solid,
+                        color: Colors.white, size: 13),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 video.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _primaryText,
+                  height: 1.4,
+                ),
               ),
             ),
           ],
