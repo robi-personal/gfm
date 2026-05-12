@@ -93,6 +93,14 @@ class QuestionCard extends StatelessWidget {
                         TypeChip(kind: kind),
                       ],
                     ),
+                    if (item.description?.isNotEmpty == true) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.description!,
+                        style: const TextStyle(
+                            fontSize: 13, color: _secondaryText),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     // ── Content preview ───────────────────────────────────
                     _ContentPreview(kind: kind),
