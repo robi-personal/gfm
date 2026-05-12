@@ -803,65 +803,70 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/dashboard_no_form_banner.svg',
-              width: 180,
-            ),
-            const SizedBox(height: 28),
-            const Text(
-              'No forms yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1C1C1E),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Tap "New Form" to get started,\nor use AI to build one instantly.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF8E8E93),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _purple.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: _purple.withValues(alpha: 0.15)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(CupertinoIcons.info_circle,
-                      size: 15,
-                      color: _purple.withValues(alpha: 0.70)),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Forms created on Google Forms web won\'t appear here automatically. Use the Import Form button to add them.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _purple,
-                        height: 1.5,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/dashboard_no_form_banner.svg',
+                  width: 180,
+                ),
+                const SizedBox(height: 28),
+                const Text(
+                  'No forms yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1C1C1E),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Tap "New Form" to get started,\nor use AI to build one instantly.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF8E8E93),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _purple.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _purple.withValues(alpha: 0.15)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(CupertinoIcons.info_circle,
+                          size: 15,
+                          color: _purple.withValues(alpha: 0.70)),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Forms created on Google Forms web won\'t appear here automatically. Use the Import Form button to add them.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _purple,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
