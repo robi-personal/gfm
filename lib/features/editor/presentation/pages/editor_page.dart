@@ -282,34 +282,13 @@ class _EditorViewState extends State<_EditorView>
 
   void _showOptionsSheet(
       BuildContext context, String responderUri, String title) {
-    showCupertinoModalPopup<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (_) => CupertinoActionSheet(
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => PreviewScreen(
-                  responderUri: responderUri,
-                  formTitle: title,
-                ),
-              ));
-            },
-            child: const Text('Preview'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Share.share(responderUri, subject: title);
-            },
-            child: const Text('Share'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _OptionsSheet(
+        responderUri: responderUri,
+        title: title,
       ),
     );
   }
@@ -387,6 +366,156 @@ class _EditorViewState extends State<_EditorView>
           break;
       }
     }
+  }
+}
+
+// ── Options bottom sheet ──────────────────────────────────────────────────────
+
+class _OptionsSheet extends StatelessWidget {
+  final String responderUri;
+  final String title;
+
+  const _OptionsSheet({required this.responderUri, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 12,
+        left: 12,
+        right: 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Main actions card
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                _OptionTile(
+                  icon: CupertinoIcons.eye_fill,
+                  label: 'Preview',
+                  subtitle: 'See how the form looks to respondents',
+                  color: _purple,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => PreviewScreen(
+                        responderUri: responderUri,
+                        formTitle: title,
+                      ),
+                    ));
+                  },
+                ),
+                const Divider(height: 1, indent: 60, color: Color(0xFFEEEEEE)),
+                _OptionTile(
+                  icon: CupertinoIcons.share_solid,
+                  label: 'Share',
+                  subtitle: 'Send the form link to respondents',
+                  color: const Color(0xFF30A05E),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Share.share(responderUri, subject: title);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Cancel button
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: _purple,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _OptionTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(CupertinoIcons.chevron_right,
+                size: 14, color: _secondaryText),
+          ],
+        ),
+      ),
+    );
   }
 }
 
