@@ -435,7 +435,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                     _tabs[i].icon,
                                     size: isSelected ? 16 : 15,
                                     color: Colors.white.withValues(
-                                        alpha: isSelected ? 1.0 : 0.55),
+                                        alpha: 1.0),
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
@@ -446,7 +446,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                           ? FontWeight.w700
                                           : FontWeight.w400,
                                       color: Colors.white.withValues(
-                                          alpha: isSelected ? 1.0 : 0.55),
+                                          alpha: 1.0),
                                     ),
                                   ),
                                 ],
