@@ -1215,7 +1215,7 @@ class _BottomBar extends StatelessWidget {
           color: _iosBg,
           border: Border(top: BorderSide(color: _separator)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
