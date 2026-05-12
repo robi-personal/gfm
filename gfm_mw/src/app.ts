@@ -51,11 +51,11 @@ export function createApp(): Application {
   app.use("/ai",       aiRouter);
   app.use("/user",     userRouter);
   app.use("/webhooks", webhookRouter);
-  app.use("/admin",    adminRouter);
-  // Static admin UI — served after API routes so /admin/config is handled by adminRouter first.
-  // SPA fallback: any unmatched /admin/* path serves index.html for React Router.
+  // Static admin UI served before API routes — index.html and assets are public.
+  // API routes under /admin/* are protected by adminAuthMiddleware inside adminRouter.
   const adminDist = join(__dirname, "../admin-dist");
   app.use("/admin", express.static(adminDist));
+  app.use("/admin",    adminRouter);
   app.get("/admin/*", (_req, res) => res.sendFile(join(adminDist, "index.html")));
   app.use("/",         healthRouter);   // GET /health, GET /metrics
 
