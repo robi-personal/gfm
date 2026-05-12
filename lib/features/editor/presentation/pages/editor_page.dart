@@ -419,8 +419,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                 final isSelected = i == selected;
                 return Expanded(
                   child: GestureDetector(
-                    onTap: () => widget.controller.animateTo(i,
-                    duration: const Duration(milliseconds: 160)),
+                    onTap: () => widget.controller.index = i,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -452,9 +451,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 130),
-                                curve: Curves.easeOut,
+                              Container(
                                 height: isSelected ? 2.5 : 0,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
