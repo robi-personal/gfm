@@ -143,6 +143,7 @@ class _EditorViewState extends State<_EditorView>
                     EditorError() => const SizedBox.shrink(),
                     EditorLoaded(:final form) => TabBarView(
                         controller: _tabController,
+                        physics: const NeverScrollableScrollPhysics(),
                         children: [
                           const _EditorBody(),
                           ResponsesScreen(
