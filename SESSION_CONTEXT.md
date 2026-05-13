@@ -378,6 +378,20 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-13 session — editor response count + import fix)
+
+### Dashboard — stale appdata file ID fix (commit `3de632a`)
+
+- `DriveDataSource.writeImportedFormIds`: if `files.update` returns 404 (cached `gfm_data.json` was deleted externally), clears `_appDataFileId` and falls through to create a fresh file instead of propagating the error.
+
+### Editor — response count badge on Responses tab (commit `709d810`)
+
+- `EditorPage` now uses `MultiBlocProvider` to provide both `EditorCubit` and `ResponsesCubit`. Responses load eagerly when the editor opens (not lazily on first tab visit).
+- `ResponsesScreen` no longer creates its own cubit — uses `BlocProvider.value` from the editor level.
+- `_SegmentedTabBar` accepts `responseCount: int?`; renders a small frosted pill (e.g. `12`) beside "Responses" label once loaded. Hidden while loading or when count is zero.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
