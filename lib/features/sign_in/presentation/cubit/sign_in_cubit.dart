@@ -44,7 +44,7 @@ class SignInCubit extends Cubit<SignInState> {
       (_) => emit(const Unauthenticated()),
       (user) {
         AnalyticsService.setUser(user.email);
-        _subscriptionService.identifyUser(user.email).ignore();
+        _subscriptionService.identifyUser(user.googleId).ignore();
         emit(Authenticated(user));
       },
     );
@@ -61,7 +61,7 @@ class SignInCubit extends Cubit<SignInState> {
       },
       (user) {
         AnalyticsService.setUser(user.email);
-        _subscriptionService.identifyUser(user.email).ignore();
+        _subscriptionService.identifyUser(user.googleId).ignore();
         emit(Authenticated(user));
       },
     );

@@ -28,12 +28,6 @@ const schema = z.object({
 
   // RevenueCat
   RC_WEBHOOK_SECRET: z.string().min(1),
-  // Set to true in local dev to skip RevenueCat and treat every user as premium.
-  // Never enable in production.
-  RC_BYPASS_PREMIUM: z
-    .string()
-    .default("false")
-    .transform((v) => v === "true"),
 
   // Sentry (optional — skipped if absent)
   SENTRY_DSN: z.string().optional(),

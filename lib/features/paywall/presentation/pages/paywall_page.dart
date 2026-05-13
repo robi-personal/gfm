@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../cubit/subscription_cubit.dart';
+
+// Apple requires a visible link to manage/cancel during purchase flow.
+const _manageSubscriptionsUrl = 'https://apps.apple.com/account/subscriptions';
+const _privacyUrl = 'https://gformmanager.netlify.app/privacy';
+const _termsUrl   = 'https://gformmanager.netlify.app/terms';
 
 // ── Palette (matches dashboard + ai_form_builder) ─────────────────────────────
 const _purple = Color(0xFF772FC0);
@@ -636,25 +642,91 @@ class _Footer extends StatelessWidget {
 
   const _Footer({required this.onRestore});
 
+  Future<void> _open(String url) =>
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: onRestore,
-          minimumSize: Size(0, 0),
-          child: const Text(
-            'Restore Purchases',
+        // Auto-renewal disclosure (Apple App Store guideline 3.1.2).
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            'Subscription auto-renews at the end of each period. '
+            'Cancel anytime in App Store settings at least 24 hours before the renewal date. '
+            'Payment is charged to your Apple ID account.',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 11,
               color: _label2,
-              fontWeight: FontWeight.w500,
+              height: 1.4,
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _FooterLink(label: 'Restore Purchases', onTap: onRestore),
+            const _FooterDot(),
+            _FooterLink(
+              label: 'Manage Subscription',
+              onTap: () => _open(_manageSubscriptionsUrl),
+            ),
+            const _FooterDot(),
+            _FooterLink(
+              label: 'Privacy Policy',
+              onTap: () => _open(_privacyUrl),
+            ),
+            const _FooterDot(),
+            _FooterLink(
+              label: 'Terms of Use',
+              onTap: () => _open(_termsUrl),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _FooterLink({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      onPressed: onTap,
+      minimumSize: Size.zero,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          color: _label2,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterDot extends StatelessWidget {
+  const _FooterDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        '·',
+        style: TextStyle(color: _label2, fontSize: 12),
+      ),
     );
   }
 }

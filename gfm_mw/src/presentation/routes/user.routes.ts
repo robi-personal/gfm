@@ -34,8 +34,9 @@ userRouter.get(
       }
 
       const ytLimit = configService.get<number>("YOUTUBE_MONTHLY_MINUTES", env.YOUTUBE_MONTHLY_MINUTES);
+      // Mirror auth.middleware tier logic: whitelist is a full premium override.
       res.json({
-        isPremium:               env.RC_BYPASS_PREMIUM || user.isPremium,
+        isPremium:               req.user!.tier === "premium",
         quotaBalance:            user.quotaBalance,
         unlimited,
         gracePeriodUntil:        user.gracePeriodUntil?.toISOString() ?? null,

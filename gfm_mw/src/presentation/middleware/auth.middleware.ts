@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import * as Sentry from "@sentry/node";
 import { verifyGoogleIdToken } from "../../infrastructure/google-auth/google-token-verifier";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
+import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { pool } from "../../infrastructure/db/postgres";
-import { env } from "../../config/env";
 
 export async function authMiddleware(
   req: Request,
@@ -25,14 +25,20 @@ export async function authMiddleware(
   try {
     const { sub, email } = await verifyGoogleIdToken(token);
 
-    const userRepo = new PgUserRepository(pool);
-    const user = await userRepo.upsert(sub, email);
+    const userRepo      = new PgUserRepository(pool);
+    const whitelistRepo = new PgQuotaWhitelistRepository(pool);
+    const [user, isWhitelisted] = await Promise.all([
+      userRepo.upsert(sub, email),
+      whitelistRepo.contains(email),
+    ]);
 
     req.user = {
       id: user.id,
       googleSub: user.googleSub,
       email: user.email,
-      tier: (env.RC_BYPASS_PREMIUM || user.isPremium) ? "premium" : "free",
+      // Whitelist is treated as a full premium override (unlocks premium-only
+      // input types in addition to unlimited quota).
+      tier: (user.isPremium || isWhitelisted) ? "premium" : "free",
     };
 
     // Re-bind the request logger to include user_id on all subsequent log calls.

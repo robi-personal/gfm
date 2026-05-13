@@ -7,6 +7,7 @@ import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
+import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { rcWebhookTotal, rcWebhookLagMs } from "../../infrastructure/metrics";
 import { logger } from "../../infrastructure/logger";
@@ -194,19 +195,7 @@ webhookRouter.post(
       return;
     }
 
-    // Step 4: Sandbox gate — store for audit but skip user updates in production (§4.3)
-    if (isSandbox && env.NODE_ENV === "production") {
-      await webhookRepo.insertIfAbsent(event.id, event.type, null, payload);
-      req.log.info(
-        { event_id: event.id, type: event.type, is_sandbox: true },
-        "rc_webhook_sandbox_stored_noop",
-      );
-      recordWebhookMetric("sandbox_skipped");
-      res.json({ received: true });
-      return;
-    }
-
-    // Step 5: Resolve user — RC app_user_id == google_sub stored at sign-in
+    // Step 4: Resolve user — RC app_user_id == google_sub stored at sign-in
     const userRepo = new PgUserRepository(pool);
     const user     = await userRepo.findByGoogleSub(event.app_user_id);
     if (!user) {
@@ -219,6 +208,29 @@ webhookRouter.post(
       recordWebhookMetric("unknown_user");
       res.json({ received: true });
       return;
+    }
+
+    // Step 5: Sandbox gate — in production, skip user updates unless the
+    // resolved user is on the quota_whitelist. The whitelist lets App Store
+    // reviewers (and internal QA accounts) run the full sandbox purchase flow
+    // against prod without exposing free premium to anyone else. (§4.3)
+    if (isSandbox && env.NODE_ENV === "production") {
+      const whitelistRepo = new PgQuotaWhitelistRepository(pool);
+      const isWhitelisted = await whitelistRepo.contains(user.email);
+      if (!isWhitelisted) {
+        await webhookRepo.insertIfAbsent(event.id, event.type, user.id, payload);
+        req.log.info(
+          { event_id: event.id, type: event.type, user_id: user.id, is_sandbox: true },
+          "rc_webhook_sandbox_stored_noop",
+        );
+        recordWebhookMetric("sandbox_skipped");
+        res.json({ received: true });
+        return;
+      }
+      req.log.info(
+        { event_id: event.id, type: event.type, user_id: user.id, email: user.email },
+        "rc_webhook_sandbox_whitelisted_processing",
+      );
     }
 
     // Step 6: Apply event in a transaction — webhook_events INSERT + users UPDATE atomically

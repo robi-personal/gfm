@@ -27,6 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signOut() => _dataSource.signOut();
 
   AuthUser _toUser(GoogleSignInAccount account) => AuthUser(
+        googleId: account.id,
         email: account.email,
         displayName: account.displayName,
         photoUrl: account.photoUrl,
