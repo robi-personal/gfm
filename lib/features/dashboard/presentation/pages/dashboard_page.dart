@@ -8,7 +8,9 @@ import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
+import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
@@ -336,17 +338,30 @@ class _DashboardViewState extends State<_DashboardView> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        PaywallPage.show(context);
+                    FutureBuilder<bool>(
+                      future: getIt<GetUserStatus>()
+                          .call(const NoParams())
+                          .then((r) => r.fold((_) => false, (s) => s.isPremium)),
+                      builder: (context, snapshot) {
+                        if (snapshot.data == true) return const SizedBox.shrink();
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                PaywallPage.show(context);
+                              },
+                              child: SvgPicture.asset(
+                                'assets/dashboard_premium.svg',
+                                width: 28,
+                                height: 28,
+                              ),
+                            ),
+                          ],
+                        );
                       },
-                      child: SvgPicture.asset(
-                        'assets/dashboard_premium.svg',
-                        width: 28,
-                        height: 28,
-                      ),
                     ),
                   ],
                 );
