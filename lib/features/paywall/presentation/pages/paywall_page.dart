@@ -16,7 +16,6 @@ const _cardBg      = Colors.white;
 const _label1      = Color(0xFF1C1C1E);
 const _label2      = Color(0xFF8E8E93);
 const _label3      = Color(0xFFC7C7CC);
-const _divider     = Color(0xFFF2F2F7);
 const _saveBadge   = Color(0xFFFF9500);
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -252,13 +251,13 @@ class _GroupLabel extends StatelessWidget {
   }
 }
 
-// ── Feature card ──────────────────────────────────────────────────────────────
+// ── Feature list ─────────────────────────────────────────────────────────────
 
 const _features = [
-  (CupertinoIcons.bolt_fill,        Color(0xFF9B4FE8), 'AI Form Builder',       'Generate forms from text, PDF, YouTube'),
-  (CupertinoIcons.arrow_clockwise,  Color(0xFF34C759), 'Unlimited Responses',   'View & refresh responses with no limits'),
-  (CupertinoIcons.arrow_down_doc,   Color(0xFF007AFF), 'CSV Export',            'Export all responses to a spreadsheet'),
-  (CupertinoIcons.star_fill,        _purple,           'All Future Features',   'Every new premium feature, included'),
+  'AI Form Builder — generate from text, PDF, YouTube',
+  'Unlimited response refreshes',
+  'Export responses as CSV',
+  'All future premium features',
 ];
 
 class _FeatureCard extends StatelessWidget {
@@ -266,91 +265,44 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
-        children: [
-          for (int i = 0; i < _features.length; i++) ...[
-            _FeatureRow(
-              icon:     _features[i].$1,
-              color:    _features[i].$2,
-              title:    _features[i].$3,
-              subtitle: _features[i].$4,
-            ),
-            if (i < _features.length - 1)
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: _divider,
-                indent: 54,
-              ),
-          ],
-        ],
+        children: _features.map((f) => _FeatureRow(label: f)).toList(),
       ),
     );
   }
 }
 
 class _FeatureRow extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
+  final String label;
 
-  const _FeatureRow({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-  });
+  const _FeatureRow({required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              color: _purpleLight,
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 16),
+            child: const Icon(Icons.check_rounded, color: _purple, size: 14),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: _label1,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: _label2,
-                  ),
-                ),
-              ],
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _label1,
+              ),
             ),
           ),
         ],
