@@ -25,7 +25,8 @@ import '../widgets/question_edit_sheet.dart';
 import '../widgets/image_url_dialog.dart';
 import '../widgets/video_search_dialog.dart';
 import '../../../../core/widgets/error_modal.dart';
-import '../../../paywall/data/services/subscription_service.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/pages/responses_page.dart';
@@ -935,8 +936,9 @@ class _SettingsContentState extends State<_SettingsContent> {
 
   Future<void> _exportCsv() async {
     if (_isExporting) return;
-    final isPremium = await getIt<SubscriptionService>().isPremium();
+    final result = await getIt<GetUserStatus>().call(const NoParams());
     if (!mounted) return;
+    final isPremium = result.fold((_) => false, (status) => status.isPremium);
     if (!isPremium) {
       await PaywallPage.show(context);
       return;
