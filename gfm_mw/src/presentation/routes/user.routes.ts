@@ -4,6 +4,7 @@ import { denylistMiddleware } from "../middleware/kill-switch.middleware";
 import { statusUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
+import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import { pool } from "../../infrastructure/db/postgres";
 import { env } from "../../config/env";
 import { configService } from "../../config/config-service";
@@ -23,10 +24,18 @@ userRouter.get(
 
       await userRepo.resetYoutubeMinutesIfNeeded(req.user!.id);
 
-      const [user, unlimited] = await Promise.all([
-        userRepo.findById(req.user!.id),
+      const [, unlimited] = await Promise.all([
+        // Apply free monthly grant if due so new users see their balance immediately.
+        (async () => {
+          if (req.user!.tier !== "free") return;
+          const productRepo = new PgQuotaProductRepository(pool);
+          const freeProduct = await productRepo.getById("free");
+          if (freeProduct) await userRepo.applyFreeGrantIfDue(req.user!.id, freeProduct);
+        })(),
         whitelistRepo.contains(req.user!.email),
       ]);
+
+      const user = await userRepo.findById(req.user!.id);
 
       if (!user) {
         res.status(401).json({ code: "invalid_token", message: "User not found." });
