@@ -524,7 +524,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
   String? _fileBase64;
   String? _fileError;
 
-  int? _questionCountHint = 10;
+  int? _questionCountHint = 5;
   bool _isQuiz = false;
   bool _isCheckingQuota = false;
 
