@@ -166,6 +166,7 @@ lib/
 15. **`ChoiceOption.value` null crash**: Google Forms API returns `null` for `value` on some options (e.g. "Other"). Fix: `json['value'] as String? ?? ''` in `choice_option.g.dart`.
 16. **`EditorCubit` emit-after-close**: cubit closed before async `loadForm`/`updateSettings`/`save` completed → "Bad state: Cannot emit new states after calling close". Fix: `if (isClosed) return` guards after each `await` before emit.
 17. **Template items not created for grid templates**: `_stripIds` only removed `questionId` from `questionItem.question`, not from `questionGroupItem.questions` rows. The Forms API rejected the whole batch; the `catch (_) {}` silently swallowed it. Fix: strip `questionId` from all rows in `questionGroupItem.questions`; add logging to the catch block.
+18. **RevenueCat `app_user_id` was email, webhook expected `google_sub`**: every paid subscription silently failed — `findByGoogleSub(email)` returned null, webhook hit the `rc_webhook_unknown_user` branch and ack'd 200 without crediting quota or flipping `is_premium`. Fix: added `googleId` to `AuthUser` (from `GoogleSignInAccount.id`), passed it to `Purchases.logIn`. Webhook lookup now resolves correctly. Do NOT change `Purchases.logIn` to use email or any other identifier — must remain the Google ID-token `sub`.
 
 ## What NOT to do
 
@@ -343,6 +344,27 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 - **Removed `kBypassPremium`** from `subscription_service.dart` — was a hardcoded bypass that would give all users free premium if shipped as `true`. Whitelist in DB covers testing needs safely.
 - **Editor CSV export premium gate** — replaced `SubscriptionService.isPremium()` (RevenueCat client-side) with `GetUserStatus` (server `/user/status` endpoint), consistent with AI builder. Server is source of truth; whitelist and quota state are now respected.
+
+### Payment/subscription audit — fixes (commit `eca733e`)
+
+**P0 — RevenueCat identity bug**
+- Flutter was calling `Purchases.logIn(user.email)`, but the webhook resolves users via `findByGoogleSub(event.app_user_id)`. Email ≠ google_sub, so every paid subscription silently landed in `rc_webhook_unknown_user` — no quota credited, `is_premium` never flipped.
+- Fix: added `googleId` to `AuthUser`, populated from `GoogleSignInAccount.id` (= ID-token `sub`) in `auth_repository_impl.dart`, and `SignInCubit` now passes `user.googleId` to `_subscriptionService.identifyUser(...)`.
+
+**App Store paywall requirements** (guideline 3.1.2)
+- `paywall_page.dart` footer rebuilt: auto-renewal disclosure paragraph + 4-link wrap row — Restore Purchases · Manage Subscription · Privacy Policy · Terms of Use.
+- Manage Subscription deep-links to `https://apps.apple.com/account/subscriptions`. Privacy/Terms reuse the URLs from the sign-in screen.
+
+**Sandbox webhook passthrough for App Store reviewers**
+- `webhook.routes.ts` reordered to resolve user before the sandbox gate. In production, sandbox events are still skipped for unknown users, but now **processed normally for any user whose email is in `quota_whitelist`**.
+- Submission workflow: create a dedicated reviewer Google account → add its email to `quota_whitelist` via admin → list it as the demo account in App Store Connect. Reviewer's sandbox StoreKit purchase flows end-to-end against prod.
+
+**Whitelist is now a full premium override**
+- `auth.middleware.ts` looks up `quota_whitelist.contains(email)` in parallel with the user upsert and sets `tier = "premium"` when `user.isPremium || isWhitelisted`. Knock-on: whitelisted users unlock premium-only input types (`pdf`/`youtube`/`urls`/`book`) at `ai.routes.ts:216` and CSV export at `editor_page.dart:941`.
+- `user.routes.ts` returns `isPremium: req.user!.tier === "premium"` so the client sees the same view.
+
+**Removed `RC_BYPASS_PREMIUM` env flag**
+- Dropped from `env.ts`, `.env.example`, `auth.middleware.ts`, `user.routes.ts`. Whitelist now covers all "treat as premium" cases. No env knob to forget about.
 
 ---
 
