@@ -343,7 +343,7 @@ class _DashboardViewState extends State<_DashboardView> {
                   items: [
                     _DrawerItem(
                       assetIcon: 'assets/upgrade_to_premium.png',
-                      title: 'Upgrade to Premium',
+                      title: 'Upgrade Plan',
                       onTap: () {
                         Navigator.of(context).pop();
                         PaywallPage.show(context);
