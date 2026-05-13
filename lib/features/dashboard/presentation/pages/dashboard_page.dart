@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
@@ -404,12 +405,24 @@ class _DashboardViewState extends State<_DashboardView> {
                     _DrawerItem(
                       icon: CupertinoIcons.lock_shield,
                       title: 'Privacy Policy',
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        launchUrl(
+                          Uri.parse('https://gformmanager.netlify.app/privacy'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
                     ),
                     _DrawerItem(
                       icon: CupertinoIcons.doc_text,
                       title: 'Terms of Use',
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        launchUrl(
+                          Uri.parse('https://gformmanager.netlify.app/terms'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
                     ),
                   ],
                 ),
