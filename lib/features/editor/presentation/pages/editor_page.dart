@@ -94,9 +94,35 @@ class _EditorViewState extends State<_EditorView>
     super.dispose();
   }
 
+  Future<void> _handleBackPress() async {
+    final state = context.read<EditorCubit>().state;
+    final isDirty = state is EditorLoaded && state.isDirty;
+    if (!isDirty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    bool discard = false;
+    await ErrorModal.show(
+      context,
+      title: 'Discard changes?',
+      body: 'You have unsaved changes. They will be lost if you go back.',
+      primaryLabel: 'Keep editing',
+      onPrimary: () {},
+      secondaryLabel: 'Discard',
+      onSecondary: () => discard = true,
+    );
+    if (discard && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EditorCubit, EditorState>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: BlocListener<EditorCubit, EditorState>(
       listener: _onStateChange,
       listenWhen: (prev, curr) {
         if (prev.runtimeType != curr.runtimeType) return true;
@@ -184,6 +210,7 @@ class _EditorViewState extends State<_EditorView>
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -197,7 +224,7 @@ class _EditorViewState extends State<_EditorView>
       titleSpacing: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new, color: _purple, size: 18),
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: _handleBackPress,
       ),
       title: Text(
         widget.initialName,
