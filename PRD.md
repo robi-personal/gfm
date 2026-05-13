@@ -1,8 +1,8 @@
 # Product Requirements Document
 ## GFM — Mobile Google Forms Companion
 
-**Version:** 1.0 (MVP)
-**Last updated:** 2026-04-11
+**Version:** 1.2
+**Last updated:** 2026-05-13
 **Target audience:** Educational institutions — teachers, students, and administrative staff
 
 ---
@@ -46,10 +46,8 @@ GFM solves this by providing a native, thumb-friendly interface that maps direct
 ## 5. Non-Goals (MVP)
 
 - Offline queue / drift-backed pending writes
-- IAP / paywall enforcement (UI exists but not gated)
 - Duplicate form / duplicate question
 - QR code generation
-- Custom backend or server-side processing
 - Any feature the Google Forms API does not support (see §10)
 
 ---
@@ -138,8 +136,27 @@ GFM solves this by providing a native, thumb-friendly interface that maps direct
 - Builds CSV with header row (Timestamp, Email, question titles)
 - Shares via OS share sheet
 
-### 6.13 Analytics & Crash Reporting
-- Firebase Analytics: screen views + key events (form_created, form_opened, form_saved, question_added, image_added, video_added, responses_viewed, csv_exported)
+### 6.13 AI Form Builder (Premium)
+
+- Input types: free-text prompt, PDF upload, YouTube URL, book/document URL
+- Question count picker: 3–50 questions (editable field + −/+ buttons)
+- AI auto-detects quiz vs. form intent — no toggle required
+- Generated forms include answer keys and grading when quiz is detected
+- Quota system: free users get 3 generations/month; premium users get 15/50/700 per plan
+- Whitelisted accounts (developer/testers) bypass quota entirely
+- Pre-flight quota check for PDF/book (cost scales with page count)
+- `confirmedQuotaCost` pattern prevents silent over-charging on cost change
+
+### 6.14 Premium / Paywall
+
+- Subscription plans via RevenueCat: Weekly ($3.99), Monthly ($4.99), Annual ($44.99 — "Save 78%")
+- Entitlement `gfm_premium` unlocks: higher AI generation quota, CSV export
+- Paywall shown on: CSV export attempt (non-premium), AI generation quota exhausted
+- Restore Purchases syncs existing subscription from App Store / Play Store
+- Server-side quota is the source of truth — RevenueCat webhook credits quota on purchase/renewal
+
+### 6.15 Analytics & Crash Reporting
+- Firebase Analytics: screen views + key events (`form_created`, `form_opened`, `form_saved`, `question_added`, `image_added`, `video_added`, `responses_viewed`, `csv_exported`)
 - Firebase Crashlytics: automatic Flutter + async error capture
 - User identity tied to Google account email (hashed in Crashlytics)
 
@@ -171,8 +188,8 @@ GFM solves this by providing a native, thumb-friendly interface that maps direct
 > **Important for educational context:**
 
 - **No form content is logged** — question text, response data, and personally identifiable information are never sent to analytics or crash reporting services.
-- **No custom backend** — all data flows directly between the user's device and Google's servers via official APIs.
-- **Data stays in the user's Google Drive** — GFM never copies, stores, or processes form content on any third-party server.
+- **Backend for AI and quota only** — `gfm_mw` middleware handles AI generation (Gemini), quota tracking, and RevenueCat webhooks. It does not store form content or response data.
+- **Form data stays in Google Drive** — GFM never copies or stores form content or response data on any backend server.
 - **OAuth scopes are minimal** — `drive.file` limits Drive access to files the app created; no access to the user's broader Drive.
 - **Student data** — GFM is a form-creation tool used by teachers and staff. Students interact with forms through the standard Google Forms responder URL in a browser, not through GFM. GFM only reads response data for the form owner's review.
 - **Compliance consideration** — institutions should verify that their Google Workspace for Education agreement covers API-based access to Forms data. FERPA compliance is the responsibility of the institution's Google Workspace administrator, not GFM.

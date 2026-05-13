@@ -1,12 +1,14 @@
 # Technical Design Document
 ## GFM — Mobile Google Forms Companion
 
-**Version:** 1.0 (MVP)
-**Last updated:** 2026-04-11
+**Version:** 1.2
+**Last updated:** 2026-05-13
 
 ---
 
 ## 1. Tech Stack
+
+### Flutter (client)
 
 | Layer | Technology |
 |---|---|
@@ -23,6 +25,19 @@
 | HTTP | Provided by `googleapis_auth` — no hand-rolled REST |
 | Analytics | `firebase_analytics ^11.x` |
 | Crash reporting | `firebase_crashlytics ^4.x` |
+| Subscriptions | `purchases_flutter` (RevenueCat) |
+
+### Middleware (gfm_mw)
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js + TypeScript |
+| Framework | Express |
+| Database | PostgreSQL (via `pg` pool) |
+| AI | Google Gemini (`gemini-2.5-flash-lite`) via `@google/generative-ai` |
+| Auth | Firebase Admin SDK — verifies Google ID tokens |
+| Deployment | Docker + `./deploy.sh` to VPS (`root@177.7.51.7`) |
+| Admin UI | React + Vite (separate `admin/` directory) |
 
 ---
 
@@ -284,6 +299,103 @@ All calls go through `AnalyticsService` (static methods) — no raw Firebase cal
 - `NSPhotoLibraryUsageDescription` added to `Info.plist`
 - Bundle ID: `com.app.gfm`
 - Release: requires provisioning profile + distribution certificate
+
+---
+
+## 12. Subscription & Quota System
+
+### 12.1 RevenueCat Integration
+
+`purchases_flutter` is configured in `SubscriptionService` (`lib/features/paywall/data/services/subscription_service.dart`):
+
+- App ID: `app351cfe2e80`
+- Entitlement: `gfm_premium`
+- Offering ID: `GFMDefault`
+- Products: `GFM_Weekly_3.99`, `GFM_Monthly_4.99`, `GFM_Yearly_44.99`
+
+`SubscriptionCubit` manages the purchase lifecycle (load → select → purchase → success/error/restore). The cubit checks entitlement status directly from RevenueCat `CustomerInfo` after each operation.
+
+**Premium gating rule:** Never check `SubscriptionService.isPremium()` (RevenueCat client-side) for feature access. Always use the server-side `/user/status` endpoint (`GetUserStatus` use case) — this respects the whitelist and quota state. RevenueCat client is only used within the cubit itself for purchase/restore flows.
+
+### 12.2 Quota System
+
+Quota is tracked server-side in PostgreSQL:
+
+| Table | Purpose |
+|---|---|
+| `quota_products` | Per-product quota grant (free: 3, weekly: 15, monthly: 50, yearly: 700) |
+| `quota_transactions` | Immutable audit log of every credit/debit |
+| `quota_whitelist` | Emails that bypass quota gates entirely |
+| `users.quota_balance` | Current balance; atomically debited on each AI generation |
+| `users.subscription_product_id` | Set by RevenueCat webhook on purchase/renewal, cleared on expiry/refund |
+
+**Flow:**
+1. RevenueCat fires webhook → middleware credits `quota_balance` + sets `subscription_product_id`
+2. Flutter calls `GET /user/status` → returns `{ quotaBalance, isPremium, unlimited }`
+3. Flutter calls `POST /ai/generate` → middleware gates, debits, returns `QuotaSnapshot`
+4. Whitelisted users skip grant + gate + debit entirely
+
+**Free grant:** `applyFreeGrantIfDue` resets balance to 3 monthly for free users whose `free_quota_reset_at` has passed.
+
+### 12.3 Paywall Page
+
+`PaywallPage` (`lib/features/paywall/presentation/pages/paywall_page.dart`):
+
+- iOS-style design: `Color(0xFFF2F2F7)` gray bg, white cards, `AppBar` matching dashboard/AI builder
+- 3-card horizontal plan selector: Weekly | Annual (featured + "Save 78%" badge) | Monthly
+- "What's Included" white card: checklist with dynamic first item showing quota count for selected plan
+- `_PurchaseButton`: `GestureDetector + AnimatedContainer`, height 52, purple shadow
+- Architecture: `SubscriptionCubit` + `_Plan` enum; offering fetched from RevenueCat on load
+
+---
+
+## 13. AI Form Builder
+
+### 13.1 Architecture
+
+Clean architecture feature under `lib/features/ai_form_builder/`:
+
+```
+domain/
+  entities/   UserStatus, GeneratedForm, AiQuestion, AiGrading, QuotaSnapshot
+  repositories/ AiFormRepository (abstract)
+  usecases/   GetUserStatus, GenerateForm
+data/
+  datasources/ AiFormDataSource (HTTP calls to gfm_mw)
+  repositories/ AiFormRepositoryImpl
+presentation/
+  cubit/      AiFormBuilderCubit + states (Initial, Loading, Ready, Generating, Preview, Error)
+  pages/      AiFormBuilderPage
+```
+
+### 13.2 Generation Flow
+
+1. User selects input type (text / PDF / YouTube / book URL)
+2. Flutter calls `POST /ai/pdf-page-count` (PDF/book only) → confirms quota cost
+3. Flutter calls `POST /ai/generate` with `confirmedQuotaCost`
+4. Middleware: whitelist check → free grant → quota gate → Gemini call → debit → return form JSON
+5. Flutter receives `GeneratedForm` → calls Forms API to create the form → navigates to editor
+
+### 13.3 Quiz Auto-detection
+
+The Gemini prompt (v3) auto-detects quiz intent from keywords. No UI toggle needed. When `isQuiz: true`:
+- `_buildGrading` attaches `Grading` objects to gradeable questions (choice + short answer)
+- `enableQuizMode(formId)` called after `batchUpdate`
+
+### 13.4 Middleware Endpoints (gfm_mw)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /user/status` | Returns `{ quotaBalance, isPremium, unlimited }` |
+| `POST /ai/generate` | Main generation endpoint; gates + debits quota |
+| `POST /ai/pdf-page-count` | Pre-flight quota cost check for PDF/book |
+| `POST /webhook/revenuecat` | Credits quota on purchase/renewal; clears on expiry/refund |
+| `GET/PATCH /admin/quota-products` | Admin: view/edit quota amounts per product |
+| `GET/POST/DELETE /admin/whitelist` | Admin: manage quota whitelist |
+
+---
+
+## 14. Build & Release Notes
 
 ### OAuth Verification (pre-launch requirement)
 - `forms.body` and `forms.responses.readonly` are sensitive scopes requiring Google verification

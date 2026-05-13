@@ -323,6 +323,29 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+---
+
+## Recent changes (2026-05-13 session)
+
+### Paywall page — iOS redesign
+
+- Full redesign to match dashboard/AI builder iOS style: `Color(0xFFF2F2F7)` gray background, `AppBar` with `elevation: 0` / `surfaceTintColor: Colors.transparent`, centered "GFM Premium" title, purple `arrow_back_ios_new` leading button
+- Restored original 3-card plan selector (`_FeaturedPlanCard` / `_SidePlanCard`) — horizontal Weekly / Annual (featured, "Save 78%" badge) / Monthly layout
+- "What's Included" section: minimal checklist (purple circle + check icon + label), wrapped in white rounded card
+- First checklist item is dynamic — updates when user taps a plan: "15 AI generations per week" / "50 AI generations per month" / "700 AI generations per year"
+
+### RevenueCat product ID alignment
+
+- Updated `_offeringId` in `subscription_service.dart` from `'gfmDefault'` → `'GFMDefault'`
+- Migration `005_rename_subscription_products.sql`: inserts new `quota_products` rows (`GFM_Weekly_3.99`, `GFM_Monthly_4.99`, `GFM_Yearly_44.99`), re-points `quota_transactions` and `users.subscription_product_id`, deletes old rows (`gfm_weekly`, `gfm_monthly`, `gfm_yearly`). Registered as `id: "005", seededTable: "_never"` in `migrate.ts`
+
+### Security fixes
+
+- **Removed `kBypassPremium`** from `subscription_service.dart` — was a hardcoded bypass that would give all users free premium if shipped as `true`. Whitelist in DB covers testing needs safely.
+- **Editor CSV export premium gate** — replaced `SubscriptionService.isPremium()` (RevenueCat client-side) with `GetUserStatus` (server `/user/status` endpoint), consistent with AI builder. Server is source of truth; whitelist and quota state are now respected.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
@@ -330,5 +353,6 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 3. ~~**Template gallery**~~ — ✅ Done (2026-05-03)
 4. ~~**IAP / RevenueCat**~~ — ✅ Done (commit `a355109`, 2026-05-08)
 5. ~~**Quota system redesign (Q1–Q7)**~~ — ✅ Done (2026-05-11)
-6. **UI polish** — thumb-zone audit, spacing, typography refinements
-7. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
+6. ~~**Paywall iOS redesign + product ID fix**~~ — ✅ Done (2026-05-13)
+7. **UI polish** — thumb-zone audit, spacing, typography refinements
+8. **App signing + store submission** — iOS provisioning, Android keystore, App Store Connect / Play Console setup
