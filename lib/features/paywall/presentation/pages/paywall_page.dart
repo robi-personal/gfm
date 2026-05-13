@@ -183,9 +183,9 @@ class _PaywallViewState extends State<_PaywallView> {
       }
     }
     return switch (plan) {
-      _Plan.weekly => 'Start Premium — \$1.99 / week',
-      _Plan.annual => 'Start Premium — \$29.99 / year',
-      _Plan.monthly => 'Start Premium — \$2.99 / month',
+      _Plan.weekly => 'Start Premium — \$3.99 / week',
+      _Plan.annual => 'Start Premium — \$44.99 / year',
+      _Plan.monthly => 'Start Premium — \$4.99 / month',
     };
   }
 }
@@ -348,10 +348,10 @@ class _PricingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weeklyPrice = offering?.weekly?.storeProduct.priceString ?? '\$1.99';
-    final annualPrice = offering?.annual?.storeProduct.priceString ?? '\$29.99';
+    final weeklyPrice = offering?.weekly?.storeProduct.priceString ?? '\$3.99';
+    final annualPrice = offering?.annual?.storeProduct.priceString ?? '\$44.99';
     final monthlyPrice =
-        offering?.monthly?.storeProduct.priceString ?? '\$2.99';
+        offering?.monthly?.storeProduct.priceString ?? '\$4.99';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -476,7 +476,7 @@ class _FeaturedPlanCard extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: const Text(
-                'Save 81%',
+                'Save 78%',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 11,

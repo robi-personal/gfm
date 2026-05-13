@@ -6,7 +6,7 @@ const kBypassPremium = true;
 class SubscriptionService {
   static const String _appId = 'app351cfe2e80';
   static const String entitlement = 'gfm_premium';
-  static const String _offeringId = 'gfmDefault';
+  static const String _offeringId = 'GFMDefault';
 
   static Future<void> configure() async {
     await Purchases.configure(PurchasesConfiguration(_appId));

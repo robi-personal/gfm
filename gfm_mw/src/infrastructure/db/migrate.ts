@@ -10,6 +10,7 @@ const MIGRATIONS = [
   { id: "002", filename: "002_server_config.sql",    seededTable: "server_config" },
   { id: "003", filename: "003_youtube_minutes.sql",  seededTable: "youtube_minutes_sentinel" },
   { id: "004", filename: "004_quota_system.sql",     seededTable: "quota_products" },
+  { id: "005", filename: "005_rename_subscription_products.sql", seededTable: "_never" },
 ];
 
 export async function runMigrations(): Promise<void> {
