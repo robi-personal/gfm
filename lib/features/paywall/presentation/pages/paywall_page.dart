@@ -9,14 +9,12 @@ import '../../../../core/widgets/error_modal.dart';
 import '../cubit/subscription_cubit.dart';
 
 // ── Palette (matches dashboard + ai_form_builder) ─────────────────────────────
-const _purple      = Color(0xFF772FC0);
+const _purple = Color(0xFF772FC0);
 const _purpleLight = Color(0xFFF3EBFC);
-const _iosBg       = Color(0xFFF2F2F7);
-const _cardBg      = Colors.white;
-const _label1      = Color(0xFF1C1C1E);
-const _label2      = Color(0xFF8E8E93);
-const _label3      = Color(0xFFC7C7CC);
-const _saveBadge   = Color(0xFFFF9500);
+const _iosBg = Color(0xFFF2F2F7);
+const _label1 = Color(0xFF1C1C1E);
+const _label2 = Color(0xFF8E8E93);
+const _saveBadge = Color(0xFF772FC0);
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -89,10 +87,10 @@ class _PaywallViewState extends State<_PaywallView> {
   _Plan _selected = _Plan.annual;
 
   Package? _packageFor(_Plan plan, Offering offering) => switch (plan) {
-        _Plan.weekly  => offering.weekly,
-        _Plan.annual  => offering.annual,
-        _Plan.monthly => offering.monthly,
-      };
+    _Plan.weekly => offering.weekly,
+    _Plan.annual => offering.annual,
+    _Plan.monthly => offering.monthly,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -115,12 +113,13 @@ class _PaywallViewState extends State<_PaywallView> {
       },
       builder: (context, state) {
         final offering = switch (state) {
-          SubscriptionLoaded(offering: final o)     => o,
+          SubscriptionLoaded(offering: final o) => o,
           SubscriptionPurchasing(offering: final o) => o,
           _ => null,
         };
         final isPurchasing = state is SubscriptionPurchasing;
-        final isLoading    = state is SubscriptionLoading || state is SubscriptionInitial;
+        final isLoading =
+            state is SubscriptionLoading || state is SubscriptionInitial;
 
         return Stack(
           children: [
@@ -171,7 +170,8 @@ class _PaywallViewState extends State<_PaywallView> {
                               ErrorModal.show(
                                 context,
                                 title: 'Products unavailable',
-                                body: 'Could not load subscription products. Please check your connection and try again.',
+                                body:
+                                    'Could not load subscription products. Please check your connection and try again.',
                                 primaryLabel: 'OK',
                                 onPrimary: () {},
                               );
@@ -184,7 +184,8 @@ class _PaywallViewState extends State<_PaywallView> {
 
                         // Footer
                         _Footer(
-                          onRestore: () => context.read<SubscriptionCubit>().restore(),
+                          onRestore: () =>
+                              context.read<SubscriptionCubit>().restore(),
                         ),
                       ],
                     ),
@@ -196,9 +197,7 @@ class _PaywallViewState extends State<_PaywallView> {
               const Positioned.fill(
                 child: ColoredBox(
                   color: Color(0x55FFFFFF),
-                  child: Center(
-                    child: CupertinoActivityIndicator(radius: 14),
-                  ),
+                  child: Center(child: CupertinoActivityIndicator(radius: 14)),
                 ),
               ),
           ],
@@ -211,18 +210,18 @@ class _PaywallViewState extends State<_PaywallView> {
     if (offering != null) {
       final pkg = _packageFor(plan, offering);
       if (pkg != null) {
-        final price  = pkg.storeProduct.priceString;
+        final price = pkg.storeProduct.priceString;
         final period = switch (plan) {
-          _Plan.weekly  => 'week',
-          _Plan.annual  => 'year',
+          _Plan.weekly => 'week',
+          _Plan.annual => 'year',
           _Plan.monthly => 'month',
         };
         return 'Start Premium — $price / $period';
       }
     }
     return switch (plan) {
-      _Plan.weekly  => 'Start Premium — \$3.99 / week',
-      _Plan.annual  => 'Start Premium — \$44.99 / year',
+      _Plan.weekly => 'Start Premium — \$3.99 / week',
+      _Plan.annual => 'Start Premium — \$44.99 / year',
       _Plan.monthly => 'Start Premium — \$4.99 / month',
     };
   }
@@ -232,6 +231,7 @@ class _PaywallViewState extends State<_PaywallView> {
 
 class _GroupLabel extends StatelessWidget {
   final String text;
+
   const _GroupLabel({required this.text});
 
   @override
@@ -255,21 +255,24 @@ class _GroupLabel extends StatelessWidget {
 
 class _FeatureCard extends StatelessWidget {
   final _Plan selected;
+
   const _FeatureCard({required this.selected});
 
   String get _quotaLine => switch (selected) {
-        _Plan.weekly  => '15 AI generations per week',
-        _Plan.monthly => '50 AI generations per month',
-        _Plan.annual  => '700 AI generations per year',
-      };
+    _Plan.weekly => '15 AI generations per week',
+    _Plan.monthly => '50 AI generations per month',
+    _Plan.annual => '600 AI generations per year',
+  };
 
   @override
   Widget build(BuildContext context) {
     final features = [
-      _quotaLine,
+      'AI Form builder',
+      'Unlimited Manual Form build',
       'Unlimited response refreshes',
       'Export responses as CSV',
       'All future premium features',
+      _quotaLine,
     ];
 
     return Container(
@@ -346,33 +349,34 @@ class _PricingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weeklyPrice  = offering?.weekly?.storeProduct.priceString  ?? '\$3.99';
-    final annualPrice  = offering?.annual?.storeProduct.priceString  ?? '\$44.99';
-    final monthlyPrice = offering?.monthly?.storeProduct.priceString ?? '\$4.99';
+    final weeklyPrice = offering?.weekly?.storeProduct.priceString ?? '\$3.99';
+    final annualPrice = offering?.annual?.storeProduct.priceString ?? '\$44.99';
+    final monthlyPrice =
+        offering?.monthly?.storeProduct.priceString ?? '\$4.99';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _SidePlanCard(
-          label:   'WEEKLY',
-          price:   weeklyPrice,
+          label: 'WEEKLY',
+          price: weeklyPrice,
           perUnit: 'per week',
           selected: selected == _Plan.weekly,
-          onTap:   () => onSelect(_Plan.weekly),
+          onTap: () => onSelect(_Plan.weekly),
         ),
         const SizedBox(width: 8),
         _FeaturedPlanCard(
-          price:    annualPrice,
+          price: annualPrice,
           selected: selected == _Plan.annual,
-          onTap:    () => onSelect(_Plan.annual),
+          onTap: () => onSelect(_Plan.annual),
         ),
         const SizedBox(width: 8),
         _SidePlanCard(
-          label:   'MONTHLY',
-          price:   monthlyPrice,
+          label: 'MONTHLY',
+          price: monthlyPrice,
           perUnit: 'per month',
           selected: selected == _Plan.monthly,
-          onTap:   () => onSelect(_Plan.monthly),
+          onTap: () => onSelect(_Plan.monthly),
         ),
       ],
     );
@@ -403,9 +407,16 @@ class _FeaturedPlanCard extends StatelessWidget {
               duration: const Duration(milliseconds: 180),
               width: double.infinity,
               margin: const EdgeInsets.only(top: _badgeHeight / 2),
-              padding: const EdgeInsets.fromLTRB(8, _badgeHeight / 2 + 14, 8, 18),
+              padding: const EdgeInsets.fromLTRB(
+                8,
+                _badgeHeight / 2 + 14,
+                8,
+                18,
+              ),
               decoration: BoxDecoration(
-                color: selected ? _purpleLight.withValues(alpha: 0.6) : Colors.white,
+                color: selected
+                    ? _purpleLight.withValues(alpha: 0.6)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: selected ? _purple : const Color(0xFFDDD8E8),
@@ -447,7 +458,9 @@ class _FeaturedPlanCard extends StatelessWidget {
                     'per year',
                     style: TextStyle(
                       fontSize: 10,
-                      color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
+                      color: selected
+                          ? _purple.withValues(alpha: 0.7)
+                          : Colors.grey[400],
                     ),
                   ),
                 ],
@@ -502,7 +515,9 @@ class _SidePlanCard extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
           decoration: BoxDecoration(
-            color: selected ? _purpleLight.withValues(alpha: 0.6) : Colors.white,
+            color: selected
+                ? _purpleLight.withValues(alpha: 0.6)
+                : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected ? _purple : const Color(0xFFDDD8E8),
@@ -544,7 +559,9 @@ class _SidePlanCard extends StatelessWidget {
                 perUnit,
                 style: TextStyle(
                   fontSize: 10,
-                  color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
+                  color: selected
+                      ? _purple.withValues(alpha: 0.7)
+                      : Colors.grey[400],
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -593,7 +610,10 @@ class _PurchaseButton extends StatelessWidget {
         ),
         child: Center(
           child: isLoading
-              ? const CupertinoActivityIndicator(color: Colors.white, radius: 11)
+              ? const CupertinoActivityIndicator(
+                  color: Colors.white,
+                  radius: 11,
+                )
               : Text(
                   label,
                   style: TextStyle(
@@ -613,6 +633,7 @@ class _PurchaseButton extends StatelessWidget {
 
 class _Footer extends StatelessWidget {
   final VoidCallback onRestore;
+
   const _Footer({required this.onRestore});
 
   @override
@@ -622,8 +643,8 @@ class _Footer extends StatelessWidget {
       children: [
         CupertinoButton(
           padding: EdgeInsets.zero,
-          minSize: 0,
           onPressed: onRestore,
+          minimumSize: Size(0, 0),
           child: const Text(
             'Restore Purchases',
             style: TextStyle(
