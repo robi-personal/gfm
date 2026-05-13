@@ -37,10 +37,38 @@ class PaywallPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<SubscriptionCubit>()..load(),
-      child: const Scaffold(
+      child: const _PaywallScaffold(),
+    );
+  }
+}
+
+class _PaywallScaffold extends StatelessWidget {
+  const _PaywallScaffold();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _iosBg,
+      appBar: AppBar(
         backgroundColor: _iosBg,
-        body: _PaywallView(),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'GFM Premium',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: _label1,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(CupertinoIcons.xmark_circle_fill, color: _label3, size: 24),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
+      body: const _PaywallView(),
     );
   }
 }
@@ -99,7 +127,6 @@ class _PaywallViewState extends State<_PaywallView> {
           children: [
             Column(
               children: [
-                _NavBar(onClose: () => Navigator.of(context).pop()),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + bottom),
@@ -199,51 +226,6 @@ class _PaywallViewState extends State<_PaywallView> {
       _Plan.annual  => 'Start Premium — \$44.99 / year',
       _Plan.monthly => 'Start Premium — \$4.99 / month',
     };
-  }
-}
-
-// ── Nav bar ───────────────────────────────────────────────────────────────────
-
-class _NavBar extends StatelessWidget {
-  final VoidCallback onClose;
-  const _NavBar({required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: _iosBg,
-      child: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Text(
-                'GFM Premium',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: _label1,
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: CupertinoButton(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  onPressed: onClose,
-                  child: const Icon(
-                    CupertinoIcons.xmark_circle_fill,
-                    color: _label3,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
