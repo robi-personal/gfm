@@ -280,43 +280,76 @@ class _DashboardViewState extends State<_DashboardView> {
               left: 20,
               right: 20,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
+            child: BlocSelector<SignInCubit, SignInState,
+                ({String? displayName, String? photoUrl, String email})>(
+              selector: (state) => state is Authenticated
+                  ? (
+                      displayName: state.user.displayName,
+                      photoUrl: state.user.photoUrl,
+                      email: state.user.email,
+                    )
+                  : (displayName: null, photoUrl: null, email: ''),
+              builder: (context, user) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Form list',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _UserAvatar(
+                            photoUrl: user.photoUrl,
+                            displayName: user.displayName,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (user.displayName != null)
+                                  Text(
+                                    user.displayName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                if (user.email.isNotEmpty)
+                                  Text(
+                                    user.email,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.70),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Google Forms Manager',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
-                        fontSize: 13,
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        PaywallPage.show(context);
+                      },
+                      child: SvgPicture.asset(
+                        'assets/dashboard_premium.svg',
+                        width: 28,
+                        height: 28,
                       ),
                     ),
                   ],
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    PaywallPage.show(context);
-                  },
-                  child: SvgPicture.asset(
-                    'assets/dashboard_premium.svg',
-                    width: 28,
-                    height: 28,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           // Menu
@@ -1697,6 +1730,46 @@ class _CacheBanner extends StatelessWidget {
                 color: Color(0xFF0A58CA), fontSize: 13),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Drawer user avatar ────────────────────────────────────────────────────────
+
+class _UserAvatar extends StatelessWidget {
+  final String? photoUrl;
+  final String? displayName;
+
+  const _UserAvatar({this.photoUrl, this.displayName});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = (displayName?.isNotEmpty == true
+            ? displayName![0]
+            : null) ??
+        '?';
+
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 26,
+        backgroundColor: Colors.white.withValues(alpha: 0.20),
+        backgroundImage: NetworkImage(photoUrl!),
+        onBackgroundImageError: (e, _) {},
+        child: null,
+      );
+    }
+
+    return CircleAvatar(
+      radius: 26,
+      backgroundColor: Colors.white.withValues(alpha: 0.20),
+      child: Text(
+        initial.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
