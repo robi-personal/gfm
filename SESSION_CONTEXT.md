@@ -421,6 +421,22 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-13 session — AI builder + dashboard polish)
+
+### Dashboard — hide AppBar crown for premium/whitelisted users (commit `a974c09`)
+- The drawer banner crown was removed earlier; this fix hides the second crown in the AppBar actions using `FutureBuilder<bool>` on `GetUserStatus`. Shows by default while loading, hides once `isPremium: true` resolves.
+
+### AI builder — default question count 5 (commit `d92e63f`)
+- Changed `_questionCountHint` initial value from `10` → `5`.
+
+### AI builder — show all input tabs for free users, lock non-text (commit `7d7014b`)
+- Removed `if (isPremium)` guard around `_InputTypePicker` — picker now always visible.
+- `_TypeChip` gains a `locked` bool: dimmed to `0xFF8E8E93`, shows `Icons.workspace_premium` (11px) after the label, tapping opens the paywall.
+- Free users: Text tab fully active; PDF / YouTube / URLs / Book locked.
+- Premium/whitelisted users: all tabs fully active, no change.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
