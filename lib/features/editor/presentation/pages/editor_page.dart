@@ -29,6 +29,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
+import '../../../responses/presentation/cubit/responses_cubit.dart';
 import '../../../responses/presentation/pages/responses_page.dart';
 import '../cubit/editor_cubit.dart';
 import '../widgets/form_header_card.dart';
@@ -53,8 +54,11 @@ class EditorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<EditorCubit>()..loadForm(formId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => getIt<EditorCubit>()..loadForm(formId)),
+        BlocProvider(create: (_) => getIt<ResponsesCubit>()..loadResponses(formId)),
+      ],
       child: _EditorView(formId: formId, initialName: formName),
     );
   }
@@ -143,7 +147,12 @@ class _EditorViewState extends State<_EditorView>
         body: Column(
           children: [
             // Tab bar
-            _SegmentedTabBar(controller: _tabController),
+            BlocSelector<ResponsesCubit, ResponsesState, int?>(
+              selector: (state) =>
+                  state is ResponsesLoaded ? state.responses.length : null,
+              builder: (context, count) =>
+                  _SegmentedTabBar(controller: _tabController, responseCount: count),
+            ),
             // Tab content + floating bottom bar
             Expanded(
               child: Stack(
@@ -176,9 +185,12 @@ class _EditorViewState extends State<_EditorView>
                             physics: const NeverScrollableScrollPhysics(),
                             children: [
                               const _EditorBody(),
-                              ResponsesScreen(
-                                formId: widget.formId,
-                                items: form.items,
+                              BlocProvider.value(
+                                value: context.read<ResponsesCubit>(),
+                                child: ResponsesScreen(
+                                  formId: widget.formId,
+                                  items: form.items,
+                                ),
                               ),
                               _SettingsTabPage(formId: widget.formId),
                             ],
@@ -562,7 +574,8 @@ class _OptionTile extends StatelessWidget {
 
 class _SegmentedTabBar extends StatefulWidget {
   final TabController controller;
-  const _SegmentedTabBar({required this.controller});
+  final int? responseCount;
+  const _SegmentedTabBar({required this.controller, this.responseCount});
 
   @override
   State<_SegmentedTabBar> createState() => _SegmentedTabBarState();
@@ -628,8 +641,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                   Icon(
                                     _tabs[i].icon,
                                     size: isSelected ? 16 : 15,
-                                    color: Colors.white.withValues(
-                                        alpha: 1.0),
+                                    color: Colors.white.withValues(alpha: 1.0),
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
@@ -639,10 +651,27 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
                                       fontWeight: isSelected
                                           ? FontWeight.w700
                                           : FontWeight.w400,
-                                      color: Colors.white.withValues(
-                                          alpha: 1.0),
+                                      color: Colors.white.withValues(alpha: 1.0),
                                     ),
                                   ),
+                                  if (i == 1 && widget.responseCount != null && widget.responseCount! > 0) ...[
+                                    const SizedBox(width: 5),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.25),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${widget.responseCount}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 4),

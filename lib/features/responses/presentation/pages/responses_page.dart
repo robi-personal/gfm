@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../core/di/injection.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/form_response.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question_kind.dart';
-import '../../../../core/widgets/skeleton_bone.dart';
 import '../cubit/responses_cubit.dart';
 
 const _purple = Color(0xFF772FC0);
@@ -33,10 +31,7 @@ class ResponsesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<ResponsesCubit>()..loadResponses(formId),
-      child: _ResponsesView(formId: formId, items: items),
-    );
+    return _ResponsesView(formId: formId, items: items);
   }
 }
 
