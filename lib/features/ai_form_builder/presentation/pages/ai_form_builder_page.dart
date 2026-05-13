@@ -814,22 +814,22 @@ class _ReadyBodyState extends State<_ReadyBody> {
           ] else
             const SizedBox(height: 4),
 
-          // Input type segmented picker (premium only)
-          if (isPremium) ...[
-            _InputTypePicker(
-              selected: selectedType,
-              enabled: !widget.isSubmitting,
-              onChanged: (type) {
-                if (type == AiInputType.book &&
-                    _descriptionController.text.trim().isEmpty) {
-                  _descriptionController.text =
-                      'Generate a comprehension quiz from this material.';
-                }
-                widget.cubit.setSelectedType(type);
-              },
-            ),
-            const SizedBox(height: 14),
-          ],
+          // Input type picker — always visible; non-text tabs locked for free users
+          _InputTypePicker(
+            selected: selectedType,
+            enabled: !widget.isSubmitting,
+            isPremium: isPremium,
+            onChanged: (type) {
+              if (type == AiInputType.book &&
+                  _descriptionController.text.trim().isEmpty) {
+                _descriptionController.text =
+                    'Generate a comprehension quiz from this material.';
+              }
+              widget.cubit.setSelectedType(type);
+            },
+            onLockedTap: widget.onUpgrade,
+          ),
+          const SizedBox(height: 14),
 
           // Input area card
           _IosCard(child: _inputArea()),
@@ -1455,12 +1455,16 @@ class _QuizToggleRow extends StatelessWidget {
 class _InputTypePicker extends StatefulWidget {
   final AiInputType selected;
   final bool enabled;
+  final bool isPremium;
   final ValueChanged<AiInputType> onChanged;
+  final VoidCallback onLockedTap;
 
   const _InputTypePicker({
     required this.selected,
     required this.enabled,
+    required this.isPremium,
     required this.onChanged,
+    required this.onLockedTap,
   });
 
   @override
@@ -1558,7 +1562,9 @@ class _InputTypePickerState extends State<_InputTypePicker> {
                 icon: icon,
                 selected: widget.selected == type,
                 enabled: widget.enabled,
+                locked: !widget.isPremium && type != AiInputType.text,
                 onTap: () => widget.onChanged(type),
+                onLockedTap: widget.onLockedTap,
               ),
           ],
         ),
@@ -1572,7 +1578,9 @@ class _TypeChip extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final bool enabled;
+  final bool locked;
   final VoidCallback onTap;
+  final VoidCallback onLockedTap;
 
   const _TypeChip({
     super.key,
@@ -1581,18 +1589,22 @@ class _TypeChip extends StatelessWidget {
     required this.selected,
     required this.enabled,
     required this.onTap,
+    required this.onLockedTap,
+    this.locked = false,
   });
+
+  static const _disabled = Color(0xFF8E8E93);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: enabled ? onTap : null,
+      onTap: locked ? onLockedTap : (enabled ? onTap : null),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? _purple : Colors.transparent,
+          color: selected && !locked ? _purple : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -1601,7 +1613,7 @@ class _TypeChip extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: selected ? Colors.white : const Color(0xFF8E8E93),
+              color: locked ? _disabled : (selected ? Colors.white : _disabled),
             ),
             const SizedBox(width: 5),
             Text(
@@ -1609,9 +1621,13 @@ class _TypeChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : const Color(0xFF3C3C43),
+                color: locked ? _disabled : (selected ? Colors.white : const Color(0xFF3C3C43)),
               ),
             ),
+            if (locked) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.workspace_premium, size: 11, color: _disabled),
+            ],
           ],
         ),
       ),
