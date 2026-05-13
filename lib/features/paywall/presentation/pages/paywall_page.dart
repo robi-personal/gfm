@@ -102,6 +102,14 @@ class _PaywallViewState extends State<_PaywallView> {
                         const SizedBox(height: 8),
                         const _Illustration(),
                         const SizedBox(height: 24),
+                        const _SectionLabel(text: "What's included", fontSize: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: const Divider(),
+                        ),
+                        const SizedBox(height: 12),
+                        const _FeatureList(),
+                        const SizedBox(height: 24),
                         const _SectionLabel(
                           text: "Select your plan",
                           fontSize: 18,
@@ -117,14 +125,6 @@ class _PaywallViewState extends State<_PaywallView> {
                           onSelect: (p) => setState(() => _selected = p),
                         ),
                         const SizedBox(height: 20),
-                        const _SectionLabel(text: "What's included",fontSize: 16,),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: const Divider(),
-                        ),
-                        const SizedBox(height: 12),
-                        const _FeatureList(),
-                        const SizedBox(height: 28),
                       ],
                     ),
                   ),
@@ -407,6 +407,7 @@ class _FeaturedPlanCard extends StatelessWidget {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
+              width: double.infinity,
               margin: const EdgeInsets.only(top: _badgeHeight / 2),
               padding: const EdgeInsets.fromLTRB(
                 8,
