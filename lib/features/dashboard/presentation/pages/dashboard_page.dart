@@ -8,9 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
-import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/usecases/usecase.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
@@ -294,74 +292,41 @@ class _DashboardViewState extends State<_DashboardView> {
                   : (displayName: null, photoUrl: null, email: ''),
               builder: (context, user) {
                 return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          _UserAvatar(
-                            photoUrl: user.photoUrl,
-                            displayName: user.displayName,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (user.displayName != null)
-                                  Text(
-                                    user.displayName!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                if (user.email.isNotEmpty)
-                                  Text(
-                                    user.email,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.70),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    _UserAvatar(
+                      photoUrl: user.photoUrl,
+                      displayName: user.displayName,
                     ),
-                    FutureBuilder<bool>(
-                      future: getIt<GetUserStatus>()
-                          .call(const NoParams())
-                          .then((r) => r.fold((_) => false, (s) => s.isPremium)),
-                      builder: (context, snapshot) {
-                        if (snapshot.data == true) return const SizedBox.shrink();
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                PaywallPage.show(context);
-                              },
-                              child: SvgPicture.asset(
-                                'assets/dashboard_premium.svg',
-                                width: 28,
-                                height: 28,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (user.displayName != null)
+                            Text(
+                              user.displayName!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ],
-                        );
-                      },
+                          if (user.email.isNotEmpty)
+                            Text(
+                              user.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.70),
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 );
