@@ -254,7 +254,7 @@ class _GroupLabel extends StatelessWidget {
 // ── Feature list ─────────────────────────────────────────────────────────────
 
 const _features = [
-  'AI Form Builder — generate from text, PDF, YouTube',
+  'AI Form Builder',
   'Unlimited response refreshes',
   'Export responses as CSV',
   'All future premium features',
@@ -350,12 +350,14 @@ class _PricingSection extends StatelessWidget {
           label:   'WEEKLY',
           price:   weeklyPrice,
           perUnit: 'per week',
+          quota:   '15 generations',
           selected: selected == _Plan.weekly,
           onTap:   () => onSelect(_Plan.weekly),
         ),
         const SizedBox(width: 8),
         _FeaturedPlanCard(
           price:    annualPrice,
+          quota:    '700 generations',
           selected: selected == _Plan.annual,
           onTap:    () => onSelect(_Plan.annual),
         ),
@@ -364,6 +366,7 @@ class _PricingSection extends StatelessWidget {
           label:   'MONTHLY',
           price:   monthlyPrice,
           perUnit: 'per month',
+          quota:   '50 generations',
           selected: selected == _Plan.monthly,
           onTap:   () => onSelect(_Plan.monthly),
         ),
@@ -374,11 +377,13 @@ class _PricingSection extends StatelessWidget {
 
 class _FeaturedPlanCard extends StatelessWidget {
   final String price;
+  final String quota;
   final bool selected;
   final VoidCallback onTap;
 
   const _FeaturedPlanCard({
     required this.price,
+    required this.quota,
     required this.selected,
     required this.onTap,
   });
@@ -443,6 +448,16 @@ class _FeaturedPlanCard extends StatelessWidget {
                       color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    quota,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? _purple : Colors.grey[400],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
@@ -475,6 +490,7 @@ class _SidePlanCard extends StatelessWidget {
   final String label;
   final String price;
   final String perUnit;
+  final String quota;
   final bool selected;
   final VoidCallback onTap;
 
@@ -482,6 +498,7 @@ class _SidePlanCard extends StatelessWidget {
     required this.label,
     required this.price,
     required this.perUnit,
+    required this.quota,
     required this.selected,
     required this.onTap,
   });
@@ -538,6 +555,16 @@ class _SidePlanCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                quota,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? _purple : Colors.grey[400],
                 ),
                 textAlign: TextAlign.center,
               ),
