@@ -1,8 +1,5 @@
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-// Set to true to bypass RevenueCat during local testing; flip to false before release.
-const kBypassPremium = true;
-
 class SubscriptionService {
   static const String _appId = 'app351cfe2e80';
   static const String entitlement = 'gfm_premium';
@@ -21,7 +18,6 @@ class SubscriptionService {
   }
 
   Future<bool> isPremium() async {
-    if (kBypassPremium) return true;
     final info = await Purchases.getCustomerInfo();
     return info.entitlements.active.containsKey(entitlement);
   }
