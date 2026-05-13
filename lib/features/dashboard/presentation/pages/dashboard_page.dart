@@ -8,7 +8,9 @@ import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
+import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
@@ -243,16 +245,24 @@ class _DashboardViewState extends State<_DashboardView> {
               color: Color(0xFF8E8E93), size: 22),
           onPressed: () => setState(() => _searchOpen = true),
         ),
-        GestureDetector(
-          onTap: () => PaywallPage.show(context),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: SvgPicture.asset(
-              'assets/dashboard_premium.svg',
-              width: 26,
-              height: 26,
-            ),
-          ),
+        FutureBuilder<bool>(
+          future: getIt<GetUserStatus>()
+              .call(const NoParams())
+              .then((r) => r.fold((_) => false, (s) => s.isPremium)),
+          builder: (context, snapshot) {
+            if (snapshot.data == true) return const SizedBox.shrink();
+            return GestureDetector(
+              onTap: () => PaywallPage.show(context),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SvgPicture.asset(
+                  'assets/dashboard_premium.svg',
+                  width: 26,
+                  height: 26,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
