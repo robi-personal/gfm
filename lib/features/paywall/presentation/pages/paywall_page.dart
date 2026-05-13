@@ -64,7 +64,7 @@ class _PaywallScaffold extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.xmark_circle_fill, color: _label3, size: 24),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _purple),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
