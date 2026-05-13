@@ -65,8 +65,7 @@ class DriveDataSource {
   }
 
   Future<void> writeImportedFormIds(List<String> ids) async {
-    final bytes =
-        utf8.encode(jsonEncode({'importedForms': ids}));
+    final bytes = utf8.encode(jsonEncode({'importedForms': ids}));
     final media = Media(
       Stream.value(bytes),
       bytes.length,
@@ -75,17 +74,23 @@ class DriveDataSource {
 
     final existingId = await _findAppDataFileId();
     if (existingId != null) {
-      await _client.api.files.update(File(), existingId,
-          uploadMedia: media);
-    } else {
-      final created = await _client.api.files.create(
-        File()
-          ..name = _kAppDataFileName
-          ..mimeType = 'application/json',
-        uploadMedia: media,
-      );
-      _appDataFileId = created.id;
+      try {
+        await _client.api.files.update(File(), existingId, uploadMedia: media);
+        return;
+      } on DetailedApiRequestError catch (e) {
+        if (e.status != 404) rethrow;
+        // Cached file was deleted externally — clear cache and recreate below.
+        _appDataFileId = null;
+      }
     }
+
+    final created = await _client.api.files.create(
+      File()
+        ..name = _kAppDataFileName
+        ..mimeType = 'application/json',
+      uploadMedia: media,
+    );
+    _appDataFileId = created.id;
   }
 
   Future<String?> _findAppDataFileId() async {
