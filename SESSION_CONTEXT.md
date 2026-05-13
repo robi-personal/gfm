@@ -406,6 +406,21 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-13 session — drawer polish + quota fix)
+
+### Dashboard drawer — crown icon removed (commit `f9097cf`)
+- Removed premium crown icon from drawer banner entirely.
+
+### Dashboard drawer — "Upgrade to Premium" → "Upgrade Plan" (commit `e99faa5`)
+- Renamed drawer item label.
+
+### Backend — new user sees 0 quota on first open (commit `3423a66`)
+- **Bug:** `applyFreeGrantIfDue` was only called in `POST /ai/generate`, not in `GET /user/status`. New users saw "0 generations remaining" when opening the AI builder before ever generating.
+- **Fix:** `GET /user/status` now calls `applyFreeGrantIfDue` for free-tier users before reading `quota_balance`. Grant is idempotent (CTE only credits if `free_quota_reset_at IS NULL OR <= NOW()`), so calling it on every status check is safe.
+- Monthly renewal is lazy/pull-based — fires on app open, no cron needed.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
