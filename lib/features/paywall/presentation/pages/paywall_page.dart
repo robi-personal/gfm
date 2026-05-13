@@ -125,7 +125,7 @@ class _PaywallViewState extends State<_PaywallView> {
                         // Plan selector section
                         const _GroupLabel(text: 'SELECT YOUR PLAN'),
                         const SizedBox(height: 6),
-                        _PlanCard(
+                        _PricingSection(
                           selected: _selected,
                           offering: offering,
                           onSelect: (p) => setState(() => _selected = p),
@@ -377,189 +377,227 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-// ── Plan card (iOS grouped list) ──────────────────────────────────────────────
+// ── Pricing section (3-card layout) ──────────────────────────────────────────
 
-class _PlanCard extends StatelessWidget {
+const _badgeHeight = 26.0;
+
+class _PricingSection extends StatelessWidget {
   final _Plan selected;
   final ValueChanged<_Plan> onSelect;
   final Offering? offering;
 
-  const _PlanCard({
+  const _PricingSection({
     required this.selected,
     required this.onSelect,
     this.offering,
   });
 
-  String _price(_Plan plan) {
-    if (offering != null) {
-      final pkg = switch (plan) {
-        _Plan.weekly  => offering!.weekly,
-        _Plan.monthly => offering!.monthly,
-        _Plan.annual  => offering!.annual,
-      };
-      if (pkg != null) return pkg.storeProduct.priceString;
-    }
-    return switch (plan) {
-      _Plan.weekly  => '\$3.99',
-      _Plan.monthly => '\$4.99',
-      _Plan.annual  => '\$44.99',
-    };
-  }
-
-  String _period(_Plan plan) => switch (plan) {
-        _Plan.weekly  => 'per week',
-        _Plan.monthly => 'per month',
-        _Plan.annual  => 'per year',
-      };
-
-  String _label(_Plan plan) => switch (plan) {
-        _Plan.weekly  => 'Weekly',
-        _Plan.monthly => 'Monthly',
-        _Plan.annual  => 'Annual',
-      };
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < _Plan.values.length; i++) ...[
-            _PlanRow(
-              label:    _label(_Plan.values[i]),
-              price:    _price(_Plan.values[i]),
-              period:   _period(_Plan.values[i]),
-              isBest:   _Plan.values[i] == _Plan.annual,
-              selected: selected == _Plan.values[i],
-              onTap:    () => onSelect(_Plan.values[i]),
-            ),
-            if (i < _Plan.values.length - 1)
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: _divider,
-                indent: 54,
-              ),
-          ],
-        ],
-      ),
+    final weeklyPrice  = offering?.weekly?.storeProduct.priceString  ?? '\$3.99';
+    final annualPrice  = offering?.annual?.storeProduct.priceString  ?? '\$44.99';
+    final monthlyPrice = offering?.monthly?.storeProduct.priceString ?? '\$4.99';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _SidePlanCard(
+          label:   'WEEKLY',
+          price:   weeklyPrice,
+          perUnit: 'per week',
+          selected: selected == _Plan.weekly,
+          onTap:   () => onSelect(_Plan.weekly),
+        ),
+        const SizedBox(width: 8),
+        _FeaturedPlanCard(
+          price:    annualPrice,
+          selected: selected == _Plan.annual,
+          onTap:    () => onSelect(_Plan.annual),
+        ),
+        const SizedBox(width: 8),
+        _SidePlanCard(
+          label:   'MONTHLY',
+          price:   monthlyPrice,
+          perUnit: 'per month',
+          selected: selected == _Plan.monthly,
+          onTap:   () => onSelect(_Plan.monthly),
+        ),
+      ],
     );
   }
 }
 
-class _PlanRow extends StatelessWidget {
-  final String label;
+class _FeaturedPlanCard extends StatelessWidget {
   final String price;
-  final String period;
-  final bool isBest;
   final bool selected;
   final VoidCallback onTap;
 
-  const _PlanRow({
-    required this.label,
+  const _FeaturedPlanCard({
     required this.price,
-    required this.period,
-    required this.isBest,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      splashColor: _purple.withValues(alpha: 0.06),
-      highlightColor: _purple.withValues(alpha: 0.03),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
           children: [
-            // Selection indicator
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              width: 22,
-              height: 22,
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: _badgeHeight / 2),
+              padding: const EdgeInsets.fromLTRB(8, _badgeHeight / 2 + 14, 8, 18),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? _purple : Colors.transparent,
+                color: selected ? _purpleLight.withValues(alpha: 0.6) : Colors.white,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? _purple : _label3,
-                  width: 2,
+                  color: selected ? _purple : const Color(0xFFDDD8E8),
+                  width: selected ? 2 : 1.5,
                 ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: _purple.withValues(alpha: 0.22),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
-              child: selected
-                  ? const Icon(CupertinoIcons.checkmark_alt, color: Colors.white, size: 12)
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            // Label + badge
-            Expanded(
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    label,
+                    'ANNUAL',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: selected ? _purple : Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    price,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
                       color: selected ? _purple : _label1,
                     ),
                   ),
-                  if (isBest) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _saveBadge.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'Save 78%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: _saveBadge,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'per year',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-            // Price
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  price,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: selected ? _purple : _label1,
-                  ),
+            Container(
+              height: _badgeHeight,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: _saveBadge,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Save 78%',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
                 ),
-                Text(
-                  period,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: _label2,
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(width: 2),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidePlanCard extends StatelessWidget {
+  final String label;
+  final String price;
+  final String perUnit;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SidePlanCard({
+    required this.label,
+    required this.price,
+    required this.perUnit,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          decoration: BoxDecoration(
+            color: selected ? _purpleLight.withValues(alpha: 0.6) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? _purple : const Color(0xFFDDD8E8),
+              width: selected ? 2 : 1.5,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: _purple.withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: selected ? _purple : Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                price,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? _purple : _label1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                perUnit,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: selected ? _purple.withValues(alpha: 0.7) : Colors.grey[400],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
