@@ -392,6 +392,20 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-13 session — drawer polish)
+
+### Dashboard drawer — user profile banner (commit `a2892b3`)
+
+- Replaced static "Form list" / "Google Forms Manager" header text with live user info from `SignInCubit` (`Authenticated` state).
+- Added `_UserAvatar` widget: 52px circle with `NetworkImage` from `photoUrl`, falls back to initial letter.
+- Shows `displayName` (bold white) and `email` (70% white) beside the avatar. Crown paywall button stays top-right.
+
+### Dashboard drawer — Privacy Policy & Terms of Use links (commit `a4cbda0`)
+
+- LEGAL section items now open `https://gformmanager.netlify.app/privacy` and `https://gformmanager.netlify.app/terms` in the external browser (`launchUrl externalApplication`). Same URLs as sign-in screen and paywall footer.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
