@@ -368,6 +368,16 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-13 session — editor back-press guard)
+
+### Editor — discard confirmation on back press (commit `76780ee`)
+
+- Wrapped editor `Scaffold` in `PopScope(canPop: false)` — intercepts system back gesture on iOS and Android.
+- Added `_handleBackPress()` to `_EditorViewState`: pops immediately if `isDirty` is false; shows `ErrorModal("Discard changes?" / "Keep editing" / "Discard")` if dirty, pops only on Discard.
+- AppBar back button now calls `_handleBackPress` instead of `Navigator.pop()` directly — both tap and swipe-back paths are covered.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
