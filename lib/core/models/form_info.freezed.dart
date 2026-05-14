@@ -136,7 +136,7 @@ class __$$FormInfoImplCopyWithImpl<$Res>
 class _$FormInfoImpl implements _FormInfo {
   const _$FormInfoImpl({
     required this.title,
-    required this.documentTitle,
+    this.documentTitle = '',
     this.description = '',
   });
 
@@ -146,6 +146,7 @@ class _$FormInfoImpl implements _FormInfo {
   @override
   final String title;
   @override
+  @JsonKey()
   final String documentTitle;
   @override
   @JsonKey()
@@ -190,7 +191,7 @@ class _$FormInfoImpl implements _FormInfo {
 abstract class _FormInfo implements FormInfo {
   const factory _FormInfo({
     required final String title,
-    required final String documentTitle,
+    final String documentTitle,
     final String description,
   }) = _$FormInfoImpl;
 

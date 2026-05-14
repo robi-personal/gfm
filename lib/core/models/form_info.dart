@@ -7,7 +7,7 @@ part 'form_info.g.dart';
 class FormInfo with _$FormInfo {
   const factory FormInfo({
     required String title,
-    required String documentTitle,
+    @Default('') String documentTitle,
     @Default('') String description,
   }) = _FormInfo;
 
