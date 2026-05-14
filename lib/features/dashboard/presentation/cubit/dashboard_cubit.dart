@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 
 import '../../../../core/models/item.dart' as domain;
@@ -22,6 +24,8 @@ class DashboardCubit extends Cubit<DashboardState> {
   final GetImportedForms _getImportedForms;
   final ImportForm _importForm;
   final RemoveImportedForm _removeImportedForm;
+
+  Timer? _searchDebounce;
 
   DashboardCubit({
     required GetForms getForms,
@@ -91,7 +95,19 @@ class DashboardCubit extends Cubit<DashboardState> {
     await loadForms(query: current.query);
   }
 
-  Future<void> search(String query) => loadForms(query: query);
+  void search(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 400),
+      () => loadForms(query: query),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _searchDebounce?.cancel();
+    return super.close();
+  }
 
   Future<void> refresh() async {
     final query =
