@@ -15,6 +15,7 @@ const schema = z.object({
 
   // Google auth
   GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_IOS_CLIENT_ID: z.string().optional(),
 
   // AI provider selection
   AI_PROVIDER: z.enum(["gemini", "openrouter"]).default("gemini"),
