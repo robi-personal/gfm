@@ -456,6 +456,25 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-15 session — dashboard UI + iOS auth fix)
+
+### Dashboard — nav drawer refactor
+- Removed FEEDBACK / "Email us" section from nav drawer
+- Added CREATE section at top of drawer with: AI Form Builder, Create Form, Import Form (same methods as FAB)
+- Reduced section gaps 24→12, item vertical padding 14→10
+
+### Dashboard — compact form list cards
+- Form icon: 44×56 → 26×32
+- Card vertical padding: 12 → 6
+- Title font size: 15 → 13
+
+### iOS auth fix (commit `a56a2b2`)
+- **Bug:** `google_sign_in` v6 on iOS issues `idToken` with the iOS client ID as audience, not the web client ID. Backend was only accepting web client ID → all iOS users got 401 `Wrong recipient`.
+- **Fix:** Added `GOOGLE_IOS_CLIENT_ID` env var; updated `google-token-verifier.ts` to accept both web and iOS client IDs as valid audiences. Added `GIDServerClientID` to `Info.plist`. Removed stale `NSAppTransportSecurity` exception for old VPS IP.
+- Do NOT remove `GOOGLE_IOS_CLIENT_ID` from `.env` — iOS users will break again.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
