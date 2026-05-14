@@ -166,7 +166,7 @@ class _DashboardViewState extends State<_DashboardView> {
           onPressed: () {
             setState(() => _searchOpen = false);
             _searchController.clear();
-            context.read<DashboardCubit>().loadForms();
+            context.read<DashboardCubit>().search('');
           },
         ),
         title: TextField(

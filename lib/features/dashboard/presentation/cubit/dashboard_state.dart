@@ -25,7 +25,7 @@ class DashboardLoading extends DashboardState {
 }
 
 class DashboardLoaded extends DashboardState {
-  final List<FormEntry> forms;
+  final List<FormEntry> allForms;
   final String query;
   final SortOrder sortOrder;
   final bool isShowingCache;
@@ -35,7 +35,7 @@ class DashboardLoaded extends DashboardState {
   final CreateNavigation? createNav;
 
   const DashboardLoaded({
-    required this.forms,
+    required this.allForms,
     this.query = '',
     this.sortOrder = SortOrder.modifiedDesc,
     this.isShowingCache = false,
@@ -45,8 +45,14 @@ class DashboardLoaded extends DashboardState {
     this.createNav,
   });
 
+  List<FormEntry> get forms {
+    if (query.isEmpty) return allForms;
+    final q = query.toLowerCase();
+    return allForms.where((f) => f.name.toLowerCase().contains(q)).toList();
+  }
+
   DashboardLoaded copyWith({
-    List<FormEntry>? forms,
+    List<FormEntry>? allForms,
     String? query,
     SortOrder? sortOrder,
     bool? isShowingCache,
@@ -58,7 +64,7 @@ class DashboardLoaded extends DashboardState {
     bool clearNav = false,
   }) =>
       DashboardLoaded(
-        forms: forms ?? this.forms,
+        allForms: allForms ?? this.allForms,
         query: query ?? this.query,
         sortOrder: sortOrder ?? this.sortOrder,
         isShowingCache: isShowingCache ?? this.isShowingCache,

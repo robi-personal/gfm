@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 
 import '../../../../core/models/item.dart' as domain;
@@ -25,8 +23,6 @@ class DashboardCubit extends Cubit<DashboardState> {
   final ImportForm _importForm;
   final RemoveImportedForm _removeImportedForm;
 
-  Timer? _searchDebounce;
-
   DashboardCubit({
     required GetForms getForms,
     required CreateForm createForm,
@@ -46,11 +42,11 @@ class DashboardCubit extends Cubit<DashboardState> {
 
   // ── List ──────────────────────────────────────────────────────────────────
 
-  Future<void> loadForms({String query = ''}) async {
+  Future<void> loadForms() async {
     final current = state;
 
-    final cached = switch (current) {
-      DashboardLoaded(:final forms) => forms,
+    final cachedAll = switch (current) {
+      DashboardLoaded(:final allForms) => allForms,
       DashboardError(:final cachedForms) => cachedForms,
       _ => null,
     };
@@ -59,16 +55,17 @@ class DashboardCubit extends Cubit<DashboardState> {
       DashboardError(:final sortOrder) => sortOrder,
       _ => SortOrder.modifiedDesc,
     };
+    final currentQuery = current is DashboardLoaded ? current.query : '';
 
-    if (cached == null) emit(const DashboardLoading());
+    if (cachedAll == null) emit(const DashboardLoading());
 
     final formsResult = await _getForms(
-      GetFormsParams(query: query, sortOrder: currentSort),
+      GetFormsParams(query: '', sortOrder: currentSort),
     );
     final importedResult = await _getImportedForms(const NoParams());
 
     formsResult.fold(
-      (failure) => _emitError(failure.message, cached, currentSort),
+      (failure) => _emitError(failure.message, cachedAll, currentSort),
       (owned) {
         final imported = importedResult.getOrElse(() => []);
         final ownedIds = owned.map((f) => f.id).toSet();
@@ -77,43 +74,30 @@ class DashboardCubit extends Cubit<DashboardState> {
           ...imported.where((f) => !ownedIds.contains(f.id)),
         ];
         emit(DashboardLoaded(
-          forms: merged,
-          query: query,
+          allForms: merged,
+          query: currentQuery,
           sortOrder: currentSort,
         ));
       },
     );
   }
 
-  Future<void> toggleSort() async {
-    final current = state;
-    if (current is! DashboardLoaded) return;
-    final newSort = current.sortOrder == SortOrder.modifiedDesc
+  void search(String query) {
+    if (state is! DashboardLoaded) return;
+    emit((state as DashboardLoaded).copyWith(query: query));
+  }
+
+  void toggleSort() {
+    if (state is! DashboardLoaded) return;
+    final loaded = state as DashboardLoaded;
+    final newSort = loaded.sortOrder == SortOrder.modifiedDesc
         ? SortOrder.createdDesc
         : SortOrder.modifiedDesc;
-    emit(current.copyWith(sortOrder: newSort));
-    await loadForms(query: current.query);
+    final sorted = _sorted(loaded.allForms, newSort);
+    emit(loaded.copyWith(allForms: sorted, sortOrder: newSort));
   }
 
-  void search(String query) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(
-      const Duration(milliseconds: 400),
-      () => loadForms(query: query),
-    );
-  }
-
-  @override
-  Future<void> close() {
-    _searchDebounce?.cancel();
-    return super.close();
-  }
-
-  Future<void> refresh() async {
-    final query =
-        state is DashboardLoaded ? (state as DashboardLoaded).query : '';
-    await loadForms(query: query);
-  }
+  Future<void> refresh() => loadForms();
 
   // ── Create ─────────────────────────────────────────────────────────────────
 
@@ -157,7 +141,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     final loaded = state as DashboardLoaded;
 
     emit(loaded.copyWith(
-      forms: loaded.forms.where((f) => f.id != fileId).toList(),
+      allForms: loaded.allForms.where((f) => f.id != fileId).toList(),
     ));
 
     final result = await _deleteForm(DeleteFormParams(fileId));
@@ -177,10 +161,9 @@ class DashboardCubit extends Cubit<DashboardState> {
     if (state is! DashboardLoaded) return;
     final loaded = state as DashboardLoaded;
 
-    // Optimistic update + show loader on the card
     emit(loaded.copyWith(
       renamingId: fileId,
-      forms: loaded.forms
+      allForms: loaded.allForms
           .map((f) => f.id == fileId ? f.copyWith(name: title) : f)
           .toList(),
     ));
@@ -188,7 +171,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     final result = await _renameForm(RenameFormParams(fileId, title));
     result.fold(
       (failure) {
-        emit(loaded); // revert on failure
+        emit(loaded);
         throw Exception(failure.message);
       },
       (_) {
@@ -215,12 +198,12 @@ class DashboardCubit extends Cubit<DashboardState> {
         throw Exception(failure.message);
       },
       (entry) {
-        final alreadyIn = loaded.forms.any((f) => f.id == formId);
+        final alreadyIn = loaded.allForms.any((f) => f.id == formId);
         emit(loaded.copyWith(
           isImporting: false,
-          forms: alreadyIn
-              ? loaded.forms
-              : [...loaded.forms, entry],
+          allForms: alreadyIn
+              ? loaded.allForms
+              : [...loaded.allForms, entry],
         ));
       },
     );
@@ -231,7 +214,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     final loaded = state as DashboardLoaded;
 
     emit(loaded.copyWith(
-      forms: loaded.forms.where((f) => f.id != formId).toList(),
+      allForms: loaded.allForms.where((f) => f.id != formId).toList(),
     ));
 
     final result =
@@ -246,6 +229,19 @@ class DashboardCubit extends Cubit<DashboardState> {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  List<FormEntry> _sorted(List<FormEntry> forms, SortOrder order) {
+    final sorted = [...forms];
+    sorted.sort((a, b) {
+      final aTime = order == SortOrder.modifiedDesc ? a.modifiedTime : a.createdTime;
+      final bTime = order == SortOrder.modifiedDesc ? b.modifiedTime : b.createdTime;
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return bTime.compareTo(aTime);
+    });
+    return sorted;
+  }
 
   void _setCreating(bool creating, {CreateNavigation? nav}) {
     switch (state) {
