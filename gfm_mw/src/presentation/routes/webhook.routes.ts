@@ -127,25 +127,20 @@ webhookRouter.post(
   "/revenuecat",
   rcIpLimitMiddleware,
   async (req, res) => {
-    // Step 1: Verify HMAC — raw body must be captured before express.json parses it.
-    // app.ts sets express.json({ verify }) to save req.rawBody for this purpose.
     const rawBody = req.rawBody;
     if (!rawBody) {
       res.status(400).json({ code: "invalid_input", message: "Missing raw body." });
       return;
     }
 
-    const computed = crypto
-      .createHmac("sha256", env.RC_WEBHOOK_SECRET)
-      .update(rawBody)
-      .digest("hex");
     const provided = req.headers.authorization ?? "";
+    const expected = env.RC_WEBHOOK_SECRET;
 
-    const computedBuf = Buffer.from(computed);
     const providedBuf = Buffer.from(provided);
+    const expectedBuf = Buffer.from(expected);
     const sigValid =
-      computedBuf.length === providedBuf.length &&
-      crypto.timingSafeEqual(computedBuf, providedBuf);
+      providedBuf.length === expectedBuf.length &&
+      crypto.timingSafeEqual(providedBuf, expectedBuf);
 
     if (!sigValid) {
       req.log.error({ path: req.path }, "rc_hmac_mismatch");
