@@ -1,7 +1,7 @@
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class SubscriptionService {
-  static const String _appId = 'app351cfe2e80';
+  static const String _appId = 'appl_VqBfURjMPtsRNeYwSTgjKBoJifp';
   static const String entitlement = 'gfm_premium';
   static const String _offeringId = 'GFMDefault';
 
