@@ -487,11 +487,12 @@ class _OptionsPreview extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          o.value,
+                          o.isOther ? 'Other...' : o.value,
                           style: TextStyle(
                             fontSize: 13,
                             color: isCorrect ? const Color(0xFF34A853) : _primaryText,
                             fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
+                            fontStyle: o.isOther ? FontStyle.italic : FontStyle.normal,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

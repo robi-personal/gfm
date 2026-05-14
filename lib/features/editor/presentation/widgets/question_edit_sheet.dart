@@ -60,6 +60,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
   late bool _required;
   late List<TextEditingController> _optionCtrls;
   late List<String?> _optionGoTos;
+  late List<bool> _isOtherOption;
 
   // Quiz grading state
   late Set<int> _correctOptionIndices; // ChoiceQuestion: which option indices are correct
@@ -82,6 +83,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     _required = q.required;
     _optionCtrls = [];
     _optionGoTos = [];
+    _isOtherOption = [];
     if (q.kind case ChoiceQuestion(:final options)) {
       _initOptionCtrls(options);
     }
@@ -129,6 +131,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     _optionCtrls =
         options.map((o) => TextEditingController(text: o.value)).toList();
     _optionGoTos = options.map(_encodeGoTo).toList();
+    _isOtherOption = options.map((o) => o.isOther).toList();
   }
 
   void _disposeOptionCtrls() {
@@ -137,6 +140,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     }
     _optionCtrls = [];
     _optionGoTos = [];
+    _isOtherOption = [];
   }
 
   static String? _encodeGoTo(ChoiceOption opt) {
@@ -174,10 +178,28 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
 
   void _addOption() {
     setState(() {
-      _optionCtrls.add(
+      final otherIndex = _isOtherOption.indexOf(true);
+      final insertAt = otherIndex == -1 ? _optionCtrls.length : otherIndex;
+      _optionCtrls.insert(
+        insertAt,
         TextEditingController(text: 'Option ${_optionCtrls.length + 1}'),
       );
+      _optionGoTos.insert(insertAt, null);
+      _isOtherOption.insert(insertAt, false);
+      _correctOptionIndices = _correctOptionIndices
+          .map((i) => i >= insertAt ? i + 1 : i)
+          .toSet();
+    });
+  }
+
+  bool get _hasOtherOption => _isOtherOption.contains(true);
+
+  void _addOtherOption() {
+    if (_hasOtherOption) return;
+    setState(() {
+      _optionCtrls.add(TextEditingController(text: ''));
       _optionGoTos.add(null);
+      _isOtherOption.add(true);
     });
   }
 
@@ -186,6 +208,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       _optionCtrls[i].dispose();
       _optionCtrls.removeAt(i);
       _optionGoTos.removeAt(i);
+      _isOtherOption.removeAt(i);
       // Remove and shift correct-answer indices.
       _correctOptionIndices = _correctOptionIndices
           .where((idx) => idx != i)
@@ -232,12 +255,13 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         }
         return ChoiceOption(
           value: _optionCtrls[i].text,
+          isOther: _isOtherOption[i],
           goToAction: goToAction,
           goToSectionId: goToSectionId,
         );
       });
       final nonEmpty =
-          options.where((o) => o.value.isNotEmpty).toList();
+          options.where((o) => o.value.isNotEmpty || o.isOther).toList();
       finalKind = cq.copyWith(
         options: nonEmpty.isEmpty
             ? [ChoiceOption(value: 'Option 1')]
@@ -457,9 +481,23 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                           style: TextStyle(color: Color(0xFF772FC0))),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 32),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
+                    if (!_hasOtherOption)
+                      TextButton.icon(
+                        onPressed: _addOtherOption,
+                        icon: const Icon(Icons.add,
+                            size: 16, color: Color(0xFF772FC0)),
+                        label: const Text('Add "Other"',
+                            style: TextStyle(color: Color(0xFF772FC0))),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                   ] else ...[
                     _TypePreview(kind: _kind),
                   ],
@@ -614,18 +652,27 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   Icon(icon, size: 18, color: Colors.black38),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: TextField(
-                      controller: _optionCtrls[i],
-                      style: const TextStyle(
-                          fontSize: 15, color: Colors.black87),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
-                      ),
-                    ),
+                    child: _isOtherOption[i]
+                        ? const Text(
+                            'Other...',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black38,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        : TextField(
+                            controller: _optionCtrls[i],
+                            style: const TextStyle(
+                                fontSize: 15, color: Colors.black87),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              isDense: true,
+                            ),
+                          ),
                   ),
                   if (_optionCtrls.length > 1)
                     GestureDetector(
