@@ -94,6 +94,9 @@ class _DashboardViewState extends State<_DashboardView> {
       type: ExpandableFabType.up,
       distance: 75,
       duration: const Duration(milliseconds: 220),
+      overlayStyle: ExpandableFabOverlayStyle(
+        color: Colors.black.withValues(alpha: 0.45),
+      ),
       openButtonBuilder: RotateFloatingActionButtonBuilder(
         child: isCreating
             ? const CupertinoActivityIndicator(
