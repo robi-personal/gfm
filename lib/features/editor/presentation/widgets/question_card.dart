@@ -107,7 +107,10 @@ class QuestionCard extends StatelessWidget {
                     ],
                     const SizedBox(height: 10),
                     // ── Content preview ───────────────────────────────────
-                    _ContentPreview(kind: kind),
+                    _ContentPreview(
+                      kind: kind,
+                      grading: isQuiz ? question.grading : null,
+                    ),
                     // ── "Add Option" link (choice questions only) ─────────
                     if (kind is ChoiceQuestion) ...[
                       const SizedBox(height: 6),
@@ -121,6 +124,20 @@ class QuestionCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
+                            color: _purple,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (isQuiz && question.grading != null) ...[
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Points: ${question.grading!.pointValue}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                             color: _purple,
                           ),
                         ),
@@ -385,13 +402,24 @@ class _ActionButton extends StatelessWidget {
 
 class _ContentPreview extends StatelessWidget {
   final QuestionKind kind;
-  const _ContentPreview({required this.kind});
+  final dynamic grading;
+  const _ContentPreview({required this.kind, this.grading});
 
   @override
   Widget build(BuildContext context) {
+    final correctValues = grading != null
+        ? ((grading.correctAnswers?.answers ?? []) as List)
+            .map((a) => a.value as String)
+            .toSet()
+        : <String>{};
+
     return switch (kind) {
       ChoiceQuestion(:final options, :final type) =>
-        _OptionsPreview(options: options, type: type),
+        _OptionsPreview(options: options, type: type, correctValues: correctValues),
+      TextQuestion() when correctValues.isNotEmpty => Text(
+          'Answer: ${correctValues.first}',
+          style: const TextStyle(fontSize: 12, color: _secondaryText),
+        ),
       TextQuestion(:final paragraph) => _PreviewLine(
           paragraph ? 'Long answer text' : 'Short answer text'),
       ScaleQuestion(:final low, :final high) => Text(
@@ -415,7 +443,12 @@ class _ContentPreview extends StatelessWidget {
 class _OptionsPreview extends StatelessWidget {
   final List<ChoiceOption> options;
   final ChoiceType type;
-  const _OptionsPreview({required this.options, required this.type});
+  final Set<String> correctValues;
+  const _OptionsPreview({
+    required this.options,
+    required this.type,
+    this.correctValues = const {},
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -440,23 +473,42 @@ class _OptionsPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...shown.map((o) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Icon(leadingIcon, size: 14, color: _secondaryText),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      o.value,
-                      style: const TextStyle(fontSize: 13, color: _primaryText),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        ...shown.map((o) {
+          final isCorrect = correctValues.contains(o.value);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Icon(leadingIcon, size: 14, color: _secondaryText),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          o.value,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isCorrect ? const Color(0xFF34A853) : _primaryText,
+                            fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isCorrect) ...[
+                        const SizedBox(width: 4),
+                        const Icon(CupertinoIcons.checkmark_alt,
+                            size: 14, color: Color(0xFF34A853)),
+                      ],
+                    ],
                   ),
-                ],
-              ),
-            )),
+                ),
+              ],
+            ),
+          );
+        }),
         if (overflow > 0)
           Padding(
             padding: const EdgeInsets.only(left: 22, top: 2),
@@ -534,3 +586,4 @@ class _RatingLine extends StatelessWidget {
     );
   }
 }
+
