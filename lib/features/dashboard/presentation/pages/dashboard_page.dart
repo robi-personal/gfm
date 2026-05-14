@@ -349,6 +349,36 @@ class _DashboardViewState extends State<_DashboardView> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
                 _DrawerSection(
+                  label: 'CREATE',
+                  items: [
+                    _DrawerItem(
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'AI Form Builder',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _openAiBuilder(context);
+                      },
+                    ),
+                    _DrawerItem(
+                      icon: Icons.edit_note_rounded,
+                      title: 'Create Form',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _onNewForm(context);
+                      },
+                    ),
+                    _DrawerItem(
+                      icon: CupertinoIcons.link,
+                      title: 'Import Form',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _openImport(context);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _DrawerSection(
                   label: 'SUBSCRIPTION',
                   items: [
                     _DrawerItem(
@@ -361,7 +391,7 @@ class _DashboardViewState extends State<_DashboardView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _DrawerSection(
                   label: 'SUPPORT US',
                   items: [
@@ -377,18 +407,7 @@ class _DashboardViewState extends State<_DashboardView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                _DrawerSection(
-                  label: 'FEEDBACK',
-                  items: [
-                    _DrawerItem(
-                      icon: CupertinoIcons.mail,
-                      title: 'Email us',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _DrawerSection(
                   label: 'LEGAL',
                   items: [
@@ -416,7 +435,7 @@ class _DashboardViewState extends State<_DashboardView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _DrawerSection(
                   label: 'ACCOUNT',
                   labelColor: Colors.red,
@@ -1865,7 +1884,7 @@ class _DrawerItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14),
+            horizontal: 16, vertical: 10),
         child: Row(
           children: [
             SizedBox(

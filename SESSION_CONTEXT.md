@@ -437,6 +437,25 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-14 session — VPS deployment + webhook fix)
+
+### Production infrastructure setup
+
+**Domain + VPS**
+- Pointed `gfm.robi-dev.tech` (A record) to VPS IP `177.7.51.7` in Hostinger DNS
+- Installed Nginx on VPS, configured reverse proxy: `gfm.robi-dev.tech:80/443` → `localhost:3002`
+- Obtained Let's Encrypt SSL cert via certbot for `gfm.robi-dev.tech`
+
+**Flutter base URL**
+- `lib/features/ai_form_builder/data/datasources/ai_form_datasource.dart`: changed `_kBaseUrl` from `http://177.7.51.7:3002` → `https://gfm.robi-dev.tech` (commit `44e9afe`)
+
+**RevenueCat webhook fix** (commit `1203e8c`)
+- Webhook URL set in RevenueCat dashboard: `https://gfm.robi-dev.tech/webhooks/revenuecat`
+- Bug: `webhook.routes.ts` was doing `HMAC-SHA256(rawBody, RC_WEBHOOK_SECRET)` and comparing against the Authorization header — but RevenueCat sends the secret as a plain static token, not an HMAC signature. Result: every webhook returned 401.
+- Fix: replaced HMAC computation with a plain `timingSafeEqual` comparison of the provided Authorization header against `RC_WEBHOOK_SECRET`.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
