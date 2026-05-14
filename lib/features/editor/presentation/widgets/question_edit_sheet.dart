@@ -570,30 +570,45 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                     if (_kind is ChoiceQuestion &&
                         _correctOptionIndices.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      const Text('Feedback', style: labelStyle),
+                      const Text('When correct', style: labelStyle),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _whenRightCtrl,
                         style: bodyStyle,
-                        decoration: _inputDec('When correct (optional)'),
+                        decoration: _inputDec('').copyWith(
+                          labelText: null,
+                          hintText: 'Optional',
+                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
+                        ),
                         minLines: 1,
                         maxLines: 3,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 16),
+                      const Text('When incorrect', style: labelStyle),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _whenWrongCtrl,
                         style: bodyStyle,
-                        decoration: _inputDec('When incorrect (optional)'),
+                        decoration: _inputDec('').copyWith(
+                          labelText: null,
+                          hintText: 'Optional',
+                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
+                        ),
                         minLines: 1,
                         maxLines: 3,
                       ),
                     ] else if (_kind is TextQuestion) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 16),
+                      const Text('General feedback', style: labelStyle),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _generalFeedbackCtrl,
                         style: bodyStyle,
-                        decoration:
-                            _inputDec('General feedback (optional)'),
+                        decoration: _inputDec('').copyWith(
+                          labelText: null,
+                          hintText: 'Optional',
+                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
+                        ),
                         minLines: 1,
                         maxLines: 3,
                       ),
