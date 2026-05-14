@@ -135,7 +135,7 @@ class __$$FormInfoImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$FormInfoImpl implements _FormInfo {
   const _$FormInfoImpl({
-    required this.title,
+    this.title = '',
     this.documentTitle = '',
     this.description = '',
   });
@@ -190,7 +190,7 @@ class _$FormInfoImpl implements _FormInfo {
 
 abstract class _FormInfo implements FormInfo {
   const factory _FormInfo({
-    required final String title,
+    final String title,
     final String documentTitle,
     final String description,
   }) = _$FormInfoImpl;

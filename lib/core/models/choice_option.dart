@@ -13,7 +13,7 @@ class ChoiceOption with _$ChoiceOption {
   const ChoiceOption._();
 
   const factory ChoiceOption({
-    required String value,
+    @Default('') String value,
     FormImage? image,
     @Default(false) bool isOther,
     @_GoToActionConverter() GoToAction? goToAction,

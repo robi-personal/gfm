@@ -153,42 +153,45 @@ class QuestionCard extends StatelessWidget {
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
                         ),
-                        // Edit
-                        _ActionButton(
-                          icon: CupertinoIcons.pencil,
-                          tooltip: 'Edit',
-                          onPressed: () => QuestionEditSheet.show(
-                            context, item, sections,
-                            isQuiz: isQuiz,
+                        // Edit — disabled for read-only question types
+                        if (kind is! FileUploadQuestion)
+                          _ActionButton(
+                            icon: CupertinoIcons.pencil,
+                            tooltip: 'Edit',
+                            onPressed: () => QuestionEditSheet.show(
+                              context, item, sections,
+                              isQuiz: isQuiz,
+                            ),
                           ),
-                        ),
                         const Spacer(),
-                        // Required label + compact switch
-                        const Text(
-                          'Required',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(width: 6),
-                        Transform.scale(
-                          scale: 0.75,
-                          child: CupertinoSwitch(
-                            value: isRequired,
-                            activeTrackColor: AppColors.purple,
-                            onChanged: (value) {
-                              final content =
-                                  item.content as QuestionItemContent;
-                              context.read<EditorCubit>().updateItemFull(
-                                    item.copyWith(
-                                      content: content.copyWith(
-                                        question: question.copyWith(
-                                          required: value,
+                        // Required toggle — not available for read-only question types
+                        if (kind is! FileUploadQuestion) ...[
+                          const Text(
+                            'Required',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 6),
+                          Transform.scale(
+                            scale: 0.75,
+                            child: CupertinoSwitch(
+                              value: isRequired,
+                              activeTrackColor: AppColors.purple,
+                              onChanged: (value) {
+                                final content =
+                                    item.content as QuestionItemContent;
+                                context.read<EditorCubit>().updateItemFull(
+                                      item.copyWith(
+                                        content: content.copyWith(
+                                          question: question.copyWith(
+                                            required: value,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                            },
+                                    );
+                              },
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ],

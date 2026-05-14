@@ -308,7 +308,9 @@ class _EditorViewState extends State<_EditorView>
               ? (
                   isLoaded: true,
                   responderUri: state.form.responderUri,
-                  title: state.form.info.title
+                  title: state.form.info.title.isNotEmpty
+                      ? state.form.info.title
+                      : state.form.info.documentTitle,
                 )
               : (isLoaded: false, responderUri: '', title: ''),
           builder: (context, data) {
@@ -790,7 +792,9 @@ class _EditorBodyState extends State<_EditorBody> {
           final form = state.form;
           return _BodyData(
             itemIds: form.items.map((i) => i.itemId).toList(),
-            title: form.info.title,
+            title: form.info.title.isNotEmpty
+                ? form.info.title
+                : form.info.documentTitle,
             description: form.info.description,
           );
         },

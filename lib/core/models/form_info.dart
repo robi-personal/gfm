@@ -6,7 +6,7 @@ part 'form_info.g.dart';
 @freezed
 class FormInfo with _$FormInfo {
   const factory FormInfo({
-    required String title,
+    @Default('') String title,
     @Default('') String documentTitle,
     @Default('') String description,
   }) = _FormInfo;

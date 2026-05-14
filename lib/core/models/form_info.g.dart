@@ -8,7 +8,7 @@ part of 'form_info.dart';
 
 _$FormInfoImpl _$$FormInfoImplFromJson(Map<String, dynamic> json) =>
     _$FormInfoImpl(
-      title: json['title'] as String,
+      title: json['title'] as String? ?? '',
       documentTitle: json['documentTitle'] as String? ?? '',
       description: json['description'] as String? ?? '',
     );

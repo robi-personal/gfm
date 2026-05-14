@@ -25,7 +25,7 @@ class EditorRepositoryImpl implements EditorRepository {
     } on SocketException {
       return const Left(NetworkFailure());
     } catch (e, st) {
-      dev.log('[EditorRepo] getForm error (status=${_status(e)}): $e',
+      dev.log('[EditorRepo] getForm error (type=${e.runtimeType}, status=${_status(e)}): $e',
           name: 'API', error: e, stackTrace: st);
       return Left(switch (_status(e)) {
         404 => const NotFoundFailure(),

@@ -191,7 +191,7 @@ class __$$ChoiceOptionImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ChoiceOptionImpl extends _ChoiceOption {
   const _$ChoiceOptionImpl({
-    required this.value,
+    this.value = '',
     this.image,
     this.isOther = false,
     @_GoToActionConverter() this.goToAction,
@@ -260,7 +260,7 @@ class _$ChoiceOptionImpl extends _ChoiceOption {
 
 abstract class _ChoiceOption extends ChoiceOption {
   const factory _ChoiceOption({
-    required final String value,
+    final String value,
     final FormImage? image,
     final bool isOther,
     @_GoToActionConverter() final GoToAction? goToAction,

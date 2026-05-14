@@ -66,16 +66,18 @@ class DriveDataSource {
 
   Future<void> writeImportedFormIds(List<String> ids) async {
     final bytes = utf8.encode(jsonEncode({'importedForms': ids}));
-    final media = Media(
-      Stream.value(bytes),
-      bytes.length,
-      contentType: 'application/json',
-    );
+    // Stream.value is single-subscription — create a fresh Media for each
+    // upload attempt so the stream isn't already consumed on the retry path.
+    Media buildMedia() => Media(
+          Stream.value(bytes),
+          bytes.length,
+          contentType: 'application/json',
+        );
 
     final existingId = await _findAppDataFileId();
     if (existingId != null) {
       try {
-        await _client.api.files.update(File(), existingId, uploadMedia: media);
+        await _client.api.files.update(File(), existingId, uploadMedia: buildMedia());
         return;
       } on DetailedApiRequestError catch (e) {
         if (e.status != 404) rethrow;
@@ -88,7 +90,7 @@ class DriveDataSource {
       File()
         ..name = _kAppDataFileName
         ..mimeType = 'application/json',
-      uploadMedia: media,
+      uploadMedia: buildMedia(),
     );
     _appDataFileId = created.id;
   }
