@@ -1001,13 +1001,13 @@ class _FormCard extends StatelessWidget {
         highlightColor: _purple.withValues(alpha: 0.03),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12),
+              horizontal: 14, vertical: 6),
           child: Row(
             children: [
               SvgPicture.asset(
                 'assets/dashboard_form_icon.svg',
-                width: 44,
-                height: 56,
+                width: 26,
+                height: 32,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1019,7 +1019,7 @@ class _FormCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1C1C1E),
                       ),
