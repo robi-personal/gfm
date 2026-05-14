@@ -42,11 +42,13 @@ class _DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<_DashboardView> {
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   bool _searchOpen = false;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -171,7 +173,7 @@ class _DashboardViewState extends State<_DashboardView> {
         ),
         title: TextField(
           controller: _searchController,
-          autofocus: true,
+          focusNode: _searchFocus,
           style: const TextStyle(
               fontSize: 15, color: AppColors.textPrimary),
           cursorColor: AppColors.purple,
@@ -239,7 +241,12 @@ class _DashboardViewState extends State<_DashboardView> {
         IconButton(
           icon: const Icon(Icons.search_rounded,
               color: AppColors.textSecondary, size: 22),
-          onPressed: () => setState(() => _searchOpen = true),
+          onPressed: () {
+            setState(() => _searchOpen = true);
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _searchFocus.requestFocus(),
+            );
+          },
         ),
         FutureBuilder<bool>(
           future: getIt<GetUserStatus>()
