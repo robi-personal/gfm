@@ -3,11 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
-const _purple = Color(0xFF772FC0);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
-const _separator = Color(0xFFE8E8E8);
+import '../../../../core/theme/app_colors.dart';
 
 /// Shows a bottom sheet where the user can paste a public image URL or pick
 /// from the device gallery.
@@ -136,7 +132,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: _primaryText,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -148,7 +144,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                   child: Text(
                     'Cancel',
                     style: TextStyle(
-                      color: uploading ? _secondaryText : _purple,
+                      color: uploading ? AppColors.textSecondary : AppColors.purple,
                       fontSize: 16,
                     ),
                   ),
@@ -156,7 +152,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
               ],
             ),
           ),
-          const Divider(height: 1, color: _separator),
+          const Divider(height: 1, color: AppColors.separator),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
             child: Column(
@@ -169,7 +165,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: _purple.withValues(alpha: 0.08),
+                        color: AppColors.purple.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -177,17 +173,17 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                         children: [
                           if (uploading)
                             const CupertinoActivityIndicator(
-                                color: _purple, radius: 9)
+                                color: AppColors.purple, radius: 9)
                           else
                             const Icon(CupertinoIcons.photo,
-                                size: 18, color: _purple),
+                                size: 18, color: AppColors.purple),
                           const SizedBox(width: 8),
                           Text(
                             uploading ? 'Uploading…' : 'Pick from Gallery',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
-                              color: _purple,
+                              color: AppColors.purple,
                             ),
                           ),
                         ],
@@ -199,7 +195,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                     Text(
                       _uploadError!,
                       style: const TextStyle(
-                          fontSize: 12, color: Color(0xFFFF3B30)),
+                          fontSize: 12, color: AppColors.error),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -207,17 +203,17 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                   Row(
                     children: [
                       const Expanded(
-                          child: Divider(color: _separator)),
+                          child: Divider(color: AppColors.separator)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
                           'or',
                           style: const TextStyle(
-                              fontSize: 12, color: _secondaryText),
+                              fontSize: 12, color: AppColors.textSecondary),
                         ),
                       ),
                       const Expanded(
-                          child: Divider(color: _separator)),
+                          child: Divider(color: AppColors.separator)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -228,7 +224,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: _secondaryText,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -238,13 +234,13 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                   enabled: !uploading,
                   keyboardType: TextInputType.url,
                   textInputAction: TextInputAction.done,
-                  style: const TextStyle(fontSize: 15, color: _primaryText),
+                  style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Paste public image URL',
                     hintStyle: const TextStyle(
-                        fontSize: 15, color: _secondaryText),
+                        fontSize: 15, color: AppColors.textSecondary),
                     filled: true,
-                    fillColor: const Color(0xFFF3F0FA),
+                    fillColor: AppColors.purpleTintDeep,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                     border: OutlineInputBorder(
@@ -258,7 +254,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          const BorderSide(color: _purple, width: 1.5),
+                          const BorderSide(color: AppColors.purple, width: 1.5),
                     ),
                   ),
                   onSubmitted: (_) => _onAdd(),
@@ -284,7 +280,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                                   ? child
                                   : Container(
                                       height: 160,
-                                      color: const Color(0xFFF3F0FA),
+                                      color: AppColors.purpleTintDeep,
                                       child: const Center(
                                         child: CupertinoActivityIndicator(),
                                       ),
@@ -292,14 +288,14 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                           errorBuilder: (_, _, _) => Container(
                             height: 52,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F0FA),
+                              color: AppColors.purpleTintDeep,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Center(
                               child: Text(
                                 "Couldn't load image — check the URL.",
                                 style: TextStyle(
-                                    fontSize: 13, color: _secondaryText),
+                                    fontSize: 13, color: AppColors.textSecondary),
                               ),
                             ),
                           ),
@@ -322,8 +318,8 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                             const EdgeInsets.symmetric(vertical: 15),
                         decoration: BoxDecoration(
                           color: canAdd
-                              ? _purple
-                              : _purple.withValues(alpha: 0.35),
+                              ? AppColors.purple
+                              : AppColors.purple.withValues(alpha: 0.35),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.center,

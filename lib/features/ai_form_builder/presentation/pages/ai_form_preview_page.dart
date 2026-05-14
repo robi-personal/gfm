@@ -3,9 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/generated_form.dart';
 import '../cubit/ai_form_builder_cubit.dart';
-
-const _purple = Color(0xFF772FC0);
-const _purpleLight = Color(0xFFF3EBFC);
+import '../../../../core/theme/app_colors.dart';
 
 /// Preview screen — shown after a successful AI generation (§1.2 / §2.2).
 /// Displays every generated question so the user can review before creating
@@ -42,7 +40,7 @@ class AiFormPreviewPage extends StatelessWidget {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Preview'),
-              backgroundColor: _purple,
+              backgroundColor: AppColors.purple,
               foregroundColor: Colors.white,
               leading: BackButton(
                 onPressed: isCreating
@@ -130,21 +128,21 @@ class _FormHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _purpleLight,
+        color: AppColors.purpleTint,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _purple.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: _purple, size: 18),
+              const Icon(Icons.auto_awesome, color: AppColors.purple, size: 18),
               const SizedBox(width: 8),
               Text(
                 'AI-generated form',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: _purple,
+                  color: AppColors.purple,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -287,19 +285,19 @@ class _TypeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _purpleLight,
+        color: AppColors.purpleTint,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _purple.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: _purple),
+          Icon(icon, size: 13, color: AppColors.purple),
           const SizedBox(width: 5),
           Text(
             label,
             style: const TextStyle(
-              color: _purple,
+              color: AppColors.purple,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -405,7 +403,7 @@ class _ScaleDetail extends StatelessWidget {
             '$min',
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              color: _purple,
+              color: AppColors.purple,
               fontSize: 13,
             ),
           ),
@@ -413,14 +411,14 @@ class _ScaleDetail extends StatelessWidget {
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),
               height: 2,
-              color: _purple.withValues(alpha: 0.2),
+              color: AppColors.purple.withValues(alpha: 0.2),
             ),
           ),
           Text(
             '$max',
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              color: _purple,
+              color: AppColors.purple,
               fontSize: 13,
             ),
           ),
@@ -452,7 +450,7 @@ class _RatingDetail extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 0; i < scale; i++) ...[
-            const Icon(Icons.star_border, size: 20, color: _purple),
+            const Icon(Icons.star_border, size: 20, color: AppColors.purple),
             if (i < scale - 1) const SizedBox(width: 2),
           ],
           const SizedBox(width: 8),
@@ -490,8 +488,8 @@ class _CreateFormBar extends StatelessWidget {
         child: FilledButton(
           onPressed: isCreating ? null : onTap,
           style: FilledButton.styleFrom(
-            backgroundColor: _purple,
-            disabledBackgroundColor: _purple.withValues(alpha: 0.6),
+            backgroundColor: AppColors.purple,
+            disabledBackgroundColor: AppColors.purple.withValues(alpha: 0.6),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           child: isCreating

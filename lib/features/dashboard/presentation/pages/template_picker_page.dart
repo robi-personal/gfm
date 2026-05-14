@@ -6,12 +6,7 @@ import '../../../../core/widgets/error_modal.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_data.dart';
-
-const _purple     = Color(0xFF772FC0);
-const _cardBg     = Colors.white;
-const _iosBg      = Colors.white;
-const _textPrimary   = Color(0xFF1C1C1E);
-const _textSecondary = Color(0xFF8E8E93);
+import '../../../../core/theme/app_colors.dart';
 
 class TemplatePickerPage extends StatefulWidget {
   const TemplatePickerPage({super.key});
@@ -37,16 +32,16 @@ class _TemplatePickerPageState extends State<TemplatePickerPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: _iosBg,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: _iosBg,
+          backgroundColor: AppColors.background,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new,
-                size: 18, color: _purple),
+                size: 18, color: AppColors.purple),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           title: const Text(
@@ -54,7 +49,7 @@ class _TemplatePickerPageState extends State<TemplatePickerPage> {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: AppColors.textPrimary,
             ),
           ),
         ),
@@ -215,7 +210,7 @@ class _SectionLabel extends StatelessWidget {
       style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: _textSecondary,
+        color: AppColors.textSecondary,
         letterSpacing: 0.6,
       ),
     );
@@ -243,7 +238,7 @@ class _CategoryTabBar extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -295,7 +290,7 @@ class _TabChip extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? _purple : Colors.transparent,
+          color: selected ? AppColors.purple : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -305,7 +300,7 @@ class _TabChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 13,
-                color: selected ? Colors.white : _textSecondary,
+                color: selected ? Colors.white : AppColors.textSecondary,
               ),
               const SizedBox(width: 5),
             ],
@@ -314,7 +309,7 @@ class _TabChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : _textPrimary,
+                color: selected ? Colors.white : AppColors.textPrimary,
               ),
             ),
           ],
@@ -357,12 +352,12 @@ Future<String?> _showFormNameDialog(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: _purple.withValues(alpha: 0.10),
+                    color: AppColors.purple.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     CupertinoIcons.doc_text,
-                    color: _purple,
+                    color: AppColors.purple,
                     size: 15,
                   ),
                 ),
@@ -372,13 +367,13 @@ Future<String?> _showFormNameDialog(
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+            const Divider(height: 1, thickness: 1, color: AppColors.groupedBackground),
             const SizedBox(height: 12),
             const Text(
               'Give your form a name to get started.',
@@ -389,13 +384,13 @@ Future<String?> _showFormNameDialog(
               controller: controller,
               autofocus: true,
               textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(fontSize: 15, color: _textPrimary),
-              cursorColor: _purple,
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              cursorColor: AppColors.purple,
               decoration: InputDecoration(
                 hintText: 'e.g. Customer Feedback',
-                hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
-                fillColor: const Color(0xFFF2F2F7),
+                fillColor: AppColors.groupedBackground,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
@@ -410,7 +405,7 @@ Future<String?> _showFormNameDialog(
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: _purple, width: 1.5),
+                      const BorderSide(color: AppColors.purple, width: 1.5),
                 ),
               ),
               onSubmitted: (v) {
@@ -427,7 +422,7 @@ Future<String?> _showFormNameDialog(
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF2F2F7),
+                        color: AppColors.groupedBackground,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Center(
@@ -436,7 +431,7 @@ Future<String?> _showFormNameDialog(
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: _textSecondary,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -459,13 +454,13 @@ Future<String?> _showFormNameDialog(
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           decoration: BoxDecoration(
                             color: canCreate
-                                ? _purple
-                                : _purple.withValues(alpha: 0.35),
+                                ? AppColors.purple
+                                : AppColors.purple.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: canCreate
                                 ? [
                                     BoxShadow(
-                                      color: _purple.withValues(alpha: 0.30),
+                                      color: AppColors.purple.withValues(alpha: 0.30),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -570,9 +565,9 @@ class _BlankCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        border: Border.all(color: AppColors.separator),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -584,7 +579,7 @@ class _BlankCard extends StatelessWidget {
       child: InkWell(
         onTap: () => onCreate(context),
         borderRadius: BorderRadius.circular(14),
-        splashColor: _purple.withValues(alpha: 0.06),
+        splashColor: AppColors.purple.withValues(alpha: 0.06),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
@@ -594,10 +589,10 @@ class _BlankCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: _purple.withValues(alpha: 0.10),
+                  color: AppColors.purple.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: _purple, size: 26),
+                child: Icon(icon, color: AppColors.purple, size: 26),
               ),
               const SizedBox(height: 12),
               Text(
@@ -605,7 +600,7 @@ class _BlankCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -631,7 +626,7 @@ class _CategorySection extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Container(
         decoration: BoxDecoration(
-          color: _cardBg,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -653,12 +648,12 @@ class _CategorySection extends StatelessWidget {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: _purple.withValues(alpha: 0.10),
+                      color: AppColors.purple.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       _categoryIcon(category),
-                      color: _purple,
+                      color: AppColors.purple,
                       size: 15,
                     ),
                   ),
@@ -668,14 +663,14 @@ class _CategorySection extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
               const Divider(
-                  height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+                  height: 1, thickness: 1, color: AppColors.groupedBackground),
               const SizedBox(height: 14),
               // Grid
               GridView.builder(
@@ -721,12 +716,12 @@ class _TemplateCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F8F8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: InkWell(
         onTap: () => _createFromTemplate(context, template),
         borderRadius: BorderRadius.circular(12),
-        splashColor: _purple.withValues(alpha: 0.06),
+        splashColor: AppColors.purple.withValues(alpha: 0.06),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -738,11 +733,11 @@ class _TemplateCard extends StatelessWidget {
                   template.imagePath,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stack) => Container(
-                    color: _purple.withValues(alpha: 0.06),
+                    color: AppColors.purple.withValues(alpha: 0.06),
                     child: const Center(
                       child: Icon(
                         CupertinoIcons.doc_text,
-                        color: _purple,
+                        color: AppColors.purple,
                         size: 32,
                       ),
                     ),
@@ -759,7 +754,7 @@ class _TemplateCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+                  color: AppColors.textPrimary,
                   height: 1.3,
                 ),
               ),

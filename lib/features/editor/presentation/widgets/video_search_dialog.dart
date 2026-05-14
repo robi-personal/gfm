@@ -4,11 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/api/youtube_client.dart';
-
-const _purple = Color(0xFF772FC0);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
-const _separator = Color(0xFFE8E8E8);
+import '../../../../../core/theme/app_colors.dart';
 
 /// Shows a bottom sheet that lets the user search YouTube and pick a video.
 /// Returns the selected [YouTubeVideo], or null if cancelled.
@@ -98,7 +94,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: _primaryText,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -108,13 +104,13 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(color: _purple, fontSize: 16),
+                    style: TextStyle(color: AppColors.purple, fontSize: 16),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: _separator),
+          const Divider(height: 1, color: AppColors.separator),
           // Search field
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -125,15 +121,15 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                     controller: _controller,
                     autofocus: true,
                     textInputAction: TextInputAction.search,
-                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Search YouTube',
                       hintStyle: const TextStyle(
-                          fontSize: 15, color: _secondaryText),
+                          fontSize: 15, color: AppColors.textSecondary),
                       prefixIcon: const Icon(CupertinoIcons.search,
-                          size: 18, color: _secondaryText),
+                          size: 18, color: AppColors.textSecondary),
                       filled: true,
-                      fillColor: const Color(0xFFF3F0FA),
+                      fillColor: AppColors.purpleTintDeep,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 12),
                       border: OutlineInputBorder(
@@ -147,7 +143,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            const BorderSide(color: _purple, width: 1.5),
+                            const BorderSide(color: AppColors.purple, width: 1.5),
                       ),
                     ),
                     onSubmitted: (_) => _search(),
@@ -160,7 +156,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                     width: 44,
                     height: 44,
                     decoration: const BoxDecoration(
-                      color: _purple,
+                      color: AppColors.purple,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(CupertinoIcons.search,
@@ -194,7 +190,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
           child: Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: _secondaryText),
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ),
       );
@@ -205,12 +201,12 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(CupertinoIcons.play_rectangle,
-                size: 48, color: Color(0xFFD1D1D6)),
+                size: 48, color: AppColors.iconInactive),
             SizedBox(height: 12),
             Text(
               'Search for a YouTube video above.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: _secondaryText),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -219,7 +215,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       itemCount: _results.length,
-      separatorBuilder: (_, _) => const Divider(height: 1, color: _separator),
+      separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.separator),
       itemBuilder: (context, i) => _VideoTile(
         video: _results[i],
         onTap: () => Navigator.of(context).pop(_results[i]),
@@ -256,9 +252,9 @@ class _VideoTile extends StatelessWidget {
                     errorBuilder: (_, _, _) => Container(
                       width: 110,
                       height: 62,
-                      color: const Color(0xFFF2F2F7),
+                      color: AppColors.groupedBackground,
                       child: const Icon(CupertinoIcons.play_rectangle,
-                          color: Color(0xFFD1D1D6)),
+                          color: AppColors.iconInactive),
                     ),
                   ),
                   Container(
@@ -283,7 +279,7 @@ class _VideoTile extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: _primaryText,
+                  color: AppColors.textPrimary,
                   height: 1.4,
                 ),
               ),

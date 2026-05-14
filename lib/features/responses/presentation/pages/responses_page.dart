@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/form_response.dart';
 import '../../../../core/models/item.dart';
@@ -10,12 +12,6 @@ import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question_kind.dart';
 import '../cubit/responses_cubit.dart';
 
-const _purple = Color(0xFF772FC0);
-const _iosBg = Colors.white;
-const _separator = Color(0xFFE8E8E8);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
-const _groupedBg = Color(0xFFF2F2F7);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 
@@ -68,15 +64,15 @@ class _ResponsesViewState extends State<_ResponsesView>
     return Column(
       children: [
         ColoredBox(
-          color: _iosBg,
+          color: AppColors.background,
           child: TabBar(
             controller: _tabController,
-            dividerColor: _separator,
+            dividerColor: AppColors.separator,
             tabs: const [Tab(text: 'Summary'), Tab(text: 'Individual')],
-            labelColor: _purple,
-            indicatorColor: _purple,
+            labelColor: AppColors.purple,
+            indicatorColor: AppColors.purple,
             indicatorSize: TabBarIndicatorSize.tab,
-            unselectedLabelColor: _secondaryText,
+            unselectedLabelColor: AppColors.textSecondary,
             labelStyle:
                 const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             unselectedLabelStyle: const TextStyle(fontSize: 13),
@@ -85,7 +81,7 @@ class _ResponsesViewState extends State<_ResponsesView>
         ),
         Expanded(
           child: ColoredBox(
-            color: _groupedBg,
+            color: AppColors.groupedBackground,
             child: BlocBuilder<ResponsesCubit, ResponsesState>(
               builder: (context, state) => switch (state) {
                 ResponsesLoading() => const _ResponsesSkeleton(),
@@ -120,8 +116,8 @@ class _ResponsesSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE5E5EA),
-      highlightColor: _groupedBg,
+      baseColor: AppColors.shimmerBase,
+      highlightColor: AppColors.groupedBackground,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
@@ -152,12 +148,12 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 52, color: const Color(0xFFD1D1D6)),
+          Icon(icon, size: 52, color: AppColors.iconInactive),
           const SizedBox(height: 14),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, color: _secondaryText),
+            style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -192,7 +188,7 @@ class _IndividualTab extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: _secondaryText,
+              color: AppColors.textSecondary,
               letterSpacing: 0.3,
             ),
           ),
@@ -251,7 +247,7 @@ class _ResponseTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(color: _iosBg, borderRadius: radius),
+        decoration: BoxDecoration(color: AppColors.background, borderRadius: radius),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
@@ -259,11 +255,11 @@ class _ResponseTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: _purple.withValues(alpha: 0.1),
+                color: AppColors.purple.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(CupertinoIcons.person,
-                  size: 18, color: _purple),
+                  size: 18, color: AppColors.purple),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -277,19 +273,19 @@ class _ResponseTile extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: _primaryText),
+                        color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _formatDate(response.createTime),
                     style: const TextStyle(
-                        fontSize: 12, color: _secondaryText),
+                        fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),
             ),
             const Icon(CupertinoIcons.chevron_right,
-                size: 16, color: _secondaryText),
+                size: 16, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -404,7 +400,7 @@ class _SummaryCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: _iosBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -423,12 +419,12 @@ class _SummaryCard extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: _primaryText),
+                color: AppColors.textPrimary),
           ),
           const SizedBox(height: 3),
           Text(
             '$answeredCount of ${responses.length} answered',
-            style: const TextStyle(fontSize: 12, color: _secondaryText),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 14),
           _buildBody(allAnswers),
@@ -543,7 +539,7 @@ class _ChoiceBar extends StatelessWidget {
             children: [
               Text(label,
                   style: const TextStyle(
-                      fontSize: 13, color: _primaryText)),
+                      fontSize: 13, color: AppColors.textPrimary)),
               const SizedBox(height: 5),
               LayoutBuilder(
                 builder: (context, constraints) => Stack(
@@ -552,7 +548,7 @@ class _ChoiceBar extends StatelessWidget {
                       height: 6,
                       width: constraints.maxWidth,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5E5EA),
+                        color: AppColors.shimmerBase,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -560,7 +556,7 @@ class _ChoiceBar extends StatelessWidget {
                       height: 6,
                       width: constraints.maxWidth * barFraction,
                       decoration: BoxDecoration(
-                        color: _purple,
+                        color: AppColors.purple,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -575,7 +571,7 @@ class _ChoiceBar extends StatelessWidget {
           width: 52,
           child: Text(
             '$count ($pct%)',
-            style: const TextStyle(fontSize: 12, color: _secondaryText),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             textAlign: TextAlign.right,
           ),
         ),
@@ -602,7 +598,7 @@ class _TextSummaryBody extends StatelessWidget {
       return const Text(
         'No answers yet.',
         style: TextStyle(
-            fontSize: 13, color: _secondaryText, fontStyle: FontStyle.italic),
+            fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
       );
     }
 
@@ -619,17 +615,17 @@ class _TextSummaryBody extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: _groupedBg,
+              color: AppColors.groupedBackground,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(v,
                 style: const TextStyle(
-                    fontSize: 13, color: _primaryText)),
+                    fontSize: 13, color: AppColors.textPrimary)),
           ),
         if (overflow > 0)
           Text(
             '+ $overflow more',
-            style: const TextStyle(fontSize: 12, color: _secondaryText),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
       ],
     );
@@ -660,7 +656,7 @@ class _NumericSummaryBody extends StatelessWidget {
       return const Text(
         'No answers yet.',
         style: TextStyle(
-            fontSize: 13, color: _secondaryText, fontStyle: FontStyle.italic),
+            fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
       );
     }
 
@@ -674,7 +670,7 @@ class _NumericSummaryBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (ratingIcon != null) ...[
-                Icon(ratingIcon, color: _purple, size: 28),
+                Icon(ratingIcon, color: AppColors.purple, size: 28),
                 const SizedBox(width: 4),
               ],
               Text(
@@ -682,14 +678,14 @@ class _NumericSummaryBody extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w700,
-                  color: _purple,
+                  color: AppColors.purple,
                 ),
               ),
             ],
           ),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: _secondaryText),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -717,15 +713,15 @@ class ResponseDetailScreen extends StatelessWidget {
     final questions = _buildQuestionIndex(items);
 
     return Scaffold(
-      backgroundColor: _groupedBg,
+      backgroundColor: AppColors.groupedBackground,
       appBar: AppBar(
-        backgroundColor: _iosBg,
+        backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(CupertinoIcons.arrow_left,
-              color: _purple, size: 20),
+              color: AppColors.purple, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -734,7 +730,7 @@ class ResponseDetailScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
-            color: _primaryText,
+            color: AppColors.textPrimary,
           ),
         ),
       ),
@@ -805,7 +801,7 @@ class _AnswerTile extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: _iosBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -824,7 +820,7 @@ class _AnswerTile extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: _secondaryText),
+                color: AppColors.textSecondary),
           ),
           const SizedBox(height: 6),
           if (!answered)
@@ -832,14 +828,14 @@ class _AnswerTile extends StatelessWidget {
               '— No answer —',
               style: TextStyle(
                   fontSize: 15,
-                  color: _secondaryText,
+                  color: AppColors.textSecondary,
                   fontStyle: FontStyle.italic),
             )
           else
             ...values!.map((v) => Text(
                   v,
                   style: const TextStyle(
-                      fontSize: 15, color: _primaryText),
+                      fontSize: 15, color: AppColors.textPrimary),
                 )),
         ],
       ),
@@ -866,11 +862,11 @@ class _FullScreenError extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: _primaryText),
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 24),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _purple),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.purple),
               onPressed: onRetry,
               child: const Text('Retry'),
             ),

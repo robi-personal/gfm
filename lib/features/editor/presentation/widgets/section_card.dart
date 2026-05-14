@@ -3,13 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/item.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
 import 'question_card.dart' show DragHandleHint;
 
-const _purple = Color(0xFF772FC0);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
-const _separator = Color(0xFFE8E8E8);
 
 /// Section break card — same card design as question cards.
 class SectionCard extends StatelessWidget {
@@ -41,7 +38,7 @@ class SectionCard extends StatelessWidget {
             Container(
               width: 4,
               decoration: const BoxDecoration(
-                color: _purple,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   bottomLeft: Radius.circular(14),
@@ -70,7 +67,7 @@ class SectionCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: _purple,
+                                  color: AppColors.purple,
                                 ),
                               ),
                             ),
@@ -79,7 +76,7 @@ class SectionCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: _purple.withValues(alpha: 0.1),
+                                color: AppColors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Text(
@@ -87,7 +84,7 @@ class SectionCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: _purple,
+                                  color: AppColors.purple,
                                 ),
                               ),
                             ),
@@ -98,11 +95,11 @@ class SectionCard extends StatelessWidget {
                           Text(
                             item.description!,
                             style: const TextStyle(
-                                fontSize: 13, color: _secondaryText),
+                                fontSize: 13, color: AppColors.textSecondary),
                           ),
                         ],
                         const SizedBox(height: 12),
-                        const Divider(height: 1, color: _separator),
+                        const Divider(height: 1, color: AppColors.separator),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -157,10 +154,10 @@ class _CardActionButton extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: _purple.withValues(alpha: 0.1),
+            color: AppColors.purple.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 16, color: _purple),
+          child: Icon(icon, size: 16, color: AppColors.purple),
         ),
       ),
     );
@@ -225,7 +222,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
         filled: true,
-        fillColor: const Color(0xFFF3F0FA),
+        fillColor: AppColors.purpleTintDeep,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
@@ -236,7 +233,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _purple, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -283,7 +280,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
                 FilledButton(
                   onPressed: _commit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: _purple,
+                    backgroundColor: AppColors.purple,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -294,7 +291,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+          const Divider(height: 1, color: AppColors.borderSubtle),
           // Fields
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
@@ -358,7 +355,7 @@ class TextBlockCard extends StatelessWidget {
             Container(
               width: 4,
               decoration: const BoxDecoration(
-                color: _purple,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   bottomLeft: Radius.circular(14),
@@ -387,7 +384,7 @@ class TextBlockCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: _primaryText,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -396,7 +393,7 @@ class TextBlockCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: _purple.withValues(alpha: 0.1),
+                                color: AppColors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Text(
@@ -404,7 +401,7 @@ class TextBlockCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: _purple,
+                                  color: AppColors.purple,
                                 ),
                               ),
                             ),
@@ -415,11 +412,11 @@ class TextBlockCard extends StatelessWidget {
                           Text(
                             item.description!,
                             style: const TextStyle(
-                                fontSize: 13, color: _secondaryText),
+                                fontSize: 13, color: AppColors.textSecondary),
                           ),
                         ],
                         const SizedBox(height: 12),
-                        const Divider(height: 1, color: _separator),
+                        const Divider(height: 1, color: AppColors.separator),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -508,7 +505,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
         filled: true,
-        fillColor: const Color(0xFFF3F0FA),
+        fillColor: AppColors.purpleTintDeep,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
@@ -519,7 +516,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _purple, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -564,7 +561,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
                 FilledButton(
                   onPressed: _commit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: _purple,
+                    backgroundColor: AppColors.purple,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -575,7 +572,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+          const Divider(height: 1, color: AppColors.borderSubtle),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             child: Column(

@@ -35,12 +35,7 @@ import '../cubit/editor_cubit.dart';
 import '../widgets/form_header_card.dart';
 import '../widgets/question_card.dart';
 import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
-
-const _purple = Color(0xFF772FC0);
-const _iosBg = Colors.white;
-const _separator = Color(0xFFE8E8E8);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
+import '../../../../core/theme/app_colors.dart';
 
 class EditorPage extends StatelessWidget {
   final String formId;
@@ -142,7 +137,7 @@ class _EditorViewState extends State<_EditorView>
         return curr is EditorError;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF2F2F7),
+        backgroundColor: AppColors.groupedBackground,
         appBar: _buildAppBar(context),
         body: Column(
           children: [
@@ -159,7 +154,7 @@ class _EditorViewState extends State<_EditorView>
                 children: [
                   RepaintBoundary(
                    child: ColoredBox(
-                    color: const Color(0xFFF2F2F7),
+                    color: AppColors.groupedBackground,
                     child: BlocBuilder<EditorCubit, EditorState>(
                       buildWhen: (prev, curr) {
                         if (prev.runtimeType != curr.runtimeType) return true;
@@ -235,7 +230,7 @@ class _EditorViewState extends State<_EditorView>
       centerTitle: false,
       titleSpacing: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: _purple, size: 18),
+        icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.purple, size: 18),
         onPressed: _handleBackPress,
       ),
       title: Text(
@@ -243,7 +238,7 @@ class _EditorViewState extends State<_EditorView>
         style: const TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
-          color: _primaryText,
+          color: AppColors.textPrimary,
         ),
         overflow: TextOverflow.ellipsis,
       ),
@@ -269,8 +264,8 @@ class _EditorViewState extends State<_EditorView>
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: active
-                      ? _purple
-                      : _purple.withValues(alpha: 0.08),
+                      ? AppColors.purple
+                      : AppColors.purple.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -282,14 +277,14 @@ class _EditorViewState extends State<_EditorView>
                         height: 12,
                         child: CupertinoActivityIndicator(
                           radius: 6,
-                          color: active ? Colors.white : _secondaryText,
+                          color: active ? Colors.white : AppColors.textSecondary,
                         ),
                       )
                     else
                       Icon(
                         CupertinoIcons.checkmark_circle_fill,
                         size: 13,
-                        color: active ? Colors.white : _secondaryText,
+                        color: active ? Colors.white : AppColors.textSecondary,
                       ),
                     const SizedBox(width: 4),
                     Text(
@@ -297,7 +292,7 @@ class _EditorViewState extends State<_EditorView>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: active ? Colors.white : _secondaryText,
+                        color: active ? Colors.white : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -318,7 +313,7 @@ class _EditorViewState extends State<_EditorView>
               : (isLoaded: false, responderUri: '', title: ''),
           builder: (context, data) {
             return IconButton(
-              icon: Icon(CupertinoIcons.ellipsis_vertical, color: _purple, size: 22),
+              icon: Icon(CupertinoIcons.ellipsis_vertical, color: AppColors.purple, size: 22),
               onPressed: data.isLoaded
                   ? () => _showOptionsSheet(
                       context, data.responderUri, data.title)
@@ -451,7 +446,7 @@ class _OptionsSheet extends StatelessWidget {
                   icon: CupertinoIcons.eye_fill,
                   label: 'Preview',
                   subtitle: 'See how the form looks to respondents',
-                  color: _purple,
+                  color: AppColors.purple,
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(MaterialPageRoute<void>(
@@ -462,12 +457,12 @@ class _OptionsSheet extends StatelessWidget {
                     ));
                   },
                 ),
-                const Divider(height: 1, indent: 60, color: Color(0xFFEEEEEE)),
+                const Divider(height: 1, indent: 60, color: AppColors.borderSubtle),
                 _OptionTile(
                   icon: CupertinoIcons.share_solid,
                   label: 'Share',
                   subtitle: 'Send the form link to respondents',
-                  color: _purple,
+                  color: AppColors.purple,
                   onTap: () {
                     Navigator.of(context).pop();
                     Share.share(responderUri, subject: title);
@@ -493,7 +488,7 @@ class _OptionsSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: _purple,
+                  color: AppColors.purple,
                 ),
               ),
             ),
@@ -547,7 +542,7 @@ class _OptionTile extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: _primaryText,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 1),
@@ -555,14 +550,14 @@ class _OptionTile extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: _secondaryText,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
             const Icon(CupertinoIcons.chevron_right,
-                size: 14, color: _secondaryText),
+                size: 14, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -614,7 +609,7 @@ class _SegmentedTabBarState extends State<_SegmentedTabBar> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF3B1278).withValues(alpha: 0.88),
+              color: AppColors.purpleDark.withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.12),
@@ -827,7 +822,7 @@ class _EditorBodyState extends State<_EditorBody> {
                           Icon(
                             CupertinoIcons.question_circle,
                             size: 56,
-                            color: Color(0xFFD1D1D6),
+                            color: AppColors.iconInactive,
                           ),
                           SizedBox(height: 16),
                           Text(
@@ -835,7 +830,7 @@ class _EditorBodyState extends State<_EditorBody> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF3C3C43),
+                              color: AppColors.textDark,
                             ),
                           ),
                           SizedBox(height: 6),
@@ -844,7 +839,7 @@ class _EditorBodyState extends State<_EditorBody> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
-                              color: _secondaryText,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -1204,7 +1199,7 @@ class _SettingsContentState extends State<_SettingsContent> {
                 trailing: const Icon(
                   CupertinoIcons.arrow_up_right_square,
                   size: 16,
-                  color: _secondaryText,
+                  color: AppColors.textSecondary,
                 ),
                 isLast: true,
                 onTap: () => launchUrl(
@@ -1240,7 +1235,7 @@ class _IosGroupLabel extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: _secondaryText,
+              color: AppColors.textSecondary,
               letterSpacing: 0.4,
             ),
           ),
@@ -1263,7 +1258,7 @@ class _IosCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _iosBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(children: children),
@@ -1300,11 +1295,11 @@ class _IosRadioTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
                   ),
                 ),
                 if (selected)
-                  const Icon(CupertinoIcons.checkmark, size: 18, color: _purple),
+                  const Icon(CupertinoIcons.checkmark, size: 18, color: AppColors.purple),
               ],
             ),
           ),
@@ -1312,7 +1307,7 @@ class _IosRadioTile extends StatelessWidget {
         if (!isLast)
           const Padding(
             padding: EdgeInsets.only(left: 16),
-            child: Divider(height: 1, color: _separator),
+            child: Divider(height: 1, color: AppColors.separator),
           ),
       ],
     );
@@ -1348,7 +1343,7 @@ class _IosSwitchTile extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(fontSize: 15, color: _primaryText),
+                      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
@@ -1356,7 +1351,7 @@ class _IosSwitchTile extends StatelessWidget {
                         subtitle!,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: _secondaryText,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -1365,7 +1360,7 @@ class _IosSwitchTile extends StatelessWidget {
               ),
               CupertinoSwitch(
                 value: value,
-                activeTrackColor: _purple,
+                activeTrackColor: AppColors.purple,
                 onChanged: onChanged,
               ),
             ],
@@ -1374,7 +1369,7 @@ class _IosSwitchTile extends StatelessWidget {
         if (!isLast)
           const Padding(
             padding: EdgeInsets.only(left: 16),
-            child: Divider(height: 1, color: _separator),
+            child: Divider(height: 1, color: AppColors.separator),
           ),
       ],
     );
@@ -1402,7 +1397,7 @@ class _IosActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final leading = leadingWidget ??
         (icon != null
-            ? Icon(icon, size: 20, color: _purple)
+            ? Icon(icon, size: 20, color: AppColors.purple)
             : const SizedBox(width: 20));
 
     return Column(
@@ -1421,7 +1416,7 @@ class _IosActionTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 15, color: _primaryText),
+                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
                   ),
                 ),
                 ?trailing,
@@ -1432,7 +1427,7 @@ class _IosActionTile extends StatelessWidget {
         if (!isLast)
           const Padding(
             padding: EdgeInsets.only(left: 48),
-            child: Divider(height: 1, color: _separator),
+            child: Divider(height: 1, color: AppColors.separator),
           ),
       ],
     );
@@ -1461,7 +1456,7 @@ class _BottomBar extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF3B1278).withValues(alpha: 0.70),
+                color: AppColors.purpleDark.withValues(alpha: 0.70),
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.12),
@@ -1469,7 +1464,7 @@ class _BottomBar extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3B1278).withValues(alpha: 0.3),
+                    color: AppColors.purpleDark.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -1586,8 +1581,8 @@ class _EditorSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE5E5EA),
-      highlightColor: const Color(0xFFF2F2F7),
+      baseColor: AppColors.shimmerBase,
+      highlightColor: AppColors.groupedBackground,
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: const [
@@ -1674,7 +1669,7 @@ class _ImageCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: _iosBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -1696,7 +1691,7 @@ class _ImageCard extends StatelessWidget {
                 height: 180,
                 child: Center(
                   child: Icon(CupertinoIcons.photo,
-                      size: 40, color: Color(0xFFD1D1D6)),
+                      size: 40, color: AppColors.iconInactive),
                 ),
               ),
             )
@@ -1705,7 +1700,7 @@ class _ImageCard extends StatelessWidget {
               height: 180,
               child: Center(
                 child: Icon(CupertinoIcons.photo,
-                    size: 40, color: Color(0xFFD1D1D6)),
+                    size: 40, color: AppColors.iconInactive),
               ),
             ),
           Positioned(
@@ -1786,7 +1781,7 @@ class _VideoCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: _iosBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -1811,17 +1806,17 @@ class _VideoCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
                     height: 160,
-                    color: const Color(0xFFF2F2F7),
+                    color: AppColors.groupedBackground,
                     child: const Icon(CupertinoIcons.play_circle,
-                        size: 48, color: Color(0xFFD1D1D6)),
+                        size: 48, color: AppColors.iconInactive),
                   ),
                 )
               else
                 Container(
                   height: 160,
-                  color: const Color(0xFFF2F2F7),
+                  color: AppColors.groupedBackground,
                   child: const Icon(CupertinoIcons.play_circle,
-                      size: 48, color: Color(0xFFD1D1D6)),
+                      size: 48, color: AppColors.iconInactive),
                 ),
               Container(
                 width: 52,
@@ -1858,7 +1853,7 @@ class _VideoCard extends StatelessWidget {
               item.title ?? content.caption ?? 'Video',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, color: _primaryText),
+              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -1886,11 +1881,11 @@ class _FullScreenError extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: _primaryText),
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 24),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _purple),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.purple),
               onPressed: onRetry,
               child: const Text('Retry'),
             ),

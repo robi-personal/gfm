@@ -6,6 +6,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../cubit/subscription_cubit.dart';
 
@@ -13,14 +14,6 @@ import '../cubit/subscription_cubit.dart';
 const _manageSubscriptionsUrl = 'https://apps.apple.com/account/subscriptions';
 const _privacyUrl = 'https://gformmanager.netlify.app/privacy';
 const _termsUrl   = 'https://gformmanager.netlify.app/terms';
-
-// ── Palette (matches dashboard + ai_form_builder) ─────────────────────────────
-const _purple = Color(0xFF772FC0);
-const _purpleLight = Color(0xFFF3EBFC);
-const _iosBg = Color(0xFFF2F2F7);
-const _label1 = Color(0xFF1C1C1E);
-const _label2 = Color(0xFF8E8E93);
-const _saveBadge = Color(0xFF772FC0);
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -51,9 +44,9 @@ class _PaywallScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _iosBg,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: _iosBg,
+        backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -63,11 +56,11 @@ class _PaywallScaffold extends StatelessWidget {
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: _label1,
+            color: AppColors.textPrimary,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _purple),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.purple),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -249,7 +242,7 @@ class _GroupLabel extends StatelessWidget {
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: _label2,
+          color: AppColors.textSecondary,
           letterSpacing: 0.6,
         ),
       ),
@@ -316,10 +309,10 @@ class _FeatureRow extends StatelessWidget {
             width: 22,
             height: 22,
             decoration: const BoxDecoration(
-              color: _purpleLight,
+              color: AppColors.purpleTint,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_rounded, color: _purple, size: 14),
+            child: const Icon(Icons.check_rounded, color: AppColors.purple, size: 14),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -328,7 +321,7 @@ class _FeatureRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: _label1,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -421,17 +414,17 @@ class _FeaturedPlanCard extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: selected
-                    ? _purpleLight.withValues(alpha: 0.6)
+                    ? AppColors.purpleTint.withValues(alpha: 0.6)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? _purple : const Color(0xFFDDD8E8),
+                  color: selected ? AppColors.purple : const Color(0xFFDDD8E8),
                   width: selected ? 2 : 1.5,
                 ),
                 boxShadow: selected
                     ? [
                         BoxShadow(
-                          color: _purple.withValues(alpha: 0.22),
+                          color: AppColors.purple.withValues(alpha: 0.22),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -447,7 +440,7 @@ class _FeaturedPlanCard extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
-                      color: selected ? _purple : Colors.grey[400],
+                      color: selected ? AppColors.purple : Colors.grey[400],
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -456,7 +449,7 @@ class _FeaturedPlanCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: selected ? _purple : _label1,
+                      color: selected ? AppColors.purple : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -465,7 +458,7 @@ class _FeaturedPlanCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       color: selected
-                          ? _purple.withValues(alpha: 0.7)
+                          ? AppColors.purple.withValues(alpha: 0.7)
                           : Colors.grey[400],
                     ),
                   ),
@@ -476,7 +469,7 @@ class _FeaturedPlanCard extends StatelessWidget {
               height: _badgeHeight,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: _saveBadge,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.circular(20),
               ),
               alignment: Alignment.center,
@@ -522,17 +515,17 @@ class _SidePlanCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
           decoration: BoxDecoration(
             color: selected
-                ? _purpleLight.withValues(alpha: 0.6)
+                ? AppColors.purpleTint.withValues(alpha: 0.6)
                 : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? _purple : const Color(0xFFDDD8E8),
+              color: selected ? AppColors.purple : const Color(0xFFDDD8E8),
               width: selected ? 2 : 1.5,
             ),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: _purple.withValues(alpha: 0.18),
+                      color: AppColors.purple.withValues(alpha: 0.18),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -548,7 +541,7 @@ class _SidePlanCard extends StatelessWidget {
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: selected ? _purple : Colors.grey[400],
+                  color: selected ? AppColors.purple : Colors.grey[400],
                 ),
               ),
               const SizedBox(height: 10),
@@ -557,7 +550,7 @@ class _SidePlanCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: selected ? _purple : _label1,
+                  color: selected ? AppColors.purple : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -566,7 +559,7 @@ class _SidePlanCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   color: selected
-                      ? _purple.withValues(alpha: 0.7)
+                      ? AppColors.purple.withValues(alpha: 0.7)
                       : Colors.grey[400],
                 ),
                 textAlign: TextAlign.center,
@@ -602,12 +595,12 @@ class _PurchaseButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         height: 52,
         decoration: BoxDecoration(
-          color: (enabled && !isLoading) ? _purple : const Color(0xFFD1D1D6),
+          color: (enabled && !isLoading) ? AppColors.purple : AppColors.iconInactive,
           borderRadius: BorderRadius.circular(14),
           boxShadow: (enabled && !isLoading)
               ? [
                   BoxShadow(
-                    color: _purple.withValues(alpha: 0.35),
+                    color: AppColors.purple.withValues(alpha: 0.35),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -625,7 +618,7 @@ class _PurchaseButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                    color: enabled ? Colors.white : AppColors.textSecondary,
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -659,7 +652,7 @@ class _Footer extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11,
-              color: _label2,
+              color: AppColors.textSecondary,
               height: 1.4,
             ),
           ),
@@ -708,7 +701,7 @@ class _FooterLink extends StatelessWidget {
         label,
         style: const TextStyle(
           fontSize: 12,
-          color: _label2,
+          color: AppColors.textSecondary,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -725,7 +718,7 @@ class _FooterDot extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 2),
       child: Text(
         '·',
-        style: TextStyle(color: _label2, fontSize: 12),
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),
     );
   }

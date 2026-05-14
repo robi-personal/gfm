@@ -15,11 +15,7 @@ import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../domain/entities/user_status.dart';
 import '../cubit/ai_form_builder_cubit.dart';
 import 'ai_form_preview_page.dart';
-
-const _purple = Color(0xFF772FC0);
-const _purpleLight = Color(0xFFF3EBFC);
-const _iosBg = Color(0xFFF2F2F7);
-const _cardBg = Colors.white;
+import '../../../../core/theme/app_colors.dart';
 
 class AiFormBuilderPage extends StatelessWidget {
   const AiFormBuilderPage({super.key});
@@ -393,9 +389,9 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       builder: (context, state) {
         final cubit = context.read<AiFormBuilderCubit>();
         return Scaffold(
-          backgroundColor: _iosBg,
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: _iosBg,
+            backgroundColor: AppColors.background,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
@@ -404,12 +400,12 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
-                color: Color(0xFF1C1C1E),
+                color: AppColors.textPrimary,
               ),
             ),
             centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF772FC0)),
+              icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.purple),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
           ),
@@ -439,7 +435,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
               'Creating your form…',
               style: TextStyle(
                 fontSize: 15,
-                color: Color(0xFF3C3C43),
+                color: AppColors.textDark,
               ),
             ),
           ],
@@ -844,7 +840,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
                   enabled: !widget.isSubmitting,
                   onChanged: (v) => setState(() => _questionCountHint = v),
                 ),
-                const Divider(height: 24, color: Color(0xFFF2F2F7)),
+                const Divider(height: 24, color: AppColors.groupedBackground),
                 _QuizToggleRow(
                   value: _isQuiz,
                   enabled: !widget.isSubmitting,
@@ -869,7 +865,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
                     _loadingLabel(widget.elapsed),
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF8E8E93),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -945,12 +941,12 @@ class _ReadyBodyState extends State<_ReadyBody> {
         if (_fileError != null)
           Text(
             _fileError!,
-            style: const TextStyle(color: Color(0xFFFF3B30), fontSize: 13),
+            style: const TextStyle(color: AppColors.error, fontSize: 13),
           )
         else
           Text(
             hint,
-            style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
           ),
         _descriptionField(),
       ],
@@ -971,13 +967,13 @@ class _ReadyBodyState extends State<_ReadyBody> {
           enabled: !widget.isSubmitting,
           keyboardType: TextInputType.url,
           hintText: 'https://www.youtube.com/watch?v=…',
-          prefixIcon: const Icon(Icons.play_circle_outline, color: Color(0xFF8E8E93), size: 20),
+          prefixIcon: const Icon(Icons.play_circle_outline, color: AppColors.textSecondary, size: 20),
         ),
         const SizedBox(height: 6),
         Text(
           '$remaining / $limit minutes remaining this month',
           style: TextStyle(
-            color: remaining < 10 ? const Color(0xFFFF3B30) : const Color(0xFF8E8E93),
+            color: remaining < 10 ? AppColors.error : AppColors.textSecondary,
             fontSize: 13,
           ),
         ),
@@ -999,11 +995,11 @@ class _ReadyBodyState extends State<_ReadyBody> {
             enabled: !widget.isSubmitting,
             keyboardType: TextInputType.url,
             hintText: 'https://…',
-            prefixIcon: const Icon(Icons.link, color: Color(0xFF8E8E93), size: 20),
+            prefixIcon: const Icon(Icons.link, color: AppColors.textSecondary, size: 20),
             suffixIcon: _urlControllers.length > 1
                 ? GestureDetector(
                     onTap: widget.isSubmitting ? null : () => _removeUrlField(i),
-                    child: const Icon(Icons.cancel, color: Color(0xFFC7C7CC), size: 20),
+                    child: const Icon(Icons.cancel, color: AppColors.textTertiary, size: 20),
                   )
                 : null,
           ),
@@ -1015,11 +1011,11 @@ class _ReadyBodyState extends State<_ReadyBody> {
             onTap: widget.isSubmitting ? null : _addUrlField,
             child: const Row(
               children: [
-                Icon(Icons.add_circle_outline, color: _purple, size: 18),
+                Icon(Icons.add_circle_outline, color: AppColors.purple, size: 18),
                 SizedBox(width: 6),
                 Text(
                   'Add another URL',
-                  style: TextStyle(color: _purple, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: AppColors.purple, fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -1038,7 +1034,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
         const SizedBox(height: 4),
         const Text(
           'Optional — e.g. "quiz style" or "customer feedback"',
-          style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 10),
         _IosTextField(
@@ -1076,7 +1072,7 @@ class _IosCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -1105,7 +1101,7 @@ class _SectionLabel extends StatelessWidget {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF1C1C1E),
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -1148,12 +1144,12 @@ class _IosTextField extends StatelessWidget {
       maxLength: maxLength,
       enabled: enabled,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15, color: Color(0xFF1C1C1E)),
+      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15),
+        hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 15),
         filled: true,
-        fillColor: const Color(0xFFF2F2F7),
+        fillColor: AppColors.groupedBackground,
         counterText: '',
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
@@ -1171,7 +1167,7 @@ class _IosTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _purple, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -1203,12 +1199,12 @@ class _GenerateButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         height: 52,
         decoration: BoxDecoration(
-          color: (enabled || isLoading) ? _purple : const Color(0xFFD1D1D6),
+          color: (enabled || isLoading) ? AppColors.purple : AppColors.iconInactive,
           borderRadius: BorderRadius.circular(14),
           boxShadow: (enabled || isLoading)
               ? [
                   BoxShadow(
-                    color: _purple.withValues(alpha: 0.35),
+                    color: AppColors.purple.withValues(alpha: 0.35),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1223,14 +1219,14 @@ class _GenerateButton extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                      color: enabled ? Colors.white : AppColors.textSecondary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Generate',
                       style: TextStyle(
-                        color: enabled ? Colors.white : const Color(0xFF8E8E93),
+                        color: enabled ? Colors.white : AppColors.textSecondary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
@@ -1316,7 +1312,7 @@ class _QuestionCountRowState extends State<_QuestionCountRow> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF1C1C1E),
+            color: AppColors.textPrimary,
           ),
         ),
         const Spacer(),
@@ -1336,13 +1332,13 @@ class _QuestionCountRowState extends State<_QuestionCountRow> {
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
-              color: Color(0xFF1C1C1E),
+              color: AppColors.textPrimary,
             ),
             decoration: InputDecoration(
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 8),
               filled: true,
-              fillColor: const Color(0xFFF2F2F7),
+              fillColor: AppColors.groupedBackground,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -1353,7 +1349,7 @@ class _QuestionCountRowState extends State<_QuestionCountRow> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _purple, width: 1.5),
+                borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
               ),
             ),
             onSubmitted: _onFieldSubmitted,
@@ -1390,13 +1386,13 @@ class _StepperButton extends StatelessWidget {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: enabled ? _purpleLight : const Color(0xFFF2F2F7),
+          color: enabled ? AppColors.purpleTint : AppColors.groupedBackground,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
           size: 16,
-          color: enabled ? _purple : const Color(0xFFC7C7CC),
+          color: enabled ? AppColors.purple : AppColors.textTertiary,
         ),
       ),
     );
@@ -1429,13 +1425,13 @@ class _QuizToggleRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF1C1C1E),
+                  color: AppColors.textPrimary,
                 ),
               ),
               SizedBox(height: 2),
               Text(
                 'Adds correct answers and grading',
-                style: TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -1443,7 +1439,7 @@ class _QuizToggleRow extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: enabled ? onChanged : null,
-          activeTrackColor: _purple,
+          activeTrackColor: AppColors.purple,
         ),
       ],
     );
@@ -1593,7 +1589,7 @@ class _TypeChip extends StatelessWidget {
     this.locked = false,
   });
 
-  static const _disabled = Color(0xFF8E8E93);
+  static const _disabled = AppColors.textSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -1604,7 +1600,7 @@ class _TypeChip extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected && !locked ? _purple : Colors.transparent,
+          color: selected && !locked ? AppColors.purple : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -1621,7 +1617,7 @@ class _TypeChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: locked ? _disabled : (selected ? Colors.white : const Color(0xFF3C3C43)),
+                color: locked ? _disabled : (selected ? Colors.white : AppColors.textDark),
               ),
             ),
             if (locked) ...[
@@ -1656,19 +1652,19 @@ class _FilePickerButton extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: _purpleLight,
+          color: AppColors.purpleTint,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
-            const Icon(CupertinoIcons.doc_text_fill, color: _purple, size: 20),
+            const Icon(CupertinoIcons.doc_text_fill, color: AppColors.purple, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 fileName!,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: _purple,
+                  color: AppColors.purple,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -1676,7 +1672,7 @@ class _FilePickerButton extends StatelessWidget {
             ),
             GestureDetector(
               onTap: enabled ? onClear : null,
-              child: const Icon(CupertinoIcons.xmark_circle_fill, color: _purple, size: 20),
+              child: const Icon(CupertinoIcons.xmark_circle_fill, color: AppColors.purple, size: 20),
             ),
           ],
         ),
@@ -1688,22 +1684,22 @@ class _FilePickerButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F7),
+          color: AppColors.groupedBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: const Color(0xFFD1D1D6),
+            color: AppColors.iconInactive,
             style: BorderStyle.solid,
           ),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(CupertinoIcons.arrow_up_doc, color: _purple, size: 20),
+            Icon(CupertinoIcons.arrow_up_doc, color: AppColors.purple, size: 20),
             SizedBox(width: 8),
             Text(
               'Choose PDF',
               style: TextStyle(
-                color: _purple,
+                color: AppColors.purple,
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
@@ -1734,10 +1730,10 @@ class _QuotaCounter extends StatelessWidget {
         : '$balance generations remaining';
 
     final barColor = isExhausted
-        ? const Color(0xFFFF3B30)
+        ? AppColors.error
         : isUnlimited || balance > 5
-            ? _purple
-            : const Color(0xFFFF9500);
+            ? AppColors.purple
+            : AppColors.warning;
 
     final fraction = isUnlimited ? 1.0 : (balance / 10.0).clamp(0.0, 1.0);
 
@@ -1746,7 +1742,7 @@ class _QuotaCounter extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: _cardBg,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -1761,7 +1757,7 @@ class _QuotaCounter extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: _purple, size: 18),
+                const Icon(Icons.auto_awesome, color: AppColors.purple, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1769,12 +1765,12 @@ class _QuotaCounter extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isExhausted ? const Color(0xFFFF3B30) : const Color(0xFF1C1C1E),
+                      color: isExhausted ? AppColors.error : AppColors.textPrimary,
                     ),
                   ),
                 ),
                 if (!isUnlimited && !status.isPremium)
-                  const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 18),
+                  const Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 18),
               ],
             ),
             const SizedBox(height: 10),
@@ -1783,7 +1779,7 @@ class _QuotaCounter extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: fraction,
                 minHeight: 5,
-                backgroundColor: const Color(0xFFF2F2F7),
+                backgroundColor: AppColors.groupedBackground,
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
@@ -1809,14 +1805,14 @@ class _UpgradeBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF9B4FE8), Color(0xFF5E24A8)],
+            colors: [AppColors.purpleAccent, Color(0xFF5E24A8)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: _purple.withValues(alpha: 0.3),
+              color: AppColors.purple.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -1858,7 +1854,7 @@ class _UpgradeBanner extends StatelessWidget {
               child: const Text(
                 'Upgrade',
                 style: TextStyle(
-                  color: _purple,
+                  color: AppColors.purple,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1890,7 +1886,7 @@ class _GracePeriodBanner extends StatelessWidget {
       child: Row(
         children: [
           const Icon(CupertinoIcons.exclamationmark_circle_fill,
-              color: Color(0xFFFF9500), size: 18),
+              color: AppColors.warning, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/choice_option.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
@@ -12,10 +13,6 @@ import '../cubit/editor_cubit.dart';
 import 'question_edit_sheet.dart';
 import 'type_chip.dart';
 
-const _purple = Color(0xFF772FC0);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
-const _separator = Color(0xFFE8E8E8);
 
 /// Static (read-only) card for a question item.
 /// All editing happens via [QuestionEditSheet] opened from the Edit button.
@@ -57,7 +54,7 @@ class QuestionCard extends StatelessWidget {
             Container(
               width: 4,
               decoration: const BoxDecoration(
-                color: _purple,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   bottomLeft: Radius.circular(14),
@@ -88,8 +85,8 @@ class QuestionCard extends StatelessWidget {
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: item.title?.isNotEmpty == true
-                                  ? _primaryText
-                                  : _secondaryText,
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -102,7 +99,7 @@ class QuestionCard extends StatelessWidget {
                       Text(
                         item.description!,
                         style: const TextStyle(
-                            fontSize: 13, color: _secondaryText),
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -124,7 +121,7 @@ class QuestionCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: _purple,
+                            color: AppColors.purple,
                           ),
                         ),
                       ),
@@ -138,13 +135,13 @@ class QuestionCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: _purple,
+                            color: AppColors.purple,
                           ),
                         ),
                       ),
                     ],
                     const SizedBox(height: 12),
-                    const Divider(height: 1, color: _separator),
+                    const Divider(height: 1, color: AppColors.separator),
                     const SizedBox(height: 12),
                     // ── Bottom action row ─────────────────────────────────
                     Row(
@@ -169,14 +166,14 @@ class QuestionCard extends StatelessWidget {
                         // Required label + compact switch
                         const Text(
                           'Required',
-                          style: TextStyle(fontSize: 12, color: _secondaryText),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(width: 6),
                         Transform.scale(
                           scale: 0.75,
                           child: CupertinoSwitch(
                             value: isRequired,
-                            activeTrackColor: _purple,
+                            activeTrackColor: AppColors.purple,
                             onChanged: (value) {
                               final content =
                                   item.content as QuestionItemContent;
@@ -218,7 +215,7 @@ class QuestionCard extends StatelessWidget {
             Container(
               width: 4,
               decoration: const BoxDecoration(
-                color: _purple,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   bottomLeft: Radius.circular(14),
@@ -246,7 +243,7 @@ class QuestionCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
-                                  color: _primaryText,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -261,10 +258,10 @@ class QuestionCard extends StatelessWidget {
                           Text(
                             '${content.questions.length} rows · $colCount columns',
                             style: const TextStyle(
-                                fontSize: 12, color: _secondaryText),
+                                fontSize: 12, color: AppColors.textSecondary),
                           ),
                         ],
-                        const Divider(height: 20, color: _separator),
+                        const Divider(height: 20, color: AppColors.separator),
                         Row(
                           children: [
                             _ActionButton(
@@ -319,7 +316,7 @@ class DragHandleHint extends StatelessWidget {
   const DragHandleHint({super.key});
 
   static const _dot = BoxDecoration(
-    color: Color(0xFFD1D1D6),
+    color: AppColors.iconInactive,
     shape: BoxShape.circle,
   );
 
@@ -388,10 +385,10 @@ class _ActionButton extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: _purple.withValues(alpha: 0.1),
+            color: AppColors.purple.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 16, color: _purple),
+          child: Icon(icon, size: 16, color: AppColors.purple),
         ),
       ),
     );
@@ -418,14 +415,14 @@ class _ContentPreview extends StatelessWidget {
         _OptionsPreview(options: options, type: type, correctValues: correctValues),
       TextQuestion() when correctValues.isNotEmpty => Text(
           'Answer: ${correctValues.first}',
-          style: const TextStyle(fontSize: 12, color: _secondaryText),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       TextQuestion(:final paragraph) => _PreviewLine(
           paragraph ? 'Long answer text' : 'Short answer text'),
       ScaleQuestion(:final low, :final high) => Text(
           'Scale $low – $high',
           style: const TextStyle(
-              fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
+              fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
         ),
       DateQuestion() =>
         _IconLine(CupertinoIcons.calendar, 'Date'),
@@ -456,7 +453,7 @@ class _OptionsPreview extends StatelessWidget {
       return const Text(
         'No options — tap Edit to add some.',
         style: TextStyle(
-            fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
+            fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
       );
     }
 
@@ -479,7 +476,7 @@ class _OptionsPreview extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(
               children: [
-                Icon(leadingIcon, size: 14, color: _secondaryText),
+                Icon(leadingIcon, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Row(
@@ -490,7 +487,7 @@ class _OptionsPreview extends StatelessWidget {
                           o.isOther ? 'Other...' : o.value,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isCorrect ? const Color(0xFF34A853) : _primaryText,
+                            color: isCorrect ? AppColors.success : AppColors.textPrimary,
                             fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
                             fontStyle: o.isOther ? FontStyle.italic : FontStyle.normal,
                           ),
@@ -501,7 +498,7 @@ class _OptionsPreview extends StatelessWidget {
                       if (isCorrect) ...[
                         const SizedBox(width: 4),
                         const Icon(CupertinoIcons.checkmark_alt,
-                            size: 14, color: Color(0xFF34A853)),
+                            size: 14, color: AppColors.success),
                       ],
                     ],
                   ),
@@ -517,7 +514,7 @@ class _OptionsPreview extends StatelessWidget {
               '+ $overflow more',
               style: const TextStyle(
                   fontSize: 12,
-                  color: _secondaryText,
+                  color: AppColors.textSecondary,
                   fontStyle: FontStyle.italic),
             ),
           ),
@@ -537,7 +534,7 @@ class _PreviewLine extends StatelessWidget {
       child: Text(
         'Answer',
         style: TextStyle(
-            fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
+            fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
       ),
     );
   }
@@ -552,12 +549,12 @@ class _IconLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: _secondaryText),
+        Icon(icon, size: 15, color: AppColors.textSecondary),
         const SizedBox(width: 6),
         Text(
           label,
           style: const TextStyle(
-              fontSize: 12, color: _secondaryText, fontStyle: FontStyle.italic),
+              fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
         ),
       ],
     );
@@ -581,7 +578,7 @@ class _RatingLine extends StatelessWidget {
         count.clamp(1, 10),
         (_) => Padding(
           padding: const EdgeInsets.only(right: 3),
-          child: Icon(icon, size: 18, color: _purple),
+          child: Icon(icon, size: 18, color: AppColors.purple),
         ),
       ),
     );

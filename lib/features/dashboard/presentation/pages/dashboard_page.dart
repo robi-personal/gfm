@@ -19,11 +19,7 @@ import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_picker_page.dart';
-
-// Exact same palette as ai_form_builder_page.dart
-const _purple = Color(0xFF772FC0);
-const _iosBg  = Colors.white;
-const _cardBg = Colors.white;
+import '../../../../core/theme/app_colors.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -75,7 +71,7 @@ class _DashboardViewState extends State<_DashboardView> {
         };
 
         return Scaffold(
-          backgroundColor: _iosBg,
+          backgroundColor: AppColors.background,
           appBar: _buildAppBar(context, state),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
@@ -103,21 +99,21 @@ class _DashboardViewState extends State<_DashboardView> {
             : const Icon(Icons.add_rounded, size: 26),
         fabSize: ExpandableFabSize.regular,
         foregroundColor: Colors.white,
-        backgroundColor: _purple,
+        backgroundColor: AppColors.purple,
         shape: const CircleBorder(),
       ),
       closeButtonBuilder: DefaultFloatingActionButtonBuilder(
         child: const Icon(Icons.close_rounded, size: 22),
         fabSize: ExpandableFabSize.regular,
         foregroundColor: Colors.white,
-        backgroundColor: _purple,
+        backgroundColor: AppColors.purple,
         shape: const CircleBorder(),
       ),
       children: [
         _FabAction(
           icon: Icons.auto_awesome_rounded,
           label: 'AI Form Builder',
-          color: const Color(0xFF9B4FE8),
+          color: AppColors.purpleAccent,
           lottieAsset: 'assets/lottie/aiFormBuilder.json',
           onTap: isCreating
               ? null
@@ -129,7 +125,7 @@ class _DashboardViewState extends State<_DashboardView> {
         _FabAction(
           icon: Icons.edit_note_rounded,
           label: 'Create Form',
-          color: _purple,
+          color: AppColors.purple,
           lottieAsset: 'assets/lottie/createForm.json',
           lottieSize: 75,
           onTap: isCreating
@@ -142,7 +138,7 @@ class _DashboardViewState extends State<_DashboardView> {
         _FabAction(
           icon: CupertinoIcons.link,
           label: 'Import Form',
-          color: _purple,
+          color: AppColors.purple,
           onTap: isCreating
               ? null
               : () {
@@ -160,13 +156,13 @@ class _DashboardViewState extends State<_DashboardView> {
       BuildContext context, DashboardState state) {
     if (_searchOpen) {
       return AppBar(
-        backgroundColor: _iosBg,
+        backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new,
-              size: 18, color: _purple),
+              size: 18, color: AppColors.purple),
           onPressed: () {
             setState(() => _searchOpen = false);
             _searchController.clear();
@@ -177,11 +173,11 @@ class _DashboardViewState extends State<_DashboardView> {
           controller: _searchController,
           autofocus: true,
           style: const TextStyle(
-              fontSize: 15, color: Color(0xFF1C1C1E)),
-          cursorColor: _purple,
+              fontSize: 15, color: AppColors.textPrimary),
+          cursorColor: AppColors.purple,
           decoration: InputDecoration(
             hintText: 'Search forms…',
-            hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+            hintStyle: const TextStyle(color: AppColors.textTertiary),
             filled: true,
             fillColor: Colors.white,
             isDense: true,
@@ -198,7 +194,7 @@ class _DashboardViewState extends State<_DashboardView> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide:
-                  const BorderSide(color: _purple, width: 1.5),
+                  const BorderSide(color: AppColors.purple, width: 1.5),
             ),
           ),
           onChanged: (q) =>
@@ -208,7 +204,7 @@ class _DashboardViewState extends State<_DashboardView> {
     }
 
     return AppBar(
-      backgroundColor: _iosBg,
+      backgroundColor: AppColors.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -233,7 +229,7 @@ class _DashboardViewState extends State<_DashboardView> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1C1C1E),
+              color: AppColors.textPrimary,
               letterSpacing: 0.3,
             ),
           ),
@@ -242,7 +238,7 @@ class _DashboardViewState extends State<_DashboardView> {
       actions: [
         IconButton(
           icon: const Icon(Icons.search_rounded,
-              color: Color(0xFF8E8E93), size: 22),
+              color: AppColors.textSecondary, size: 22),
           onPressed: () => setState(() => _searchOpen = true),
         ),
         FutureBuilder<bool>(
@@ -272,7 +268,7 @@ class _DashboardViewState extends State<_DashboardView> {
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
-      backgroundColor: _iosBg,
+      backgroundColor: AppColors.background,
       child: Column(
         children: [
           // Header
@@ -280,7 +276,7 @@ class _DashboardViewState extends State<_DashboardView> {
             width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF5418A0), _purple],
+                colors: [AppColors.purpleMid, AppColors.purple],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -708,7 +704,7 @@ class _SubHeader extends StatelessWidget {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF8E8E93),
+              color: AppColors.textSecondary,
               letterSpacing: 0.1,
             ),
           ),
@@ -719,7 +715,7 @@ class _SubHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: _cardBg,
+                color: AppColors.background,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
@@ -733,7 +729,7 @@ class _SubHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(CupertinoIcons.arrow_up_arrow_down,
-                      size: 12, color: _purple),
+                      size: 12, color: AppColors.purple),
                   const SizedBox(width: 5),
                   Text(
                     sortOrder == SortOrder.modifiedDesc
@@ -742,7 +738,7 @@ class _SubHeader extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: _purple,
+                      color: AppColors.purple,
                     ),
                   ),
                 ],
@@ -763,8 +759,8 @@ class _DashboardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE5E5EA),
-      highlightColor: const Color(0xFFF2F2F7),
+      baseColor: AppColors.shimmerBase,
+      highlightColor: AppColors.groupedBackground,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         itemCount: 6,
@@ -784,7 +780,7 @@ class _SkeletonCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
       ),
       child: const Row(
@@ -832,7 +828,7 @@ class _FormList extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      color: _purple,
+      color: AppColors.purple,
       onRefresh: () => context.read<DashboardCubit>().refresh(),
       child: ListView.builder(
         padding: EdgeInsets.fromLTRB(
@@ -877,7 +873,7 @@ class _EmptyState extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1C1C1E),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -886,7 +882,7 @@ class _EmptyState extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF8E8E93),
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -894,24 +890,24 @@ class _EmptyState extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: _purple.withValues(alpha: 0.06),
+                    color: AppColors.purple.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: _purple.withValues(alpha: 0.15)),
+                        color: AppColors.purple.withValues(alpha: 0.15)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(CupertinoIcons.info_circle,
                           size: 15,
-                          color: _purple.withValues(alpha: 0.70)),
+                          color: AppColors.purple.withValues(alpha: 0.70)),
                       const SizedBox(width: 10),
                       const Expanded(
                         child: Text(
                           'Forms created on Google Forms web won\'t appear here automatically. Use the Import Form button to add them.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: _purple,
+                            color: AppColors.purple,
                             height: 1.5,
                           ),
                         ),
@@ -941,7 +937,7 @@ class _SearchEmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(CupertinoIcons.search,
-                size: 48, color: const Color(0xFFC7C7CC)),
+                size: 48, color: AppColors.textTertiary),
             const SizedBox(height: 20),
             Text(
               'No results for "$query"',
@@ -949,14 +945,14 @@ class _SearchEmptyState extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1C1C1E),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
             const Text(
               'Try a different search term.',
               style: TextStyle(
-                  fontSize: 14, color: Color(0xFF8E8E93)),
+                  fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -978,9 +974,9 @@ class _FormCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        border: Border.all(color: AppColors.separator),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -997,8 +993,8 @@ class _FormCard extends StatelessWidget {
       child: InkWell(
         onTap: () => _openForm(context),
         borderRadius: BorderRadius.circular(14),
-        splashColor: _purple.withValues(alpha: 0.06),
-        highlightColor: _purple.withValues(alpha: 0.03),
+        splashColor: AppColors.purple.withValues(alpha: 0.06),
+        highlightColor: AppColors.purple.withValues(alpha: 0.03),
         child: Padding(
           padding: const EdgeInsets.symmetric(
               horizontal: 14, vertical: 6),
@@ -1021,7 +1017,7 @@ class _FormCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1C1C1E),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     if (!form.isOwned) ...[
@@ -1030,7 +1026,7 @@ class _FormCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _purple.withValues(alpha: 0.10),
+                          color: AppColors.purple.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
@@ -1038,7 +1034,7 @@ class _FormCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: _purple,
+                            color: AppColors.purple,
                           ),
                         ),
                       ),
@@ -1050,14 +1046,14 @@ class _FormCard extends StatelessWidget {
                           const Icon(
                             CupertinoIcons.clock,
                             size: 11,
-                            color: Color(0xFFC7C7CC),
+                            color: AppColors.textTertiary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _formatDate(form.modifiedTime!),
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF8E8E93),
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -1070,14 +1066,14 @@ class _FormCard extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CupertinoActivityIndicator(
-                      radius: 10, color: _purple),
+                      radius: 10, color: AppColors.purple),
                 )
               else
                 PopupMenuButton<_RowAction>(
                   onSelected: (a) => _handleAction(context, a),
                   icon: const Icon(
                     CupertinoIcons.ellipsis,
-                    color: Color(0xFFC7C7CC),
+                    color: AppColors.textTertiary,
                     size: 20,
                   ),
                   shape: RoundedRectangleBorder(
@@ -1087,7 +1083,7 @@ class _FormCard extends StatelessWidget {
                       value: _RowAction.open,
                       child: Row(children: [
                         Icon(CupertinoIcons.arrow_up_right_square,
-                            size: 16, color: Color(0xFF3C3C43)),
+                            size: 16, color: AppColors.textDark),
                         SizedBox(width: 10),
                         Text('Open'),
                       ]),
@@ -1097,7 +1093,7 @@ class _FormCard extends StatelessWidget {
                         value: _RowAction.rename,
                         child: Row(children: [
                           Icon(CupertinoIcons.pencil,
-                              size: 16, color: Color(0xFF3C3C43)),
+                              size: 16, color: AppColors.textDark),
                           SizedBox(width: 10),
                           Text('Rename'),
                         ]),
@@ -1107,11 +1103,11 @@ class _FormCard extends StatelessWidget {
                         value: _RowAction.delete,
                         child: Row(children: [
                           Icon(CupertinoIcons.trash,
-                              size: 16, color: Color(0xFFFF3B30)),
+                              size: 16, color: AppColors.error),
                           SizedBox(width: 10),
                           Text('Delete',
                               style:
-                                  TextStyle(color: Color(0xFFFF3B30))),
+                                  TextStyle(color: AppColors.error)),
                         ]),
                       )
                     else
@@ -1119,11 +1115,11 @@ class _FormCard extends StatelessWidget {
                         value: _RowAction.removeImport,
                         child: Row(children: [
                           Icon(CupertinoIcons.minus_circle,
-                              size: 16, color: Color(0xFFFF3B30)),
+                              size: 16, color: AppColors.error),
                           SizedBox(width: 10),
                           Text('Remove from list',
                               style:
-                                  TextStyle(color: Color(0xFFFF3B30))),
+                                  TextStyle(color: AppColors.error)),
                         ]),
                       ),
                   ],
@@ -1255,7 +1251,7 @@ String? _parseFormId(String input) {
 Future<void> showImportFormDialog(
     BuildContext context, DashboardCubit cubit) async {
   final controller = TextEditingController();
-  const green = _purple;
+  const green = AppColors.purple;
 
   await showDialog<void>(
     context: context,
@@ -1320,7 +1316,7 @@ Future<void> showImportFormDialog(
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1C1C1E),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -1329,7 +1325,7 @@ Future<void> showImportFormDialog(
                   const Divider(
                       height: 1,
                       thickness: 1,
-                      color: Color(0xFFF2F2F7)),
+                      color: AppColors.groupedBackground),
                   const SizedBox(height: 12),
                   const Text(
                     'Paste a Google Form URL or form ID.',
@@ -1341,15 +1337,15 @@ Future<void> showImportFormDialog(
                     controller: controller,
                     autofocus: true,
                     style: const TextStyle(
-                        fontSize: 14, color: Color(0xFF1C1C1E)),
+                        fontSize: 14, color: AppColors.textPrimary),
                     cursorColor: green,
                     decoration: InputDecoration(
                       hintText:
                           'https://docs.google.com/forms/d/…',
                       hintStyle: const TextStyle(
-                          color: Color(0xFFC7C7CC), fontSize: 13),
+                          color: AppColors.textTertiary, fontSize: 13),
                       filled: true,
-                      fillColor: const Color(0xFFF2F2F7),
+                      fillColor: AppColors.groupedBackground,
                       isDense: true,
                       contentPadding:
                           const EdgeInsets.symmetric(
@@ -1372,12 +1368,12 @@ Future<void> showImportFormDialog(
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                            color: Color(0xFFFF3B30), width: 1.5),
+                            color: AppColors.error, width: 1.5),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                            color: Color(0xFFFF3B30), width: 1.5),
+                            color: AppColors.error, width: 1.5),
                       ),
                     ),
                     onChanged: (_) {
@@ -1399,7 +1395,7 @@ Future<void> showImportFormDialog(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 13),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF2F2F7),
+                              color: AppColors.groupedBackground,
                               borderRadius:
                                   BorderRadius.circular(12),
                             ),
@@ -1409,7 +1405,7 @@ Future<void> showImportFormDialog(
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF8E8E93),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -1492,12 +1488,12 @@ Future<String?> _showRenameDialog(BuildContext context,
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: _purple.withValues(alpha: 0.10),
+                    color: AppColors.purple.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     CupertinoIcons.pencil,
-                    color: _purple,
+                    color: AppColors.purple,
                     size: 15,
                   ),
                 ),
@@ -1507,13 +1503,13 @@ Future<String?> _showRenameDialog(BuildContext context,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1C1C1E),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, thickness: 1, color: Color(0xFFF2F2F7)),
+            const Divider(height: 1, thickness: 1, color: AppColors.groupedBackground),
             const SizedBox(height: 12),
             const Text(
               'Enter a new name for your form.',
@@ -1524,13 +1520,13 @@ Future<String?> _showRenameDialog(BuildContext context,
               controller: controller,
               autofocus: true,
               textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF1C1C1E)),
-              cursorColor: _purple,
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              cursorColor: AppColors.purple,
               decoration: InputDecoration(
                 hintText: 'Form name',
-                hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
-                fillColor: const Color(0xFFF2F2F7),
+                fillColor: AppColors.groupedBackground,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
@@ -1545,7 +1541,7 @@ Future<String?> _showRenameDialog(BuildContext context,
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: _purple, width: 1.5),
+                      const BorderSide(color: AppColors.purple, width: 1.5),
                 ),
               ),
               onSubmitted: (v) {
@@ -1562,7 +1558,7 @@ Future<String?> _showRenameDialog(BuildContext context,
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF2F2F7),
+                        color: AppColors.groupedBackground,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Center(
@@ -1571,7 +1567,7 @@ Future<String?> _showRenameDialog(BuildContext context,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF8E8E93),
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -1594,13 +1590,13 @@ Future<String?> _showRenameDialog(BuildContext context,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           decoration: BoxDecoration(
                             color: canSave
-                                ? _purple
-                                : _purple.withValues(alpha: 0.35),
+                                ? AppColors.purple
+                                : AppColors.purple.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: canSave
                                 ? [
                                     BoxShadow(
-                                      color: _purple.withValues(alpha: 0.30),
+                                      color: AppColors.purple.withValues(alpha: 0.30),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -1649,14 +1645,14 @@ class _FullScreenError extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(CupertinoIcons.wifi_slash,
-                size: 48, color: Color(0xFFC7C7CC)),
+                size: 48, color: AppColors.textTertiary),
             const SizedBox(height: 20),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF8E8E93),
+                  color: AppColors.textSecondary,
                   height: 1.4),
             ),
             const SizedBox(height: 28),
@@ -1666,11 +1662,11 @@ class _FullScreenError extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 24, vertical: 13),
                 decoration: BoxDecoration(
-                  color: _purple,
+                  color: AppColors.purple,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: _purple.withValues(alpha: 0.35),
+                      color: AppColors.purple.withValues(alpha: 0.35),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1716,7 +1712,7 @@ class _InlineBanner extends StatelessWidget {
       child: Row(
         children: [
           const Icon(CupertinoIcons.exclamationmark_circle,
-              size: 15, color: Color(0xFFFF9500)),
+              size: 15, color: AppColors.warning),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1807,7 +1803,7 @@ class _DrawerSection extends StatelessWidget {
   const _DrawerSection({
     required this.label,
     required this.items,
-    this.labelColor = const Color(0xFF8E8E93),
+    this.labelColor = AppColors.textSecondary,
   });
 
   @override
@@ -1829,7 +1825,7 @@ class _DrawerSection extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: _cardBg,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
@@ -1847,7 +1843,7 @@ class _DrawerSection extends StatelessWidget {
                   const Divider(
                     height: 1,
                     thickness: 1,
-                    color: Color(0xFFF2F2F7),
+                    color: AppColors.groupedBackground,
                     indent: 50,
                     endIndent: 0,
                   ),
@@ -1873,8 +1869,8 @@ class _DrawerItem extends StatelessWidget {
     required this.onTap,
     this.assetIcon,
     this.icon,
-    this.assetColor = const Color(0xFF3C3C43),
-    this.textColor = const Color(0xFF1C1C1E),
+    this.assetColor = AppColors.textDark,
+    this.textColor = AppColors.textPrimary,
   });
 
   @override
@@ -1894,7 +1890,7 @@ class _DrawerItem extends StatelessWidget {
                       width: 20, height: 20, color: assetColor)
                   : icon != null
                       ? Icon(icon,
-                          size: 20, color: const Color(0xFF3C3C43))
+                          size: 20, color: AppColors.textDark)
                       : const SizedBox.shrink(),
             ),
             const SizedBox(width: 14),
@@ -1909,7 +1905,7 @@ class _DrawerItem extends StatelessWidget {
               ),
             ),
             const Icon(CupertinoIcons.chevron_right,
-                size: 14, color: Color(0xFFC7C7CC)),
+                size: 14, color: AppColors.textTertiary),
           ],
         ),
       ),

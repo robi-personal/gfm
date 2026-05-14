@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../cubit/sign_in_cubit.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
@@ -11,7 +12,7 @@ class SignInScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F6FB),
+      backgroundColor: AppColors.signInBackground,
       body: BlocBuilder<SignInCubit, SignInState>(
         builder: (context, state) {
           final isLoading = state is SignInLoading;
@@ -55,7 +56,7 @@ class SignInScreen extends StatelessWidget {
                           'Privacy Policy',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF772FC0),
+                            color: AppColors.purple,
                           ),
                         ),
                       ),
@@ -70,7 +71,7 @@ class SignInScreen extends StatelessWidget {
                           'Terms of Use',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF772FC0),
+                            color: AppColors.purple,
                           ),
                         ),
                       ),

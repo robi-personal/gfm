@@ -10,6 +10,7 @@ import '../../../../core/models/question_kind.dart';
 import '../cubit/editor_cubit.dart';
 import 'type_chip.dart';
 import 'type_picker_sheet.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class QuestionEditSheet extends StatefulWidget {
   final Item item;
@@ -332,7 +333,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
         filled: true,
-        fillColor: const Color(0xFFF3F0FA),
+        fillColor: AppColors.purpleTintDeep,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
@@ -343,7 +344,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF772FC0), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -394,7 +395,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                 FilledButton(
                   onPressed: _commit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF772FC0),
+                    backgroundColor: AppColors.purple,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -405,7 +406,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+          const Divider(height: 1, color: AppColors.borderSubtle),
           // Scrollable body
           Flexible(
             child: SingleChildScrollView(
@@ -476,9 +477,9 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                     TextButton.icon(
                       onPressed: _addOption,
                       icon: const Icon(Icons.add,
-                          size: 16, color: Color(0xFF772FC0)),
+                          size: 16, color: AppColors.purple),
                       label: const Text('Add option',
-                          style: TextStyle(color: Color(0xFF772FC0))),
+                          style: TextStyle(color: AppColors.purple)),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: const Size(0, 0),
@@ -489,9 +490,9 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                       TextButton.icon(
                         onPressed: _addOtherOption,
                         icon: const Icon(Icons.add,
-                            size: 16, color: Color(0xFF772FC0)),
+                            size: 16, color: AppColors.purple),
                         label: const Text('Add "Other"',
-                            style: TextStyle(color: Color(0xFF772FC0))),
+                            style: TextStyle(color: AppColors.purple)),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 0),
@@ -503,7 +504,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(color: Color(0xFFEEEEEE)),
+                    child: Divider(color: AppColors.borderSubtle),
                   ),
                   // Required
                   Row(
@@ -512,7 +513,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                       const Text('Required', style: bodyStyle),
                       Switch(
                         value: _required,
-                        activeColor: const Color(0xFF772FC0),
+                        activeColor: AppColors.purple,
                         onChanged: (v) => setState(() => _required = v),
                       ),
                     ],
@@ -533,7 +534,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                             style: bodyStyle,
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: const Color(0xFFF3F0FA),
+                              fillColor: AppColors.purpleTintDeep,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide.none,
@@ -545,7 +546,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFF772FC0), width: 1.5),
+                                    color: AppColors.purple, width: 1.5),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 10),
@@ -642,7 +643,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F0FA),
+                color: AppColors.purpleTintDeep,
                 borderRadius: BorderRadius.circular(10),
               ),
               padding:

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
-
-const _purple = Color(0xFF772FC0);
-const _primaryText = Color(0xFF1C1C1E);
-const _secondaryText = Color(0xFF8E8E93);
 
 /// Editable form title and description at the top of the editor.
 /// Pushes to the cubit only on focus-lost (not on every keystroke).
@@ -83,7 +80,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
             Container(
               width: 5,
               decoration: const BoxDecoration(
-                color: _purple,
+                color: AppColors.purple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   bottomLeft: Radius.circular(14),
@@ -102,7 +99,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: _primaryText,
+                        color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Form title',
@@ -114,7 +111,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: _purple, width: 1.5),
+                          borderSide: BorderSide(color: AppColors.purple, width: 1.5),
                         ),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -125,7 +122,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                       focusNode: _descFocus,
                       style: const TextStyle(
                         fontSize: 14,
-                        color: _secondaryText,
+                        color: AppColors.textSecondary,
                       ),
                       decoration: const InputDecoration(
                         hintText: 'Form description (optional)',
@@ -137,7 +134,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                         enabledBorder: InputBorder.none,
                         focusedBorder: UnderlineInputBorder(
                           borderSide:
-                              BorderSide(color: _secondaryText, width: 1),
+                              BorderSide(color: AppColors.textSecondary, width: 1),
                         ),
                         contentPadding: EdgeInsets.zero,
                       ),

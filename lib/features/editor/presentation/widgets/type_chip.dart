@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/question_kind.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Small pill showing the question type label.
 /// Set [showCaret] to true to add a dropdown arrow (tap to change type).
@@ -60,7 +61,7 @@ class TypeChip extends StatelessWidget {
 
   static Color _color(QuestionKind kind) => switch (kind) {
         TextQuestion() => const Color(0xFF1A73E8),
-        ChoiceQuestion() => const Color(0xFF34A853),
+        ChoiceQuestion() => AppColors.success,
         ScaleQuestion() => const Color(0xFFFBBC04),
         DateQuestion() || TimeQuestion() => const Color(0xFFEA4335),
         RatingQuestion() => const Color(0xFFFA7B17),
