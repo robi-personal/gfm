@@ -9,7 +9,7 @@ import '../../domain/entities/quota_snapshot.dart';
 import '../../domain/entities/user_status.dart';
 import '../../domain/repositories/ai_form_repository.dart';
 
-const String _kBaseUrl = 'http://177.7.51.7:3002';
+const String _kBaseUrl = 'https://gfm.robi-dev.tech';
 
 class PdfPageInfo {
   final int pages;
