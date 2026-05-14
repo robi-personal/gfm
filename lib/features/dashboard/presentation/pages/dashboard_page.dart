@@ -78,7 +78,9 @@ class _DashboardViewState extends State<_DashboardView> {
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
           floatingActionButtonLocation: ExpandableFab.location,
-          floatingActionButton: _buildFab(context, isCreating),
+          floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
+              ? null
+              : _buildFab(context, isCreating),
         );
       },
     );
