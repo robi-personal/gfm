@@ -95,7 +95,7 @@ class _DashboardViewState extends State<_DashboardView> {
       distance: 75,
       duration: const Duration(milliseconds: 220),
       overlayStyle: ExpandableFabOverlayStyle(
-        color: Colors.black.withValues(alpha: 0.15),
+        color: Colors.black.withValues(alpha: 0.25),
       ),
       openButtonBuilder: RotateFloatingActionButtonBuilder(
         child: isCreating
