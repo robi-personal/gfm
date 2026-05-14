@@ -246,7 +246,7 @@ class _DashboardViewState extends State<_DashboardView> {
               .call(const NoParams())
               .then((r) => r.fold((_) => false, (s) => s.isPremium)),
           builder: (context, snapshot) {
-            if (snapshot.data == true) return const SizedBox.shrink();
+            if (snapshot.data != false) return const SizedBox.shrink();
             return GestureDetector(
               onTap: () => PaywallPage.show(context),
               child: Padding(
