@@ -74,6 +74,7 @@ class _DashboardViewState extends State<_DashboardView> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
+          resizeToAvoidBottomInset: false,
           appBar: _buildAppBar(context, state),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
