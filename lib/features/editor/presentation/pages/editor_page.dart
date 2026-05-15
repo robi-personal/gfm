@@ -482,7 +482,9 @@ class _OptionsSheet extends StatelessWidget {
                   color: AppColors.purple,
                   onTap: () {
                     Navigator.of(context).pop();
-                    Share.share(responderUri, subject: title);
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      Share.share(responderUri, subject: title);
+                    });
                   },
                 ),
               ],
