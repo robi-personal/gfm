@@ -20,6 +20,7 @@ import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_picker_page.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/layout.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -72,10 +73,31 @@ class _DashboardViewState extends State<_DashboardView> {
           _ => false,
         };
 
+        final tablet = isTablet(context);
+
+        if (tablet) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            resizeToAvoidBottomInset: false,
+            appBar: _buildAppBar(context, state, tablet: true),
+            body: Row(
+              children: [
+                SizedBox(
+                  width: 280,
+                  child: _buildSidebarContent(context, isOverlay: false),
+                ),
+                const VerticalDivider(
+                    width: 1, thickness: 1, color: AppColors.separator),
+                Expanded(child: _buildBody(context, state)),
+              ],
+            ),
+          );
+        }
+
         return Scaffold(
           backgroundColor: AppColors.background,
           resizeToAvoidBottomInset: false,
-          appBar: _buildAppBar(context, state),
+          appBar: _buildAppBar(context, state, tablet: false),
           drawer: _buildDrawer(context),
           body: _buildBody(context, state),
           floatingActionButtonLocation: ExpandableFab.location,
@@ -159,7 +181,7 @@ class _DashboardViewState extends State<_DashboardView> {
   // ── AppBar ─────────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar(
-      BuildContext context, DashboardState state) {
+      BuildContext context, DashboardState state, {required bool tablet}) {
     if (_searchOpen) {
       return AppBar(
         backgroundColor: AppColors.background,
@@ -214,17 +236,20 @@ class _DashboardViewState extends State<_DashboardView> {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleSpacing: 0,
-      leading: Builder(
-        builder: (ctx) => IconButton(
-          onPressed: () => Scaffold.of(ctx).openDrawer(),
-          icon: SvgPicture.asset(
-            'assets/dashboard_hamburger.svg',
-            width: 24,
-            height: 24,
-          ),
-        ),
-      ),
+      titleSpacing: tablet ? null : 0,
+      automaticallyImplyLeading: false,
+      leading: tablet
+          ? null
+          : Builder(
+              builder: (ctx) => IconButton(
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+                icon: SvgPicture.asset(
+                  'assets/dashboard_hamburger.svg',
+                  width: 24,
+                  height: 24,
+                ),
+              ),
+            ),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -280,78 +305,93 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.background,
-      child: Column(
-        children: [
-          // Header
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.purpleMid, AppColors.purple],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 20,
-              bottom: 28,
-              left: 20,
-              right: 20,
-            ),
-            child: BlocSelector<SignInCubit, SignInState,
-                ({String? displayName, String? photoUrl, String email})>(
-              selector: (state) => state is Authenticated
-                  ? (
-                      displayName: state.user.displayName,
-                      photoUrl: state.user.photoUrl,
-                      email: state.user.email,
-                    )
-                  : (displayName: null, photoUrl: null, email: ''),
-              builder: (context, user) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _UserAvatar(
-                      photoUrl: user.photoUrl,
-                      displayName: user.displayName,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (user.displayName != null)
-                            Text(
-                              user.displayName!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          if (user.email.isNotEmpty)
-                            Text(
-                              user.email,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.70),
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
+      child: _buildSidebarContent(context, isOverlay: true),
+    );
+  }
+
+  Widget _buildSidebarContent(BuildContext context,
+      {required bool isOverlay}) {
+    void close() {
+      if (isOverlay) Navigator.of(context).pop();
+    }
+
+    final topPad =
+        isOverlay ? MediaQuery.of(context).padding.top + 20.0 : 20.0;
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.purpleMid, AppColors.purple],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          // Menu
-          Expanded(
+          padding: EdgeInsets.only(
+            top: topPad,
+            bottom: 28,
+            left: 20,
+            right: 20,
+          ),
+          child: BlocSelector<SignInCubit, SignInState,
+              ({String? displayName, String? photoUrl, String email})>(
+            selector: (state) => state is Authenticated
+                ? (
+                    displayName: state.user.displayName,
+                    photoUrl: state.user.photoUrl,
+                    email: state.user.email,
+                  )
+                : (displayName: null, photoUrl: null, email: ''),
+            builder: (context, user) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _UserAvatar(
+                    photoUrl: user.photoUrl,
+                    displayName: user.displayName,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (user.displayName != null)
+                          Text(
+                            user.displayName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        if (user.email.isNotEmpty)
+                          Text(
+                            user.email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.70),
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        // Menu
+        Expanded(
+          child: Container(
+            color: AppColors.background,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
@@ -362,7 +402,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       icon: Icons.auto_awesome_rounded,
                       title: 'AI Form Builder',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         _openAiBuilder(context);
                       },
                     ),
@@ -370,7 +410,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       icon: Icons.edit_note_rounded,
                       title: 'Create Form',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         _onNewForm(context);
                       },
                     ),
@@ -378,7 +418,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       icon: CupertinoIcons.link,
                       title: 'Import Form',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         _openImport(context);
                       },
                     ),
@@ -392,7 +432,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       assetIcon: 'assets/upgrade_to_premium.png',
                       title: 'Upgrade Plan',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         PaywallPage.show(context);
                       },
                     ),
@@ -405,12 +445,12 @@ class _DashboardViewState extends State<_DashboardView> {
                     _DrawerItem(
                       assetIcon: 'assets/nav_share.png',
                       title: 'Share on the App Store',
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: close,
                     ),
                     _DrawerItem(
                       assetIcon: 'assets/rate_us.png',
                       title: 'Rate the app',
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: close,
                     ),
                   ],
                 ),
@@ -422,9 +462,10 @@ class _DashboardViewState extends State<_DashboardView> {
                       icon: CupertinoIcons.lock_shield,
                       title: 'Privacy Policy',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         launchUrl(
-                          Uri.parse('https://gformmanager.netlify.app/privacy'),
+                          Uri.parse(
+                              'https://gformmanager.netlify.app/privacy'),
                           mode: LaunchMode.externalApplication,
                         );
                       },
@@ -433,9 +474,10 @@ class _DashboardViewState extends State<_DashboardView> {
                       icon: CupertinoIcons.doc_text,
                       title: 'Terms of Use',
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         launchUrl(
-                          Uri.parse('https://gformmanager.netlify.app/terms'),
+                          Uri.parse(
+                              'https://gformmanager.netlify.app/terms'),
                           mode: LaunchMode.externalApplication,
                         );
                       },
@@ -453,7 +495,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       title: 'Sign out',
                       textColor: Colors.red,
                       onTap: () {
-                        Navigator.of(context).pop();
+                        close();
                         context.read<SignInCubit>().signOut();
                       },
                     ),
@@ -462,8 +504,8 @@ class _DashboardViewState extends State<_DashboardView> {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -838,22 +880,36 @@ class _FormList extends StatelessWidget {
           : const _EmptyState();
     }
 
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 90;
+    final tablet = isTablet(context);
+
     return RefreshIndicator(
       color: AppColors.purple,
       onRefresh: () => context.read<DashboardCubit>().refresh(),
-      child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          MediaQuery.viewPaddingOf(context).bottom + 90,
-        ),
-        itemCount: forms.length,
-        itemBuilder: (_, i) => _FormCard(
-          form: forms[i],
-          isRenaming: forms[i].id == renamingId,
-        ),
-      ),
+      child: tablet
+          ? GridView.builder(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 0,
+                childAspectRatio: 4.5,
+              ),
+              itemCount: forms.length,
+              itemBuilder: (_, i) => _FormCard(
+                form: forms[i],
+                isRenaming: forms[i].id == renamingId,
+              ),
+            )
+          : ListView.builder(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
+              itemCount: forms.length,
+              itemBuilder: (_, i) => _FormCard(
+                form: forms[i],
+                isRenaming: forms[i].id == renamingId,
+              ),
+            ),
     );
   }
 }

@@ -36,6 +36,7 @@ import '../widgets/form_header_card.dart';
 import '../widgets/question_card.dart';
 import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/layout.dart';
 
 class EditorPage extends StatelessWidget {
   final String formId;
@@ -139,82 +140,30 @@ class _EditorViewState extends State<_EditorView>
       child: Scaffold(
         backgroundColor: AppColors.groupedBackground,
         appBar: _buildAppBar(context),
-        body: Column(
-          children: [
-            // Tab bar
-            BlocSelector<ResponsesCubit, ResponsesState, int?>(
-              selector: (state) =>
-                  state is ResponsesLoaded ? state.responses.length : null,
-              builder: (context, count) =>
-                  _SegmentedTabBar(controller: _tabController, responseCount: count),
-            ),
-            // Tab content + floating bottom bar
-            Expanded(
-              child: Stack(
+        body: BlocSelector<ResponsesCubit, ResponsesState, int?>(
+          selector: (state) =>
+              state is ResponsesLoaded ? state.responses.length : null,
+          builder: (context, count) {
+            final content = _buildContentStack(context);
+            if (isTablet(context)) {
+              return Row(
                 children: [
-                  RepaintBoundary(
-                   child: ColoredBox(
-                    color: AppColors.groupedBackground,
-                    child: BlocBuilder<EditorCubit, EditorState>(
-                      buildWhen: (prev, curr) {
-                        if (prev.runtimeType != curr.runtimeType) return true;
-                        if (prev is EditorLoaded && curr is EditorLoaded) {
-                          return prev.isSaving != curr.isSaving;
-                        }
-                        return false;
-                      },
-                      builder: (context, state) => switch (state) {
-                        EditorLoading() => const _EditorSkeleton(),
-                        EditorLoaded(:final isSaving) when isSaving =>
-                          const _EditorSkeleton(),
-                        EditorError(:final kind, :final message)
-                            when kind == EditorErrorKind.network =>
-                          _FullScreenError(
-                            message: message,
-                            onRetry: () =>
-                                context.read<EditorCubit>().loadForm(widget.formId),
-                          ),
-                        EditorError() => const SizedBox.shrink(),
-                        EditorLoaded(:final form) => TabBarView(
-                            controller: _tabController,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              const _EditorBody(),
-                              BlocProvider.value(
-                                value: context.read<ResponsesCubit>(),
-                                child: ResponsesScreen(
-                                  formId: widget.formId,
-                                  items: form.items,
-                                ),
-                              ),
-                              _SettingsTabPage(formId: widget.formId),
-                            ],
-                          ),
-                      },
-                    ),
-                  )),
-                  // Floating bottom toolbar — only on Questions tab
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: AnimatedBuilder(
-                      animation: _tabController,
-                      builder: (context, _) {
-                        if (_tabController.index != 0) return const SizedBox.shrink();
-                        return BlocSelector<EditorCubit, EditorState, bool>(
-                          selector: (state) =>
-                              state is EditorLoaded && !state.isSaving,
-                          builder: (context, enabled) =>
-                              _BottomBar(enabled: enabled, formId: widget.formId),
-                        );
-                      },
-                    ),
-                  ),
+                  _EditorNavRail(
+                      controller: _tabController, responseCount: count),
+                  const VerticalDivider(
+                      width: 1, thickness: 1, color: AppColors.separator),
+                  Expanded(child: content),
                 ],
-              ),
-            ),
-          ],
+              );
+            }
+            return Column(
+              children: [
+                _SegmentedTabBar(
+                    controller: _tabController, responseCount: count),
+                Expanded(child: content),
+              ],
+            );
+          },
         ),
       ),
     ),
@@ -324,6 +273,72 @@ class _EditorViewState extends State<_EditorView>
           },
         ),
         const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  Widget _buildContentStack(BuildContext context) {
+    return Stack(
+      children: [
+        RepaintBoundary(
+          child: ColoredBox(
+            color: AppColors.groupedBackground,
+            child: BlocBuilder<EditorCubit, EditorState>(
+              buildWhen: (prev, curr) {
+                if (prev.runtimeType != curr.runtimeType) return true;
+                if (prev is EditorLoaded && curr is EditorLoaded) {
+                  return prev.isSaving != curr.isSaving;
+                }
+                return false;
+              },
+              builder: (context, state) => switch (state) {
+                EditorLoading() => const _EditorSkeleton(),
+                EditorLoaded(:final isSaving) when isSaving =>
+                  const _EditorSkeleton(),
+                EditorError(:final kind, :final message)
+                    when kind == EditorErrorKind.network =>
+                  _FullScreenError(
+                    message: message,
+                    onRetry: () =>
+                        context.read<EditorCubit>().loadForm(widget.formId),
+                  ),
+                EditorError() => const SizedBox.shrink(),
+                EditorLoaded(:final form) => TabBarView(
+                    controller: _tabController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      const _EditorBody(),
+                      BlocProvider.value(
+                        value: context.read<ResponsesCubit>(),
+                        child: ResponsesScreen(
+                          formId: widget.formId,
+                          items: form.items,
+                        ),
+                      ),
+                      _SettingsTabPage(formId: widget.formId),
+                    ],
+                  ),
+              },
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) {
+              if (_tabController.index != 0) return const SizedBox.shrink();
+              return BlocSelector<EditorCubit, EditorState, bool>(
+                selector: (state) =>
+                    state is EditorLoaded && !state.isSaving,
+                builder: (context, enabled) =>
+                    _BottomBar(enabled: enabled, formId: widget.formId),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
@@ -563,6 +578,80 @@ class _OptionTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Tablet nav rail ───────────────────────────────────────────────────────────
+
+class _EditorNavRail extends StatefulWidget {
+  final TabController controller;
+  final int? responseCount;
+
+  const _EditorNavRail({required this.controller, this.responseCount});
+
+  @override
+  State<_EditorNavRail> createState() => _EditorNavRailState();
+}
+
+class _EditorNavRailState extends State<_EditorNavRail> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.controller.index;
+    final hasResponses =
+        widget.responseCount != null && widget.responseCount! > 0;
+
+    return NavigationRail(
+      selectedIndex: selected,
+      onDestinationSelected: (i) => widget.controller.animateTo(i),
+      labelType: NavigationRailLabelType.all,
+      backgroundColor: AppColors.purpleDark,
+      selectedIconTheme: const IconThemeData(color: Colors.white),
+      unselectedIconTheme:
+          IconThemeData(color: Colors.white.withValues(alpha: 0.50)),
+      selectedLabelTextStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+        fontSize: 12,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.50),
+        fontSize: 11,
+      ),
+      destinations: [
+        const NavigationRailDestination(
+          icon: Icon(CupertinoIcons.list_bullet),
+          label: Text('Questions'),
+        ),
+        NavigationRailDestination(
+          icon: Badge(
+            isLabelVisible: hasResponses,
+            label: Text('${widget.responseCount}'),
+            backgroundColor: Colors.white.withValues(alpha: 0.30),
+            textColor: Colors.white,
+            child: const Icon(CupertinoIcons.chart_bar_alt_fill),
+          ),
+          label: const Text('Responses'),
+        ),
+        const NavigationRailDestination(
+          icon: Icon(CupertinoIcons.settings_solid),
+          label: Text('Settings'),
+        ),
+      ],
     );
   }
 }
@@ -1452,80 +1541,87 @@ class _BottomBar extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.purpleDark.withValues(alpha: 0.70),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 0.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.purpleDark.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.purpleDark.withValues(alpha: 0.70),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.purpleDark.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                ],
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _BarButton(
+                        icon: CupertinoIcons.add_circled_solid,
+                        label: 'Question',
+                        enabled: enabled,
+                        onTap: () => cubit.addQuestion(),
+                      ),
+                      _BarButton(
+                        icon: CupertinoIcons.photo_fill,
+                        label: 'Image',
+                        enabled: enabled,
+                        onTap: () async {
+                          final driveClient = getIt<DriveClient>();
+                          final url = await showImageUrlDialog(
+                            context,
+                            onGalleryUpload: (bytes, mimeType) =>
+                                driveClient.uploadImage(bytes, mimeType),
+                          );
+                          if (url != null && context.mounted) {
+                            cubit.addImageItem(url);
+                          }
+                        },
+                      ),
+                      _BarButton(
+                        icon: CupertinoIcons.textformat_alt,
+                        label: 'Text',
+                        enabled: enabled,
+                        onTap: () => cubit.addTextBlock(),
+                      ),
+                      _BarButton(
+                        icon: CupertinoIcons.play_circle_fill,
+                        label: 'Video',
+                        enabled: enabled,
+                        onTap: () async {
+                          final video = await showVideoSearchDialog(context);
+                          if (video != null && context.mounted) {
+                            cubit.addVideoItem(video.videoId, video.title);
+                          }
+                        },
+                      ),
+                      _BarButton(
+                        icon: CupertinoIcons.rectangle_stack_fill,
+                        label: 'Section',
+                        enabled: enabled,
+                        onTap: () => cubit.addSection(),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-              child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _BarButton(
-                icon: CupertinoIcons.add_circled_solid,
-                label: 'Question',
-                enabled: enabled,
-                onTap: () => cubit.addQuestion(),
-              ),
-              _BarButton(
-                icon: CupertinoIcons.photo_fill,
-                label: 'Image',
-                enabled: enabled,
-                onTap: () async {
-                  final driveClient = getIt<DriveClient>();
-                  final url = await showImageUrlDialog(
-                    context,
-                    onGalleryUpload: (bytes, mimeType) =>
-                        driveClient.uploadImage(bytes, mimeType),
-                  );
-                  if (url != null && context.mounted) {
-                    cubit.addImageItem(url);
-                  }
-                },
-              ),
-              _BarButton(
-                icon: CupertinoIcons.textformat_alt,
-                label: 'Text',
-                enabled: enabled,
-                onTap: () => cubit.addTextBlock(),
-              ),
-              _BarButton(
-                icon: CupertinoIcons.play_circle_fill,
-                label: 'Video',
-                enabled: enabled,
-                onTap: () async {
-                  final video = await showVideoSearchDialog(context);
-                  if (video != null && context.mounted) {
-                    cubit.addVideoItem(video.videoId, video.title);
-                  }
-                },
-              ),
-              _BarButton(
-                icon: CupertinoIcons.rectangle_stack_fill,
-                label: 'Section',
-                enabled: enabled,
-                onTap: () => cubit.addSection(),
-              ),
-            ],
-          ),
-        ),
+            ),
           ),
         ),
       ),

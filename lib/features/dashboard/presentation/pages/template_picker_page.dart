@@ -7,6 +7,7 @@ import '../../../editor/presentation/pages/editor_page.dart';
 import '../cubit/dashboard_cubit.dart';
 import 'template_data.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/layout.dart';
 
 class TemplatePickerPage extends StatefulWidget {
   const TemplatePickerPage({super.key});
@@ -679,8 +680,8 @@ class _CategorySection extends StatelessWidget {
                 itemCount: templates.length,
                 padding: EdgeInsets.zero,
                 gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                    SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isTablet(context) ? 4 : 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   childAspectRatio: 0.82,
