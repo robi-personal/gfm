@@ -76,6 +76,11 @@ class EditorLoaded extends EditorState {
   /// Consumed by BlocListener to launch the Google Forms web editor flow.
   final bool fileUploadViaWebRequested;
 
+  /// One-shot: set when the user taps Edit on an existing file-upload card.
+  /// Consumed by BlocListener to launch the Google Forms web editor flow
+  /// (with edit-specific dialog copy).
+  final bool fileUploadEditViaWebRequested;
+
   EditorLoaded(
     this.form, {
     FormDoc? lastKnownGood,
@@ -86,6 +91,7 @@ class EditorLoaded extends EditorState {
     this.saveFailed = false,
     this.pendingEditItemId,
     this.fileUploadViaWebRequested = false,
+    this.fileUploadEditViaWebRequested = false,
   })  : lastKnownGood = lastKnownGood ?? form,
         serverItemOrder =
             serverItemOrder ?? form.items.map((i) => i.itemId).toList();
@@ -113,6 +119,7 @@ class EditorLoaded extends EditorState {
     bool? saveFailed,
     Object? pendingEditItemId = _unset,
     bool? fileUploadViaWebRequested,
+    bool? fileUploadEditViaWebRequested,
   }) =>
       EditorLoaded(
         form ?? this.form,
@@ -127,6 +134,8 @@ class EditorLoaded extends EditorState {
             : pendingEditItemId as String?,
         fileUploadViaWebRequested:
             fileUploadViaWebRequested ?? this.fileUploadViaWebRequested,
+        fileUploadEditViaWebRequested: fileUploadEditViaWebRequested ??
+            this.fileUploadEditViaWebRequested,
       );
 }
 

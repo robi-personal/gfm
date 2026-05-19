@@ -153,16 +153,24 @@ class QuestionCard extends StatelessWidget {
                           onPressed: () =>
                               context.read<EditorCubit>().deleteItem(item.itemId),
                         ),
-                        // Edit — disabled for read-only question types
-                        if (kind is! FileUploadQuestion)
-                          _ActionButton(
-                            icon: CupertinoIcons.pencil,
-                            tooltip: 'Edit',
-                            onPressed: () => QuestionEditSheet.show(
-                              context, item, sections,
-                              isQuiz: isQuiz,
-                            ),
-                          ),
+                        // Edit — file-upload questions route through the
+                        // Google Forms web editor (API doesn't support them).
+                        _ActionButton(
+                          icon: CupertinoIcons.pencil,
+                          tooltip: 'Edit',
+                          onPressed: () {
+                            if (kind is FileUploadQuestion) {
+                              context
+                                  .read<EditorCubit>()
+                                  .requestEditFileUploadViaWeb();
+                            } else {
+                              QuestionEditSheet.show(
+                                context, item, sections,
+                                isQuiz: isQuiz,
+                              );
+                            }
+                          },
+                        ),
                         const Spacer(),
                         // Required toggle — not available for read-only question types
                         if (kind is! FileUploadQuestion) ...[

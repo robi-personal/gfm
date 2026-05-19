@@ -12,8 +12,13 @@ import '../../../../core/theme/app_colors.dart';
 /// the form so any changes made in the web editor surface locally.
 class EditFormWebViewPage extends StatefulWidget {
   final String formId;
+  final String title;
 
-  const EditFormWebViewPage({super.key, required this.formId});
+  const EditFormWebViewPage({
+    super.key,
+    required this.formId,
+    this.title = 'Add file upload',
+  });
 
   @override
   State<EditFormWebViewPage> createState() => _EditFormWebViewPageState();
@@ -41,9 +46,9 @@ class _EditFormWebViewPageState extends State<EditFormWebViewPage> {
                 color: AppColors.purple, size: 18),
             onPressed: _handleBack,
           ),
-          title: const Text(
-            'Add file upload',
-            style: TextStyle(
+          title: Text(
+            widget.title,
+            style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -101,7 +106,7 @@ class _EditFormWebViewPageState extends State<EditFormWebViewPage> {
                           setState(() => _progress = p / 100),
                     ),
                   ),
-                  const _HintBar(),
+                  _HintBar(isEditing: widget.title.startsWith('Edit')),
                 ],
               ),
       ),
@@ -123,7 +128,9 @@ class _EditFormWebViewPageState extends State<EditFormWebViewPage> {
 }
 
 class _HintBar extends StatelessWidget {
-  const _HintBar();
+  final bool isEditing;
+
+  const _HintBar({required this.isEditing});
 
   @override
   Widget build(BuildContext context) {
@@ -136,16 +143,18 @@ class _HintBar extends StatelessWidget {
         left: 16,
         right: 16,
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.arrow_up_doc,
+          const Icon(CupertinoIcons.arrow_up_doc,
               size: 14, color: AppColors.textSecondary),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
-              'Add your file upload question, then tap ← to return',
-              style: TextStyle(
+              isEditing
+                  ? 'Edit your file upload question, then tap ← to return'
+                  : 'Add your file upload question, then tap ← to return',
+              style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,
               ),

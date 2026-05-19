@@ -120,8 +120,11 @@ class _EditorViewState extends State<_EditorView>
   /// changes (so they aren't lost by the post-return reload), opens the
   /// Google Forms web editor, and on return refreshes the form so the newly
   /// created file-upload question shows up.
-  Future<void> _runFileUploadWebFlow(BuildContext context) async {
-    final proceed = await _showFileUploadInfoDialog(context);
+  Future<void> _runFileUploadWebFlow(
+    BuildContext context, {
+    required bool isEditing,
+  }) async {
+    final proceed = await _showFileUploadInfoDialog(context, isEditing: isEditing);
     if (proceed != true || !context.mounted) return;
 
     final cubit = context.read<EditorCubit>();
@@ -156,7 +159,10 @@ class _EditorViewState extends State<_EditorView>
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditFormWebViewPage(formId: widget.formId),
+        builder: (_) => EditFormWebViewPage(
+          formId: widget.formId,
+          title: isEditing ? 'Edit file upload' : 'Add file upload',
+        ),
       ),
     );
     if (!context.mounted) return;
@@ -185,6 +191,10 @@ class _EditorViewState extends State<_EditorView>
           }
           if (curr.fileUploadViaWebRequested &&
               !(p?.fileUploadViaWebRequested ?? false)) {
+            return true;
+          }
+          if (curr.fileUploadEditViaWebRequested &&
+              !(p?.fileUploadEditViaWebRequested ?? false)) {
             return true;
           }
         }
@@ -462,7 +472,12 @@ class _EditorViewState extends State<_EditorView>
 
     if (state case EditorLoaded(fileUploadViaWebRequested: true)) {
       context.read<EditorCubit>().clearFileUploadRequest();
-      _runFileUploadWebFlow(context);
+      _runFileUploadWebFlow(context, isEditing: false);
+    }
+
+    if (state case EditorLoaded(fileUploadEditViaWebRequested: true)) {
+      context.read<EditorCubit>().clearEditFileUploadRequest();
+      _runFileUploadWebFlow(context, isEditing: true);
     }
 
     if (state case EditorError(:final kind)) {
@@ -2056,7 +2071,20 @@ class _FullScreenError extends StatelessWidget {
   }
 }
 
-Future<bool?> _showFileUploadInfoDialog(BuildContext context) {
+Future<bool?> _showFileUploadInfoDialog(
+  BuildContext context, {
+  required bool isEditing,
+}) {
+  final title = isEditing ? 'Edit file upload' : 'Add file upload';
+  final body = isEditing
+      ? "File upload questions can only be edited on the Google Forms "
+          "website — the Forms API doesn’t support them. Tap below to open "
+          "this form there. When you come back, your changes will appear "
+          "automatically."
+      : "File upload questions can only be created on the Google Forms "
+          "website — the Forms API doesn’t support them. Tap below to open "
+          "this form there. When you come back, your new question will "
+          "appear automatically.";
   return showDialog<bool>(
     context: context,
     barrierDismissible: true,
@@ -2086,9 +2114,9 @@ Future<bool?> _showFileUploadInfoDialog(BuildContext context) {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  'Add file upload',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -2100,12 +2128,9 @@ Future<bool?> _showFileUploadInfoDialog(BuildContext context) {
             const Divider(
                 height: 1, thickness: 1, color: AppColors.groupedBackground),
             const SizedBox(height: 12),
-            const Text(
-              "File upload questions can only be created on the Google Forms "
-              "website — the Forms API doesn’t support them. Tap below to "
-              "open this form there. When you come back, your new question "
-              "will appear automatically.",
-              style: TextStyle(
+            Text(
+              body,
+              style: const TextStyle(
                 fontSize: 13,
                 height: 1.45,
                 color: Color(0xFF6E6E73),

@@ -474,6 +474,21 @@ class EditorCubit extends Cubit<EditorState> {
     }
   }
 
+  /// Signals that the user tapped Edit on an existing file-upload card.
+  void requestEditFileUploadViaWeb() {
+    if (state is EditorLoaded) {
+      emit((state as EditorLoaded)
+          .copyWith(fileUploadEditViaWebRequested: true));
+    }
+  }
+
+  void clearEditFileUploadRequest() {
+    if (state is EditorLoaded) {
+      emit((state as EditorLoaded)
+          .copyWith(fileUploadEditViaWebRequested: false));
+    }
+  }
+
   /// Public wrapper around [_silentRefresh] — called after the user returns
   /// from the Google Forms web editor so the new file-upload question (which
   /// was created on the web side) appears locally.
