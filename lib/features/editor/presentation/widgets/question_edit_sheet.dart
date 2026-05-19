@@ -297,7 +297,12 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       finalKind = _kind;
     }
 
-    grading_model.Grading? grading = content.question.grading;
+    // Only set grading when the form is in quiz mode. Sending grading on a
+    // non-quiz form is rejected by the API: "Invalid grading, grading cannot
+    // be set on a form that has no grading settings." We intentionally drop
+    // any pre-existing grading the question may carry from when the form
+    // was previously in quiz mode.
+    grading_model.Grading? grading;
     if (widget.isQuiz) {
       final pts = int.tryParse(_pointsCtrl.text.trim()) ?? 0;
 
