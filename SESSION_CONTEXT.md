@@ -167,6 +167,9 @@ lib/
 16. **`EditorCubit` emit-after-close**: cubit closed before async `loadForm`/`updateSettings`/`save` completed → "Bad state: Cannot emit new states after calling close". Fix: `if (isClosed) return` guards after each `await` before emit.
 17. **Template items not created for grid templates**: `_stripIds` only removed `questionId` from `questionItem.question`, not from `questionGroupItem.questions` rows. The Forms API rejected the whole batch; the `catch (_) {}` silently swallowed it. Fix: strip `questionId` from all rows in `questionGroupItem.questions`; add logging to the catch block.
 18. **RevenueCat `app_user_id` was email, webhook expected `google_sub`**: every paid subscription silently failed — `findByGoogleSub(email)` returned null, webhook hit the `rc_webhook_unknown_user` branch and ack'd 200 without crediting quota or flipping `is_premium`. Fix: added `googleId` to `AuthUser` (from `GoogleSignInAccount.id`), passed it to `Purchases.logIn`. Webhook lookup now resolves correctly. Do NOT change `Purchases.logIn` to use email or any other identifier — must remain the Google ID-token `sub`.
+19. **`DashboardCubit` emit-after-close on import**: same pattern as #16 but for the dashboard's `importForm`. The cubit was being closed mid-flight while the WebView import flow was pushed, and the post-pop `emit` threw `Bad state: Cannot emit new states after calling close`. Fix: `if (isClosed) return` guards in `DashboardCubit.importForm`.
+20. **Stale grading on non-quiz forms**: `QuestionEditSheet._commit` seeded `grading` from the question's existing value. If the form had been switched out of quiz mode, that stale grading tagged along on every save → API 400 `Invalid grading, grading cannot be set on a form that has no grading settings`. Fix: start `grading` as null, only build it when `widget.isQuiz` is true.
+21. **`CorrectAnswer.value` null crash on import**: imported forms with quiz data crashed in `_$$CorrectAnswerImplFromJson` because Google Forms returns `null` for `value` on some `CorrectAnswer` entries (same family as #15). Fix: `json['value'] as String? ?? ''` in `grading.g.dart`.
 
 ## What NOT to do
 
@@ -472,6 +475,50 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 - **Bug:** `google_sign_in` v6 on iOS issues `idToken` with the iOS client ID as audience, not the web client ID. Backend was only accepting web client ID → all iOS users got 401 `Wrong recipient`.
 - **Fix:** Added `GOOGLE_IOS_CLIENT_ID` env var; updated `google-token-verifier.ts` to accept both web and iOS client IDs as valid audiences. Added `GIDServerClientID` to `Info.plist`. Removed stale `NSAppTransportSecurity` exception for old VPS IP.
 - Do NOT remove `GOOGLE_IOS_CLIENT_ID` from `.env` — iOS users will break again.
+
+---
+
+## Recent changes (2026-05-19 / 2026-05-20 sessions)
+
+### Import flow — browse Drive in a WebView (commits `77d6744`, `db4ef78`)
+
+- Replaces the manual URL-paste dialog with an in-app Google Drive WebView.
+- Added `flutter_inappwebview ^6.1.5` dep (kept `webview_flutter` for the read-only preview screen).
+- New `ImportFormWebViewPage` opens `https://drive.google.com/drive/u/0/search?q=type:form`.
+- iOS Safari 17.5 user-agent injected via `InAppWebViewSettings.userAgent` to dodge Google's "browser not supported" banner.
+- Tap detection is **not** via navigation interception — Drive's mobile UI handles form taps as in-place AJAX, no main-frame URL change to intercept. Instead, an `AT_DOCUMENT_START` userscript installs a `document`-level click handler in capture phase that walks up the DOM from the tap target looking for `data-id`, `data-target-id`, or `data-document-id`. When found, it calls `window.flutter_inappwebview.callHandler('FormTap', id)`. Flutter pops the WebView with the ID and the dashboard imports it.
+- Drive's search header (the `← type:form` bar) is hidden via a stylesheet injected at document-start: `.a-s-tb-Kg, .D-B { display: none !important; }`.
+- Pre-import explainer dialog ("Heads up — minimal Google Drive access…") on the dashboard before opening the WebView. Wording leads with the privacy / minimal-scope framing.
+
+**Gotchas discovered (don't repeat):**
+- `forms.google.com` no longer shows a forms list — it redirects straight to "create new form".
+- WKWebView platform views leave a black artifact during route exit if disposed mid-animation. Mitigation: swap WebView for a `CupertinoActivityIndicator` via setState, wait 120 ms, then `Navigator.pop`. Pattern is in `ImportFormWebViewPage._popWithResult`.
+- `flutter_inappwebview`'s `NavigationType` is unreliable on iOS (often `-1`), so don't depend on it for distinguishing user taps from redirects.
+
+### File-upload questions via Google Forms web editor (commits `5f1292f`, `02ed4e2`, `c60bc55`, `c445609`)
+
+- Forms API can't create or edit file-upload questions. The app now shells out to the Google Forms web editor for both create and edit:
+  - **Create**: type picker → "File upload" → in-sheet prompt panel (in `QuestionEditSheet`, replaces body with a centered explainer + Continue/Cancel) → on Continue, push `EditFormWebViewPage`.
+  - **Edit**: pencil on existing file-upload card → editor-level `ErrorModal` (`_showFileUploadInfoDialog`) → push `EditFormWebViewPage`.
+- After WebView pops, `EditorCubit.refreshFromServer()` (public wrapper around `_silentRefresh`) reloads the form so the newly added/edited question appears.
+- Two cubit signals (`fileUploadViaWebRequested`, `fileUploadEditViaWebRequested`) — BlocListener consumes them and runs `_runFileUploadWebFlow` (which skips the editor-level dialog for the add path since the in-sheet prompt already confirmed).
+- `EditFormWebViewPage` hides Google Forms' fixed top chrome via injected CSS: `.vDIOnd, .MBLJ9d { display: none !important; }` and `.KP7TGc { top: 0 !important; }`. `MBLJ9d` is a spacer that reserves 146 px under the fixed header — must hide both. (DOM debug dump method is preserved in git history.)
+- Both prompts dropped the user-hostile "Forms API" jargon — copy leads with the privacy / minimal-permissions framing instead.
+
+### Editor UX overhaul (commits `48cad0e`, `aeacaf2`, `0f6a2fa`, `702dd36`)
+
+- **Type picker redesign** — flat list of chip+text rows became iOS-style card tiles: colored icon box on the left, bold title, one-line description, purple-tinted selected state with a filled check circle. Sections relabelled from "Free-tier"/"Advanced" to "COMMON"/"ADVANCED" (the old wording was misleading post-paywall). Close icon (`×`) added in the picker's top-right.
+- **Question edit sheet redesign** — flat scrolling fields became grouped iOS-style cards on a grey background. Type is now the first card (it drives what renders below it). Each card has tiny uppercase section labels. The Type row is a proper iOS row with the colored icon box and chevron. Required and Points rows gain subtitles.
+- **Draft questions** — `+` no longer inserts a placeholder TextQuestion and auto-opens edit. It now opens `QuestionEditSheet` in `isDraft: true` mode with a fresh in-memory item. `Done` commits via the new `EditorCubit.addQuestionFromDraft(Item)`; dismissing the sheet discards the draft, so accidental `+` taps leave no placeholders. The old `addQuestion()` cubit method is gone.
+- **File-upload type-change prompt** lives inside the QuestionEditSheet (`_FileUploadPromptPanel`) instead of closing the sheet and showing a separate dialog. Cancel restores the previous edit state.
+
+### Drop read-only imported-form machinery (commit `fe8a2bd`)
+
+- Imported forms (`isOwned: false`) are owned by the user (same Google account), so the Forms API lets them edit normally. Reverted commit `e337f96`: removed `EditorScope` InheritedWidget and all `if (readOnly)` branches throughout the editor tree. Net delete of ~90 lines. The API's own 403 surfaces real permission issues via the existing error modal.
+
+### Force-pushed cleanup (2026-05-20)
+
+- A larger refactor moving the editor's add-actions to an `ExpandableFab` and the Save button to a sticky bottom bar was force-pushed away (was: commits `4687478`, `1c32ac5`). The grading null-safety patch from that commit set was re-applied as `0e0d082`. Editor's add-actions remain the floating frosted bottom bar (Question/Image/Text/Video/Section) and Save is back as the AppBar chip.
 
 ---
 
