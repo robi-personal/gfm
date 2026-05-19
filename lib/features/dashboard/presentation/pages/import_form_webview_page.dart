@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -82,6 +84,25 @@ class _ImportFormWebViewPageState extends State<ImportFormWebViewPage> {
                       'AppleWebKit/605.1.15 (KHTML, like Gecko) '
                       'Version/17.5 Mobile/15E148 Safari/604.1',
                 ),
+                initialUserScripts: UnmodifiableListView<UserScript>([
+                  // Inject hide-rules before any page content renders, so the
+                  // search header never paints (no glimpse).
+                  UserScript(
+                    source: r'''
+                      (function() {
+                        var s = document.createElement('style');
+                        // Hide both Drive's search toolbar (a-s-tb-Kg) and its
+                        // outer wrapper (D-B class) that would otherwise stay
+                        // as an empty row below our AppBar.
+                        s.textContent =
+                          '.a-s-tb-Kg, .D-B { display: none !important; }';
+                        (document.head || document.documentElement).appendChild(s);
+                      })();
+                    ''',
+                    injectionTime:
+                        UserScriptInjectionTime.AT_DOCUMENT_START,
+                  ),
+                ]),
                 onWebViewCreated: (c) {
                   _controller = c;
                   c.addJavaScriptHandler(
@@ -172,6 +193,26 @@ class _ImportFormWebViewPageState extends State<ImportFormWebViewPage> {
                           window.flutter_inappwebview.callHandler('FormTap', id);
                         }
                       }, true);
+
+                      // Hide Drive's search header. The input is at depth 0;
+                      // its level-3 ancestor is the search toolbar (a-s-tb-Kg),
+                      // and the level-6 ancestor is the outer "D-B" toolbar
+                      // wrapper. Hiding only the inner row leaves the wrapper
+                      // as an empty band, so we hide the level-6 ancestor.
+                      function hideSearchHeader() {
+                        var inputs = document.querySelectorAll(
+                            'input[aria-label="Search all items"]');
+                        for (var i = 0; i < inputs.length; i++) {
+                          var p = inputs[i];
+                          for (var d = 0; d < 6 && p && p.parentElement; d++) {
+                            p = p.parentElement;
+                          }
+                          if (p) p.style.display = 'none';
+                        }
+                      }
+                      hideSearchHeader();
+                      setTimeout(hideSearchHeader, 300);
+                      setTimeout(hideSearchHeader, 1200);
                     })();
                   ''');
                 },

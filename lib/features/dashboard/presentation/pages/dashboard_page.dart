@@ -582,6 +582,9 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   Future<void> _openImport(BuildContext context) async {
+    final proceed = await _showImportInfoDialog(context);
+    if (proceed != true || !context.mounted) return;
+
     final cubit = context.read<DashboardCubit>();
     final formId = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const ImportFormWebViewPage()),
@@ -1330,6 +1333,122 @@ class _FormCard extends StatelessWidget {
 }
 
 enum _RowAction { open, rename, delete, removeImport }
+
+Future<bool?> _showImportInfoDialog(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.purple.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.info,
+                    color: AppColors.purple,
+                    size: 15,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Heads up',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(
+                height: 1, thickness: 1, color: AppColors.groupedBackground),
+            const SizedBox(height: 12),
+            const Text(
+              "For your privacy, this app requests only minimal Google Drive "
+              "access — so it can see only the forms it created here. Forms "
+              "made on the Google Forms website or in other apps don’t show "
+              "up automatically. Tap below to browse your Drive and pick the "
+              "ones to import.",
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: Color(0xFF6E6E73),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Primary — Import Existing Forms
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(true),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: AppColors.purple,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.purple.withValues(alpha: 0.30),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'Import Existing Forms',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Secondary — Later
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(false),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: AppColors.groupedBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Later',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 Future<String?> _showRenameDialog(BuildContext context,
     {required String current}) {
