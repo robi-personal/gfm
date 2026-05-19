@@ -90,10 +90,13 @@ class _EditFormWebViewPageState extends State<EditFormWebViewPage> {
                           source: r'''
                             (function() {
                               var s = document.createElement('style');
-                              // Hide Drive/Forms mobile toolbars so only the
-                              // editor itself shows under our AppBar.
                               s.textContent =
-                                '.a-s-tb-Kg, .D-B { display: none !important; }';
+                                // Hide Google Forms's fixed top chrome
+                                // (toolbar + form title + Questions/Responses/
+                                // Settings tabs) and its 146px spacer, then
+                                // pull the main content up to top:0.
+                                '.vDIOnd, .MBLJ9d { display: none !important; }' +
+                                '.KP7TGc { top: 0 !important; }';
                               (document.head || document.documentElement).appendChild(s);
                             })();
                           ''',
