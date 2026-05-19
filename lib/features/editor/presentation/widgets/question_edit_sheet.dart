@@ -8,7 +8,6 @@ import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question_kind.dart';
 import '../cubit/editor_cubit.dart';
-import 'type_chip.dart';
 import 'type_picker_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -338,26 +337,17 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     Navigator.of(context).pop();
   }
 
-  // Shared input decoration matching dashboard style
-  static InputDecoration _inputDec(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
-        filled: true,
-        fillColor: AppColors.purpleTintDeep,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+  // Borderless decoration for fields embedded in a _Card (the card itself
+  // provides the visual container, so the input doesn't need its own).
+  static InputDecoration _bareDec(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 15, color: AppColors.textTertiary),
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        isDense: true,
+        contentPadding: EdgeInsets.zero,
       );
 
   @override
@@ -366,8 +356,6 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     final safeArea = MediaQuery.of(context).padding.bottom;
     final bottom = viewInsets + safeArea;
 
-    const labelStyle = TextStyle(
-        fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54);
     const bodyStyle = TextStyle(fontSize: 15, color: Colors.black87);
 
     return Padding(
@@ -417,215 +405,186 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
             ),
           ),
           const Divider(height: 1, color: AppColors.borderSubtle),
-          // Scrollable body
+          // Scrollable body — iOS-style grouped sections
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  const Text('Question title', style: labelStyle),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _titleCtrl,
-                    style: bodyStyle.copyWith(fontWeight: FontWeight.w500),
-                    decoration: _inputDec('').copyWith(
-                      labelText: null,
-                      hintText: 'e.g. What is your name?',
-                      hintStyle: const TextStyle(
-                          fontSize: 15, color: Colors.black26),
-                    ),
-                    minLines: 1,
-                    maxLines: 4,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 16),
-                  // Description
-                  const Text('Description', style: labelStyle),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _descCtrl,
-                    style: bodyStyle,
-                    decoration: _inputDec('').copyWith(
-                      labelText: null,
-                      hintText: 'Optional',
-                      hintStyle: const TextStyle(
-                          fontSize: 15, color: Colors.black26),
-                    ),
-                    minLines: 1,
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 20),
-                  // Type
-                  Row(
-                    children: [
-                      const Text('Type', style: labelStyle),
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: _pickType,
-                        child: TypeChip(kind: _kind, showCaret: true),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Options or type preview
-                  if (_kind is ChoiceQuestion) ...[
-                    Row(
-                      children: [
-                        const Text('Options', style: labelStyle),
-                        if (widget.isQuiz) ...[
-                          const SizedBox(width: 8),
-                          const Text('— tap ✓ to mark correct',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.black38)),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ..._buildOptionRows(context),
-                    TextButton.icon(
-                      onPressed: _addOption,
-                      icon: const Icon(Icons.add,
-                          size: 16, color: AppColors.purple),
-                      label: const Text('Add option',
-                          style: TextStyle(color: AppColors.purple)),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                    if (!_hasOtherOption)
-                      TextButton.icon(
-                        onPressed: _addOtherOption,
-                        icon: const Icon(Icons.add,
-                            size: 16, color: AppColors.purple),
-                        label: const Text('Add "Other"',
-                            style: TextStyle(color: AppColors.purple)),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 0),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                  ] else ...[
-                    _TypePreview(kind: _kind),
-                  ],
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(color: AppColors.borderSubtle),
-                  ),
-                  // Required
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Required', style: bodyStyle),
-                      Switch(
-                        value: _required,
-                        activeColor: AppColors.purple,
-                        onChanged: (v) => setState(() => _required = v),
-                      ),
-                    ],
-                  ),
-                  // Points (quiz mode only)
-                  if (widget.isQuiz) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Text('Points', style: bodyStyle),
-                        const Spacer(),
-                        SizedBox(
-                          width: 80,
-                          child: TextField(
-                            controller: _pointsCtrl,
-                            keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
-                            style: bodyStyle,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: AppColors.purpleTintDeep,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                    color: AppColors.purple, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 10),
-                              isDense: true,
+            child: ColoredBox(
+              color: AppColors.groupedBackground,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── CONTENT ───────────────────────────────────────────
+                    const _SectionLabel('Content'),
+                    _Card(
+                      child: Column(
+                        children: [
+                          _FieldBlock(
+                            label: 'Title',
+                            child: TextField(
+                              controller: _titleCtrl,
+                              style: bodyStyle.copyWith(
+                                  fontWeight: FontWeight.w500),
+                              decoration: _bareDec('e.g. What is your name?'),
+                              minLines: 1,
+                              maxLines: 4,
+                              textInputAction: TextInputAction.next,
                             ),
                           ),
-                        ),
-                      ],
+                          const _CardDivider(),
+                          _FieldBlock(
+                            label: 'Description',
+                            child: TextField(
+                              controller: _descCtrl,
+                              style: bodyStyle,
+                              decoration: _bareDec('Optional'),
+                              minLines: 1,
+                              maxLines: 3,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    // Correct answer (TextQuestion only)
-                    if (_kind is TextQuestion) ...[
-                      const SizedBox(height: 16),
-                      const Text('Answer key', style: labelStyle),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _correctTextCtrl,
-                        style: bodyStyle,
-                        decoration: _inputDec('Correct answer'),
+                    const SizedBox(height: 18),
+                    // ── TYPE ──────────────────────────────────────────────
+                    const _SectionLabel('Type'),
+                    _Card(
+                      child: _TypeRow(kind: _kind, onTap: _pickType),
+                    ),
+                    const SizedBox(height: 18),
+                    // ── OPTIONS / PREVIEW ─────────────────────────────────
+                    if (_kind is ChoiceQuestion) ...[
+                      _SectionLabel(
+                        widget.isQuiz
+                            ? 'Options · tap ✓ to mark correct'
+                            : 'Options',
                       ),
+                      _Card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: _buildOptionRows(context),
+                              ),
+                            ),
+                            const _CardDivider(),
+                            _AddRow(
+                              icon: Icons.add_circle_outline,
+                              label: 'Add option',
+                              onTap: _addOption,
+                            ),
+                            if (!_hasOtherOption) ...[
+                              const _CardDivider(),
+                              _AddRow(
+                                icon: Icons.add_box_outlined,
+                                label: 'Add "Other"',
+                                onTap: _addOtherOption,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                    ] else ...[
+                      const _SectionLabel('Preview'),
+                      _Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 14),
+                          child: _TypePreview(kind: _kind),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                     ],
-                    // Feedback
-                    if (_kind is ChoiceQuestion &&
-                        _correctOptionIndices.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text('When correct', style: labelStyle),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _whenRightCtrl,
-                        style: bodyStyle,
-                        decoration: _inputDec('').copyWith(
-                          labelText: null,
-                          hintText: 'Optional',
-                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
-                        ),
-                        minLines: 1,
-                        maxLines: 3,
+                    // ── SETTINGS ──────────────────────────────────────────
+                    const _SectionLabel('Settings'),
+                    _Card(
+                      child: Column(
+                        children: [
+                          _ToggleRow(
+                            label: 'Required',
+                            subtitle: 'Users must answer this question',
+                            value: _required,
+                            onChanged: (v) =>
+                                setState(() => _required = v),
+                          ),
+                          if (widget.isQuiz) ...[
+                            const _CardDivider(),
+                            _PointsRow(controller: _pointsCtrl),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      const Text('When incorrect', style: labelStyle),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _whenWrongCtrl,
-                        style: bodyStyle,
-                        decoration: _inputDec('').copyWith(
-                          labelText: null,
-                          hintText: 'Optional',
-                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
+                    ),
+                    // ── QUIZ ANSWER & FEEDBACK ───────────────────────────
+                    if (widget.isQuiz) ...[
+                      const SizedBox(height: 18),
+                      const _SectionLabel('Answer & feedback'),
+                      _Card(
+                        child: Column(
+                          children: [
+                            if (_kind is TextQuestion) ...[
+                              _FieldBlock(
+                                label: 'Correct answer',
+                                child: TextField(
+                                  controller: _correctTextCtrl,
+                                  style: bodyStyle,
+                                  decoration: _bareDec('Correct answer'),
+                                ),
+                              ),
+                              const _CardDivider(),
+                              _FieldBlock(
+                                label: 'General feedback',
+                                child: TextField(
+                                  controller: _generalFeedbackCtrl,
+                                  style: bodyStyle,
+                                  decoration: _bareDec('Optional'),
+                                  minLines: 1,
+                                  maxLines: 3,
+                                ),
+                              ),
+                            ] else if (_kind is ChoiceQuestion &&
+                                _correctOptionIndices.isNotEmpty) ...[
+                              _FieldBlock(
+                                label: 'When correct',
+                                child: TextField(
+                                  controller: _whenRightCtrl,
+                                  style: bodyStyle,
+                                  decoration: _bareDec('Optional'),
+                                  minLines: 1,
+                                  maxLines: 3,
+                                ),
+                              ),
+                              const _CardDivider(),
+                              _FieldBlock(
+                                label: 'When incorrect',
+                                child: TextField(
+                                  controller: _whenWrongCtrl,
+                                  style: bodyStyle,
+                                  decoration: _bareDec('Optional'),
+                                  minLines: 1,
+                                  maxLines: 3,
+                                ),
+                              ),
+                            ] else
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 14),
+                                child: Text(
+                                  'Mark a correct option above to add feedback.',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary),
+                                ),
+                              ),
+                          ],
                         ),
-                        minLines: 1,
-                        maxLines: 3,
-                      ),
-                    ] else if (_kind is TextQuestion) ...[
-                      const SizedBox(height: 16),
-                      const Text('General feedback', style: labelStyle),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _generalFeedbackCtrl,
-                        style: bodyStyle,
-                        decoration: _inputDec('').copyWith(
-                          labelText: null,
-                          hintText: 'Optional',
-                          hintStyle: const TextStyle(fontSize: 15, color: Colors.black26),
-                        ),
-                        minLines: 1,
-                        maxLines: 3,
                       ),
                     ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -646,77 +605,80 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
 
     return List.generate(_optionCtrls.length, (i) {
       final isCorrect = _correctOptionIndices.contains(i);
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.purpleTintDeep,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  if (widget.isQuiz) ...[
-                    GestureDetector(
-                      onTap: () => _toggleCorrectOption(i),
-                      child: Icon(
-                        isCorrect
-                            ? Icons.check_circle
-                            : Icons.check_circle_outline,
-                        size: 20,
-                        color: isCorrect
-                            ? Colors.green
-                            : Colors.black38,
-                      ),
+      final isLast = i == _optionCtrls.length - 1;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                if (widget.isQuiz) ...[
+                  GestureDetector(
+                    onTap: () => _toggleCorrectOption(i),
+                    child: Icon(
+                      isCorrect
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      size: 22,
+                      color: isCorrect ? AppColors.success : AppColors.textTertiary,
                     ),
-                    const SizedBox(width: 6),
-                  ],
-                  Icon(icon, size: 18, color: Colors.black38),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _isOtherOption[i]
-                        ? const Text(
-                            'Other...',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black38,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          )
-                        : TextField(
-                            controller: _optionCtrls[i],
-                            style: const TextStyle(
-                                fontSize: 15, color: Colors.black87),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              isDense: true,
-                            ),
-                          ),
                   ),
-                  if (_optionCtrls.length > 1)
-                    GestureDetector(
-                      onTap: () => _removeOption(i),
-                      child: const Icon(Icons.close,
-                          size: 18, color: Colors.black38),
-                    ),
+                  const SizedBox(width: 10),
                 ],
-              ),
+                Icon(icon, size: 19, color: AppColors.textTertiary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _isOtherOption[i]
+                      ? const Text(
+                          'Other…',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        )
+                      : TextField(
+                          controller: _optionCtrls[i],
+                          style: const TextStyle(
+                              fontSize: 15, color: AppColors.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Option ${i + 1}',
+                            hintStyle: const TextStyle(
+                                fontSize: 15, color: AppColors.textTertiary),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                        ),
+                ),
+                if (_optionCtrls.length > 1)
+                  GestureDetector(
+                    onTap: () => _removeOption(i),
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Icon(Icons.close,
+                          size: 18, color: AppColors.textTertiary),
+                    ),
+                  ),
+              ],
             ),
-            if (showGoTo)
-              _GoToDropdown(
+          ),
+          if (showGoTo)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _GoToDropdown(
                 sections: widget.sections,
                 value: _optionGoTos[i],
                 onChanged: (v) => setState(() => _optionGoTos[i] = v),
               ),
-          ],
-        ),
+            ),
+          if (!isLast)
+            const Divider(height: 1, color: AppColors.separator),
+        ],
       );
     });
   }
@@ -870,3 +832,333 @@ class _TypePreview extends StatelessWidget {
     ]);
   }
 }
+
+// ── Card / section helpers ─────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  final Widget child;
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.separator),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+}
+
+class _CardDivider extends StatelessWidget {
+  const _CardDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(left: 14),
+      child: Divider(height: 1, color: AppColors.separator),
+    );
+  }
+}
+
+class _FieldBlock extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _FieldBlock({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _AddRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _AddRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 19, color: AppColors.purple),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.purple,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TypeRow extends StatelessWidget {
+  final QuestionKind kind;
+  final VoidCallback onTap;
+  const _TypeRow({required this.kind, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _typeColor(kind);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(_typeIcon(kind), color: color, size: 17),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _typeLabel(kind),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right,
+                size: 22, color: AppColors.textTertiary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToggleRow extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleRow({
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeColor: AppColors.purple,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PointsRow extends StatelessWidget {
+  final TextEditingController controller;
+  const _PointsRow({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Points',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Score awarded for a correct answer',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 70,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.groupedBackground,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.purple, width: 1.5),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                isDense: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Type icon/color/label helpers — same mapping as TypePickerSheet so the
+// edit sheet and the picker stay visually consistent.
+IconData _typeIcon(QuestionKind k) => switch (k) {
+      TextQuestion(:final paragraph) =>
+        paragraph ? Icons.notes : Icons.short_text,
+      ChoiceQuestion(:final type) => switch (type) {
+          ChoiceType.radio => Icons.radio_button_checked,
+          ChoiceType.checkbox => Icons.check_box,
+          ChoiceType.dropDown => Icons.expand_circle_down_outlined,
+        },
+      ScaleQuestion() => Icons.linear_scale,
+      DateQuestion() => Icons.calendar_today,
+      TimeQuestion(:final duration) =>
+        duration ? Icons.timer_outlined : Icons.schedule,
+      RatingQuestion() => Icons.star_rate_rounded,
+      RowQuestion() => Icons.grid_view,
+      FileUploadQuestion() => Icons.cloud_upload_outlined,
+    };
+
+Color _typeColor(QuestionKind k) => switch (k) {
+      TextQuestion() => const Color(0xFF1A73E8),
+      ChoiceQuestion() => AppColors.success,
+      ScaleQuestion() => const Color(0xFFFBBC04),
+      DateQuestion() || TimeQuestion() => const Color(0xFFEA4335),
+      RatingQuestion() => const Color(0xFFFA7B17),
+      RowQuestion() || FileUploadQuestion() => AppColors.purple,
+    };
+
+String _typeLabel(QuestionKind k) => switch (k) {
+      TextQuestion(:final paragraph) =>
+        paragraph ? 'Paragraph' : 'Short answer',
+      ChoiceQuestion(:final type) => switch (type) {
+          ChoiceType.radio => 'Multiple choice',
+          ChoiceType.checkbox => 'Checkboxes',
+          ChoiceType.dropDown => 'Dropdown',
+        },
+      ScaleQuestion() => 'Linear scale',
+      DateQuestion() => 'Date',
+      TimeQuestion(:final duration) => duration ? 'Duration' : 'Time',
+      RatingQuestion() => 'Rating',
+      RowQuestion() => 'Row',
+      FileUploadQuestion() => 'File upload',
+    };
