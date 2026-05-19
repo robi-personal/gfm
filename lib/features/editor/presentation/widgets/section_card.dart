@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
+import '../editor_scope.dart';
 import 'question_card.dart' show DragHandleHint;
 
 
@@ -47,80 +48,87 @@ class SectionCard extends StatelessWidget {
             ),
             // Right: drag handle + content
             Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const DragHandleHint(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+              child: Builder(
+                builder: (context) {
+                  final readOnly = EditorScope.isReadOnly(context);
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!readOnly) const DragHandleHint(),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(12, readOnly ? 12 : 4, 12, 4),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                item.title?.isNotEmpty == true
-                                    ? item.title!
-                                    : 'Section',
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.title?.isNotEmpty == true
+                                        ? item.title!
+                                        : 'Section',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.purple,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.purple.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Section',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.purple,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (item.description?.isNotEmpty == true) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                item.description!,
                                 style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.purple,
-                                ),
+                                    fontSize: 13, color: AppColors.textSecondary),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.purple.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                            ],
+                            if (!readOnly) ...[
+                              const SizedBox(height: 12),
+                              const Divider(height: 1, color: AppColors.separator),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  _CardActionButton(
+                                    icon: CupertinoIcons.trash,
+                                    tooltip: 'Delete section',
+                                    onPressed: () =>
+                                        context.read<EditorCubit>().deleteItem(item.itemId),
+                                  ),
+                                  _CardActionButton(
+                                    icon: CupertinoIcons.pencil,
+                                    tooltip: 'Edit section',
+                                    onPressed: () =>
+                                        _SectionEditSheet.show(context, item),
+                                  ),
+                                ],
                               ),
-                              child: const Text(
-                                'Section',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.purple,
-                                ),
-                              ),
-                            ),
+                            ],
                           ],
                         ),
-                        if (item.description?.isNotEmpty == true) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            item.description!,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: AppColors.separator),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _CardActionButton(
-                              icon: CupertinoIcons.trash,
-                              tooltip: 'Delete section',
-                              onPressed: () =>
-                                  context.read<EditorCubit>().deleteItem(item.itemId),
-                            ),
-                            _CardActionButton(
-                              icon: CupertinoIcons.pencil,
-                              tooltip: 'Edit section',
-                              onPressed: () =>
-                                  _SectionEditSheet.show(context, item),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -364,80 +372,87 @@ class TextBlockCard extends StatelessWidget {
             ),
             // Right: drag handle + content
             Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const DragHandleHint(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+              child: Builder(
+                builder: (context) {
+                  final readOnly = EditorScope.isReadOnly(context);
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!readOnly) const DragHandleHint(),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(12, readOnly ? 12 : 4, 12, 4),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                item.title?.isNotEmpty == true
-                                    ? item.title!
-                                    : 'Text block',
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.title?.isNotEmpty == true
+                                        ? item.title!
+                                        : 'Text block',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.purple.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Text',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.purple,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (item.description?.isNotEmpty == true) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                item.description!,
                                 style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
+                                    fontSize: 13, color: AppColors.textSecondary),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.purple.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                            ],
+                            if (!readOnly) ...[
+                              const SizedBox(height: 12),
+                              const Divider(height: 1, color: AppColors.separator),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  _CardActionButton(
+                                    icon: CupertinoIcons.trash,
+                                    tooltip: 'Delete text block',
+                                    onPressed: () =>
+                                        context.read<EditorCubit>().deleteItem(item.itemId),
+                                  ),
+                                  _CardActionButton(
+                                    icon: CupertinoIcons.pencil,
+                                    tooltip: 'Edit text block',
+                                    onPressed: () =>
+                                        TextBlockEditSheet.show(context, item),
+                                  ),
+                                ],
                               ),
-                              child: const Text(
-                                'Text',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.purple,
-                                ),
-                              ),
-                            ),
+                            ],
                           ],
                         ),
-                        if (item.description?.isNotEmpty == true) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            item.description!,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: AppColors.separator),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _CardActionButton(
-                              icon: CupertinoIcons.trash,
-                              tooltip: 'Delete text block',
-                              onPressed: () =>
-                                  context.read<EditorCubit>().deleteItem(item.itemId),
-                            ),
-                            _CardActionButton(
-                              icon: CupertinoIcons.pencil,
-                              tooltip: 'Edit text block',
-                              onPressed: () =>
-                                  TextBlockEditSheet.show(context, item),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

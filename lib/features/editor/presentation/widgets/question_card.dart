@@ -10,6 +10,7 @@ import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question.dart';
 import '../../../../core/models/question_kind.dart';
 import '../cubit/editor_cubit.dart';
+import '../editor_scope.dart';
 import 'question_edit_sheet.dart';
 import 'type_chip.dart';
 
@@ -44,6 +45,7 @@ class QuestionCard extends StatelessWidget {
   Widget _buildSingle(BuildContext context, Question question) {
     final kind = question.kind;
     final isRequired = question.required;
+    final readOnly = EditorScope.isReadOnly(context);
 
     return _CardShell(
       child: IntrinsicHeight(
@@ -66,9 +68,9 @@ class QuestionCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const DragHandleHint(),
+                  if (!readOnly) const DragHandleHint(),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                    padding: EdgeInsets.fromLTRB(12, readOnly ? 12 : 4, 12, 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -108,8 +110,8 @@ class QuestionCard extends StatelessWidget {
                       kind: kind,
                       grading: isQuiz ? question.grading : null,
                     ),
-                    // ── "Add Option" link (choice questions only) ─────────
-                    if (kind is ChoiceQuestion) ...[
+                    // ── "Add Option" link (choice questions only, edit mode) ──
+                    if (!readOnly && kind is ChoiceQuestion) ...[
                       const SizedBox(height: 6),
                       GestureDetector(
                         onTap: () => QuestionEditSheet.show(
@@ -140,6 +142,7 @@ class QuestionCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (!readOnly) ...[
                     const SizedBox(height: 12),
                     const Divider(height: 1, color: AppColors.separator),
                     const SizedBox(height: 12),
@@ -194,6 +197,7 @@ class QuestionCard extends StatelessWidget {
                         ],
                       ],
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -209,6 +213,7 @@ class QuestionCard extends StatelessWidget {
   Widget _buildGroup(BuildContext context) {
     final content = item.content as QuestionGroupItemContent;
     final colCount = content.grid?.columns.options.length ?? 0;
+    final readOnly = EditorScope.isReadOnly(context);
 
     return _CardShell(
       child: IntrinsicHeight(
@@ -229,9 +234,9 @@ class QuestionCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const DragHandleHint(),
+                  if (!readOnly) const DragHandleHint(),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                    padding: EdgeInsets.fromLTRB(12, readOnly ? 12 : 4, 12, 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -264,6 +269,7 @@ class QuestionCard extends StatelessWidget {
                                 fontSize: 12, color: AppColors.textSecondary),
                           ),
                         ],
+                        if (!readOnly) ...[
                         const Divider(height: 20, color: AppColors.separator),
                         Row(
                           children: [
@@ -275,6 +281,7 @@ class QuestionCard extends StatelessWidget {
                             ),
                           ],
                         ),
+                        ],
                       ],
                     ),
                   ),

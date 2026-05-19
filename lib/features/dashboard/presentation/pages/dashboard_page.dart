@@ -1201,7 +1201,7 @@ class _FormCard extends StatelessWidget {
   void _openForm(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) =>
-          EditorPage(formId: form.id, formName: form.name),
+          EditorPage(formId: form.id, formName: form.name, readOnly: !form.isOwned),
     ));
   }
 
