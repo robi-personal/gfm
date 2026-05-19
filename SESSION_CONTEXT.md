@@ -167,6 +167,7 @@ lib/
 16. **`EditorCubit` emit-after-close**: cubit closed before async `loadForm`/`updateSettings`/`save` completed → "Bad state: Cannot emit new states after calling close". Fix: `if (isClosed) return` guards after each `await` before emit.
 17. **Template items not created for grid templates**: `_stripIds` only removed `questionId` from `questionItem.question`, not from `questionGroupItem.questions` rows. The Forms API rejected the whole batch; the `catch (_) {}` silently swallowed it. Fix: strip `questionId` from all rows in `questionGroupItem.questions`; add logging to the catch block.
 18. **RevenueCat `app_user_id` was email, webhook expected `google_sub`**: every paid subscription silently failed — `findByGoogleSub(email)` returned null, webhook hit the `rc_webhook_unknown_user` branch and ack'd 200 without crediting quota or flipping `is_premium`. Fix: added `googleId` to `AuthUser` (from `GoogleSignInAccount.id`), passed it to `Purchases.logIn`. Webhook lookup now resolves correctly. Do NOT change `Purchases.logIn` to use email or any other identifier — must remain the Google ID-token `sub`.
+19. **Imported forms opened as editable**: `EditorPage` had no concept of ownership; imported forms (`isOwned: false`) could visually edit and would 403 on any write. Fix: `EditorPage` accepts `readOnly` param; `dashboard_page.dart` passes `readOnly: !form.isOwned`; `EditorScope` InheritedWidget propagates the flag — hides Save button, `_BottomBar`, drag handles, and all delete/edit/required controls on every card type.
 
 ## What NOT to do
 

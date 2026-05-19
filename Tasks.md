@@ -1,60 +1,57 @@
-# Tasks — iPad Adaptive Layout
+# Tasks — WebView Form Import
 
 ## Overview
 
-Add iPad-responsive layouts throughout the app. Mobile layouts are unchanged; tablet layouts
-activate when `shortestSide >= 600`. Four discrete tasks.
+Replace the manual URL/ID paste dialog with a Google Forms WebView browser.
+User opens a persistent WebView showing `forms.google.com`, signs in once (session
+persists until uninstall), taps any form, and it is automatically imported into the app.
+
+Navigation interception detects when the WebView navigates to a form edit/view URL,
+extracts the form ID, calls the existing `importForm` use case, and closes the sheet.
 
 ---
 
-## T1 — Breakpoint utility — `sonnet`
+## T1 — `ImportFormWebViewPage` screen — `sonnet`
 
-**File:** `lib/core/utils/layout.dart` (new)
+**File:** `lib/features/dashboard/presentation/pages/import_form_webview_page.dart` (new)
 
-```dart
-bool isTablet(BuildContext context) =>
-    MediaQuery.of(context).size.shortestSide >= 600;
-```
+A full-screen page wrapping `webview_flutter`'s `WebViewWidget`.
 
-Single function, imported wherever the adaptive branches are needed.
+**Constructor:** `const ImportFormWebViewPage({super.key})`
+
+**Initial URL:** `https://forms.google.com`
+
+**WebView setup:**
+- `WebViewController` with `JavaScriptMode.unrestricted`
+- `PlatformNavigationDelegate` with `onNavigationRequest`:
+  - Intercept any URL matching `RegExp(r'/forms/d/([a-zA-Z0-9_-]{20,})')`
+  - Extract the form ID from group 1
+  - Call `Navigator.of(context).pop(formId)` — returns the ID to the caller
+  - Return `NavigationDecision.prevent` to block the navigation
+  - All other URLs: `NavigationDecision.navigate`
+- `onPageStarted` / `onPageFinished`: drive a `LinearProgressIndicator` in the AppBar
+
+**AppBar:**
+- Title: `'Import Form'`
+- Purple back button (same style as editor)
+- Thin `LinearProgressIndicator` below the title row, visible only while loading
+
+**Bottom hint bar:**
+- Persistent small bar at the bottom: `'Tap any form to import it'` in gray text
+- Same frosted/white card style as the rest of the app
 
 ---
 
-## T2 — Dashboard — persistent sidebar + 2-column grid — `sonnet`
+## T2 — Wire into dashboard — `sonnet`
 
 **File:** `lib/features/dashboard/presentation/pages/dashboard_page.dart`
 
-**Sidebar (replaces hamburger drawer on iPad):**
-- Wrap the existing `Scaffold` body in a `LayoutBuilder` / `isTablet` check.
-- On tablet: `Row` → permanent left sidebar (same content as `_buildDrawer`) + `Expanded` right content. Hide the hamburger `IconButton` in the AppBar. `Drawer` not provided to the `Scaffold` on tablet.
-- On phone: no change — hamburger + `Drawer` exactly as today.
-- Sidebar width: 280px (matches current `Drawer` width).
+Replace `showImportFormDialog` calls with the new WebView flow.
 
-**2-column form grid:**
-- The current `ListView.builder` for form entries becomes a `GridView.builder` with `crossAxisCount: isTablet ? 2 : 1` and `childAspectRatio: 4.5` (wide cards, not square thumbnails).
-- Grid and list use the same `_FormCard` widget — no card changes needed.
-
----
-
-## T3 — Editor — `NavigationRail` instead of top tab bar — `sonnet`
-
-**File:** `lib/features/editor/presentation/pages/editor_page.dart`
-
-On phone: `_SegmentedTabBar` stays at top, `TabBarView` below — no change.
-
-On tablet:
-- Remove `_SegmentedTabBar` from the `Column`.
-- Wrap the `Scaffold` body in a `Row`:
-  - Left: `NavigationRail` (width ~72px) with three destinations — Questions / Responses / Settings — using the same icons and labels as the current tab bar.
-  - Right: `Expanded` wrapping the existing `TabBarView`.
-- The `TabController` is shared — tapping a rail destination calls `_tabController.animateTo(index)`.
-- `NavigationRail` `selectedIndex` stays in sync via a listener on `_tabController`.
-
----
-
-## T4 — Template picker — 3-column grid on tablet — `sonnet`
-
-**File:** `lib/features/dashboard/presentation/pages/template_picker_page.dart`
-
-- The existing `GridView` `crossAxisCount: 2` becomes `crossAxisCount: isTablet(context) ? 3 : 2`.
-- One-line change.
+**Changes:**
+- In the FAB `Import Form` action and the drawer `Import Form` item: instead of calling
+  `showImportFormDialog(context, cubit)`, push `ImportFormWebViewPage` and await the result.
+- If the result is a non-null `String` (form ID), call `cubit.importForm(result)` and show
+  an `ErrorModal` on failure (same error handling as the old dialog).
+- Delete `showImportFormDialog` and `_parseFormId` — no longer needed.
+- Keep the rest of import/remove logic unchanged.

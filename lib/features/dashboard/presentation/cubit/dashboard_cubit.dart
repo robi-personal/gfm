@@ -185,12 +185,14 @@ class DashboardCubit extends Cubit<DashboardState> {
   // ── Import ─────────────────────────────────────────────────────────────────
 
   Future<void> importForm(String formId) async {
+    if (isClosed) return;
     if (state is! DashboardLoaded) return;
     final loaded = state as DashboardLoaded;
 
     emit(loaded.copyWith(isImporting: true));
 
     final result = await _importForm(ImportFormParams(formId));
+    if (isClosed) return;
 
     result.fold(
       (failure) {
