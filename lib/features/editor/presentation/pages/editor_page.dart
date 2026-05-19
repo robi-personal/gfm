@@ -37,18 +37,15 @@ import '../widgets/question_card.dart';
 import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/layout.dart';
-import '../editor_scope.dart';
 
 class EditorPage extends StatelessWidget {
   final String formId;
   final String formName;
-  final bool readOnly;
 
   const EditorPage({
     super.key,
     required this.formId,
     required this.formName,
-    this.readOnly = false,
   });
 
   @override
@@ -58,7 +55,7 @@ class EditorPage extends StatelessWidget {
         BlocProvider(create: (_) => getIt<EditorCubit>()..loadForm(formId)),
         BlocProvider(create: (_) => getIt<ResponsesCubit>()..loadResponses(formId)),
       ],
-      child: _EditorView(formId: formId, initialName: formName, readOnly: readOnly),
+      child: _EditorView(formId: formId, initialName: formName),
     );
   }
 }
@@ -68,9 +65,8 @@ class EditorPage extends StatelessWidget {
 class _EditorView extends StatefulWidget {
   final String formId;
   final String initialName;
-  final bool readOnly;
 
-  const _EditorView({required this.formId, required this.initialName, required this.readOnly});
+  const _EditorView({required this.formId, required this.initialName});
 
   @override
   State<_EditorView> createState() => _EditorViewState();
@@ -120,9 +116,7 @@ class _EditorViewState extends State<_EditorView>
 
   @override
   Widget build(BuildContext context) {
-    return EditorScope(
-      readOnly: widget.readOnly,
-      child: PopScope(
+    return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
@@ -173,7 +167,6 @@ class _EditorViewState extends State<_EditorView>
         ),
       ),
     ),
-    ),
     );
   }
 
@@ -199,25 +192,7 @@ class _EditorViewState extends State<_EditorView>
         overflow: TextOverflow.ellipsis,
       ),
       actions: [
-        // Save button (hidden when read-only)
-        if (widget.readOnly)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.groupedBackground,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'View only',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          )
-        else
+        // Save button
         BlocSelector<EditorCubit, EditorState,
             ({bool isLoaded, bool isDirty, bool isSaving})>(
           selector: (state) => state is EditorLoaded
@@ -347,7 +322,6 @@ class _EditorViewState extends State<_EditorView>
             ),
           ),
         ),
-        if (!widget.readOnly)
         Positioned(
           left: 0,
           right: 0,
@@ -926,29 +900,27 @@ class _EditorBodyState extends State<_EditorBody> {
             parent: AlwaysScrollableScrollPhysics(),
           );
 
-          final readOnly = EditorScope.isReadOnly(context);
-
           if (data.itemIds.isEmpty) {
             return CustomScrollView(
               controller: _scrollController,
               physics: physics,
               slivers: [
                 SliverToBoxAdapter(child: header),
-                SliverFillRemaining(
+                const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: EdgeInsets.symmetric(horizontal: 40),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             CupertinoIcons.question_circle,
                             size: 56,
                             color: AppColors.iconInactive,
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
+                          SizedBox(height: 16),
+                          Text(
                             'No questions yet.',
                             style: TextStyle(
                               fontSize: 16,
@@ -956,13 +928,11 @@ class _EditorBodyState extends State<_EditorBody> {
                               color: AppColors.textDark,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Text(
-                            readOnly
-                                ? 'This form has no questions.'
-                                : 'Tap + below to add your first question.',
+                            'Tap + below to add your first question.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textSecondary,
                             ),
@@ -983,35 +953,25 @@ class _EditorBodyState extends State<_EditorBody> {
             slivers: [
               SliverToBoxAdapter(child: header),
               SliverPadding(
-                padding: EdgeInsets.only(top: 4, bottom: readOnly ? 24 : 140),
-                sliver: readOnly
-                    ? SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, i) => BlocProvider.value(
-                            value: context.read<EditorCubit>(),
-                            child: _ItemRow(itemId: data.itemIds[i]),
-                          ),
-                          childCount: data.itemIds.length,
-                        ),
-                      )
-                    : SliverReorderableList(
-                        itemCount: data.itemIds.length,
-                        onReorder: (oldIndex, newIndex) {
-                          if (newIndex > oldIndex) newIndex--;
-                          if (oldIndex == newIndex) return;
-                          context.read<EditorCubit>().moveItem(oldIndex, newIndex);
-                        },
-                        itemBuilder: (context, i) {
-                          return ReorderableDelayedDragStartListener(
-                            key: ValueKey(data.itemIds[i]),
-                            index: i,
-                            child: BlocProvider.value(
-                              value: context.read<EditorCubit>(),
-                              child: _ItemRow(itemId: data.itemIds[i]),
-                            ),
-                          );
-                        },
+                padding: const EdgeInsets.only(top: 4, bottom: 140),
+                sliver: SliverReorderableList(
+                  itemCount: data.itemIds.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    if (oldIndex == newIndex) return;
+                    context.read<EditorCubit>().moveItem(oldIndex, newIndex);
+                  },
+                  itemBuilder: (context, i) {
+                    return ReorderableDelayedDragStartListener(
+                      key: ValueKey(data.itemIds[i]),
+                      index: i,
+                      child: BlocProvider.value(
+                        value: context.read<EditorCubit>(),
+                        child: _ItemRow(itemId: data.itemIds[i]),
                       ),
+                    );
+                  },
+                ),
               ),
             ],
           );
@@ -1845,7 +1805,6 @@ class _ImageCard extends StatelessWidget {
                     size: 40, color: AppColors.iconInactive),
               ),
             ),
-          if (!EditorScope.isReadOnly(context))
           Positioned(
             top: 6,
             right: 6,
@@ -1971,7 +1930,6 @@ class _VideoCard extends StatelessWidget {
                 child: const Icon(CupertinoIcons.play_arrow_solid,
                     color: Colors.white, size: 22),
               ),
-              if (!EditorScope.isReadOnly(context))
               Positioned(
                 top: 6,
                 right: 6,

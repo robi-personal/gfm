@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
-import '../editor_scope.dart';
 
 /// Editable form title and description at the top of the editor.
 /// Pushes to the cubit only on focus-lost (not on every keystroke).
@@ -59,7 +58,6 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
 
   @override
   Widget build(BuildContext context) {
-    final readOnly = EditorScope.isReadOnly(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 5),
       decoration: BoxDecoration(
@@ -98,7 +96,6 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                     TextField(
                       controller: _titleCtrl,
                       focusNode: _titleFocus,
-                      readOnly: readOnly,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -113,11 +110,9 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
-                        focusedBorder: readOnly
-                            ? InputBorder.none
-                            : const UnderlineInputBorder(
-                                borderSide: BorderSide(color: AppColors.purple, width: 1.5),
-                              ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.purple, width: 1.5),
+                        ),
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
@@ -125,24 +120,22 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                     TextField(
                       controller: _descCtrl,
                       focusNode: _descFocus,
-                      readOnly: readOnly,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                       ),
-                      decoration: InputDecoration(
-                        hintText: readOnly ? null : 'Form description (optional)',
-                        hintStyle: const TextStyle(
+                      decoration: const InputDecoration(
+                        hintText: 'Form description (optional)',
+                        hintStyle: TextStyle(
                           fontSize: 14,
                           color: Color(0xFFAEAEB2),
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
-                        focusedBorder: readOnly
-                            ? InputBorder.none
-                            : const UnderlineInputBorder(
-                                borderSide: BorderSide(color: AppColors.textSecondary, width: 1),
-                              ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                              BorderSide(color: AppColors.textSecondary, width: 1),
+                        ),
                         contentPadding: EdgeInsets.zero,
                       ),
                       minLines: 1,
