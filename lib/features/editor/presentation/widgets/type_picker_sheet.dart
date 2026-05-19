@@ -36,18 +36,27 @@ class TypePickerSheet extends StatelessWidget {
       builder: (context, scrollController) => Column(
         children: [
           const _SheetHandle(),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Question type',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 8, 12),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Question type',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
+                IconButton(
+                  icon: const Icon(CupertinoIcons.xmark,
+                      size: 20, color: AppColors.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                ),
+              ],
             ),
           ),
           Expanded(

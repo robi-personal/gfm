@@ -446,6 +446,12 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── TYPE ──────────────────────────────────────────────
+                    const _SectionLabel('Type'),
+                    _Card(
+                      child: _TypeRow(kind: _kind, onTap: _pickType),
+                    ),
+                    const SizedBox(height: 18),
                     // ── CONTENT ───────────────────────────────────────────
                     const _SectionLabel('Content'),
                     _Card(
@@ -476,12 +482,6 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    // ── TYPE ──────────────────────────────────────────────
-                    const _SectionLabel('Type'),
-                    _Card(
-                      child: _TypeRow(kind: _kind, onTap: _pickType),
                     ),
                     const SizedBox(height: 18),
                     // ── OPTIONS / PREVIEW ─────────────────────────────────
