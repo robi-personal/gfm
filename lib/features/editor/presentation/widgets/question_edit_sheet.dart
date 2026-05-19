@@ -62,6 +62,11 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
   late List<String?> _optionGoTos;
   late List<bool> _isOtherOption;
 
+  // True after the user picks "File upload" in the type picker — swaps the
+  // sheet body for an in-sheet confirmation panel so they can back out
+  // without losing their question state.
+  bool _showFileUploadPrompt = false;
+
   // Quiz grading state
   late Set<int> _correctOptionIndices; // ChoiceQuestion: which option indices are correct
   late final TextEditingController _correctTextCtrl;  // TextQuestion correct answer
@@ -153,12 +158,11 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     final picked = await TypePickerSheet.show(context, _kind);
     if (picked == null || !mounted) return;
 
-    // File upload can't be created via the Forms API. Signal the editor to
-    // open the Google Forms web editor instead, and close this sheet without
-    // applying the change.
+    // File upload can't be created via the Forms API. Show an in-sheet
+    // explainer panel so the user can confirm or back out without losing
+    // the question they were editing.
     if (picked is FileUploadQuestion) {
-      context.read<EditorCubit>().requestFileUploadViaWeb();
-      Navigator.of(context).pop();
+      setState(() => _showFileUploadPrompt = true);
       return;
     }
 
@@ -380,27 +384,28 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Edit question',
-                    style: TextStyle(
+                    _showFileUploadPrompt ? 'Add file upload' : 'Edit question',
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
                 ),
-                FilledButton(
-                  onPressed: _commit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.purple,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                if (!_showFileUploadPrompt)
+                  FilledButton(
+                    onPressed: _commit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.purple,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Done',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                  child: const Text('Done',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
               ],
             ),
           ),
@@ -409,7 +414,18 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
           Flexible(
             child: ColoredBox(
               color: AppColors.groupedBackground,
-              child: SingleChildScrollView(
+              child: _showFileUploadPrompt
+                  ? _FileUploadPromptPanel(
+                      onCancel: () =>
+                          setState(() => _showFileUploadPrompt = false),
+                      onContinue: () {
+                        context
+                            .read<EditorCubit>()
+                            .requestFileUploadViaWeb();
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  : SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -909,6 +925,117 @@ class _FieldBlock extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           child,
+        ],
+      ),
+    );
+  }
+}
+
+class _FileUploadPromptPanel extends StatelessWidget {
+  final VoidCallback onCancel;
+  final VoidCallback onContinue;
+
+  const _FileUploadPromptPanel({
+    required this.onCancel,
+    required this.onContinue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.purple.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.cloud_upload_outlined,
+                color: AppColors.purple,
+                size: 30,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Add file upload via Google Forms',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'For your privacy, this app uses minimal Google permissions — '
+            'and Google only allows file upload questions to be added '
+            'through the Google Forms website. Continue to open this form '
+            'there. When you come back, your new question will appear '
+            'automatically.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Color(0xFF6E6E73),
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: onContinue,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.purple,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.purple.withValues(alpha: 0.30),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: onCancel,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.separator),
+              ),
+              child: const Center(
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

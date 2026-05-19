@@ -124,8 +124,14 @@ class _EditorViewState extends State<_EditorView>
     BuildContext context, {
     required bool isEditing,
   }) async {
-    final proceed = await _showFileUploadInfoDialog(context, isEditing: isEditing);
-    if (proceed != true || !context.mounted) return;
+    // Add path: the user has already confirmed via the in-sheet prompt
+    // (QuestionEditSheet's _FileUploadPromptPanel). Edit path: show the
+    // info dialog as the explicit confirmation.
+    if (isEditing) {
+      final proceed =
+          await _showFileUploadInfoDialog(context, isEditing: true);
+      if (proceed != true || !context.mounted) return;
+    }
 
     final cubit = context.read<EditorCubit>();
     final state = cubit.state;
@@ -2077,14 +2083,14 @@ Future<bool?> _showFileUploadInfoDialog(
 }) {
   final title = isEditing ? 'Edit file upload' : 'Add file upload';
   final body = isEditing
-      ? "File upload questions can only be edited on the Google Forms "
-          "website — the Forms API doesn’t support them. Tap below to open "
-          "this form there. When you come back, your changes will appear "
-          "automatically."
-      : "File upload questions can only be created on the Google Forms "
-          "website — the Forms API doesn’t support them. Tap below to open "
-          "this form there. When you come back, your new question will "
-          "appear automatically.";
+      ? "For your privacy, this app uses minimal Google permissions — and "
+          "Google only allows file upload questions to be edited through "
+          "the Google Forms website. Tap below to open this form there. "
+          "When you come back, your changes will appear automatically."
+      : "For your privacy, this app uses minimal Google permissions — and "
+          "Google only allows file upload questions to be added through "
+          "the Google Forms website. Tap below to open this form there. "
+          "When you come back, your new question will appear automatically.";
   return showDialog<bool>(
     context: context,
     barrierDismissible: true,
