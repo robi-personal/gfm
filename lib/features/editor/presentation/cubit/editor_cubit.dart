@@ -10,8 +10,6 @@ import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/form_image.dart';
 import '../../../../core/models/item_content.dart';
-import '../../../../core/models/question.dart';
-import '../../../../core/models/question_kind.dart';
 import '../../domain/repositories/editor_repository.dart';
 import '../../domain/usecases/execute_batch.dart';
 import '../../domain/usecases/load_form.dart';
@@ -98,30 +96,32 @@ class EditorCubit extends Cubit<EditorState> {
 
   // ── Add question ───────────────────────────────────────────────────────────
 
-  void addQuestion({int? afterIndex}) {
+  /// Adds a fully-edited question from the QuestionEditSheet's draft mode.
+  /// Replaces any draft IDs with fresh temp IDs and inserts the item.
+  void addQuestionFromDraft(Item draft, {int? afterIndex}) {
     if (state is! EditorLoaded) return;
     final l = state as EditorLoaded;
     final insertAt =
         afterIndex != null ? afterIndex + 1 : l.form.items.length;
     final ts = DateTime.now().millisecondsSinceEpoch;
     final tempId = '_pending_$ts';
-    final placeholder = Item(
+
+    final content = draft.content as QuestionItemContent;
+    final item = draft.copyWith(
       itemId: tempId,
-      title: 'Question',
-      content: QuestionItemContent(
-        question: Question(
+      content: content.copyWith(
+        question: content.question.copyWith(
           questionId: '_pending_q_$ts',
-          kind: const TextQuestion(),
         ),
       ),
     );
-    final newItems = [...l.form.items]..insert(insertAt, placeholder);
+
+    final newItems = [...l.form.items]..insert(insertAt, item);
     emit(l.copyWith(
       form: l.form.copyWith(items: newItems),
       pending: l.pending.copyWith(
         creates: [...l.pending.creates, PendingCreate(tempId: tempId)],
       ),
-      pendingEditItemId: tempId,
     ));
     AnalyticsService.logQuestionAdded();
   }

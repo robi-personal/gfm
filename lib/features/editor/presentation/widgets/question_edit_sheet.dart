@@ -20,11 +20,17 @@ class QuestionEditSheet extends StatefulWidget {
   /// Whether the form is in quiz mode — shows the Points field when true.
   final bool isQuiz;
 
+  /// True when adding a brand-new question. Done commits the draft to the
+  /// form; dismissing the sheet discards it (so accidental + taps don't
+  /// leave placeholders behind).
+  final bool isDraft;
+
   const QuestionEditSheet({
     super.key,
     required this.item,
     required this.sections,
     required this.isQuiz,
+    this.isDraft = false,
   });
 
   static Future<void> show(
@@ -32,6 +38,7 @@ class QuestionEditSheet extends StatefulWidget {
     Item item,
     List<Item> sections, {
     required bool isQuiz,
+    bool isDraft = false,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -43,7 +50,12 @@ class QuestionEditSheet extends StatefulWidget {
       ),
       builder: (_) => BlocProvider.value(
         value: context.read<EditorCubit>(),
-        child: QuestionEditSheet(item: item, sections: sections, isQuiz: isQuiz),
+        child: QuestionEditSheet(
+          item: item,
+          sections: sections,
+          isQuiz: isQuiz,
+          isDraft: isDraft,
+        ),
       ),
     );
   }
@@ -337,7 +349,11 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         ),
       ),
     );
-    context.read<EditorCubit>().updateItemFull(updatedItem);
+    if (widget.isDraft) {
+      context.read<EditorCubit>().addQuestionFromDraft(updatedItem);
+    } else {
+      context.read<EditorCubit>().updateItemFull(updatedItem);
+    }
     Navigator.of(context).pop();
   }
 

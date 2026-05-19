@@ -20,6 +20,8 @@ import '../../../../core/models/form_response.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
+import '../../../../core/models/question.dart';
+import '../../../../core/models/question_kind.dart';
 import '../../../../core/widgets/skeleton_bone.dart';
 import '../widgets/question_edit_sheet.dart';
 import '../widgets/image_url_dialog.dart';
@@ -1657,7 +1659,7 @@ class _BottomBar extends StatelessWidget {
                         icon: CupertinoIcons.add_circled_solid,
                         label: 'Question',
                         enabled: enabled,
-                        onTap: () => cubit.addQuestion(),
+                        onTap: () => _openNewQuestionDraft(context),
                       ),
                       _BarButton(
                         icon: CupertinoIcons.photo_fill,
@@ -1708,6 +1710,34 @@ class _BottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Opens the QuestionEditSheet in draft mode (no placeholder added to the
+/// form). Committing via the sheet's Done button adds the question;
+/// dismissing the sheet discards it.
+void _openNewQuestionDraft(BuildContext context) {
+  final state = context.read<EditorCubit>().state;
+  if (state is! EditorLoaded) return;
+  final draftItem = Item(
+    itemId: '_draft',
+    title: '',
+    content: QuestionItemContent(
+      question: Question(
+        questionId: '_draft_q',
+        kind: const TextQuestion(),
+      ),
+    ),
+  );
+  final sections = state.form.items
+      .where((i) => i.content is PageBreakItemContent)
+      .toList();
+  QuestionEditSheet.show(
+    context,
+    draftItem,
+    sections,
+    isQuiz: state.form.settings.quizSettings.isQuiz,
+    isDraft: true,
+  );
 }
 
 class _BarButton extends StatelessWidget {
