@@ -460,6 +460,28 @@ class EditorCubit extends Cubit<EditorState> {
     }
   }
 
+  /// Signals that the user picked "File upload" in the type picker.
+  /// editor_page's BlocListener consumes this to launch the web flow.
+  void requestFileUploadViaWeb() {
+    if (state is EditorLoaded) {
+      emit((state as EditorLoaded).copyWith(fileUploadViaWebRequested: true));
+    }
+  }
+
+  void clearFileUploadRequest() {
+    if (state is EditorLoaded) {
+      emit((state as EditorLoaded).copyWith(fileUploadViaWebRequested: false));
+    }
+  }
+
+  /// Public wrapper around [_silentRefresh] — called after the user returns
+  /// from the Google Forms web editor so the new file-upload question (which
+  /// was created on the web side) appears locally.
+  Future<void> refreshFromServer() async {
+    if (state is! EditorLoaded) return;
+    await _silentRefresh((state as EditorLoaded).form.formId);
+  }
+
   Future<void> resolveConflictKeepMine() async {
     if (state is! EditorLoaded) return;
     clearConflict();

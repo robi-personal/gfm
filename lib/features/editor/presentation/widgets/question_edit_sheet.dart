@@ -153,6 +153,16 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
   Future<void> _pickType() async {
     final picked = await TypePickerSheet.show(context, _kind);
     if (picked == null || !mounted) return;
+
+    // File upload can't be created via the Forms API. Signal the editor to
+    // open the Google Forms web editor instead, and close this sheet without
+    // applying the change.
+    if (picked is FileUploadQuestion) {
+      context.read<EditorCubit>().requestFileUploadViaWeb();
+      Navigator.of(context).pop();
+      return;
+    }
+
     final merged = _mergeKind(_kind, picked);
     setState(() {
       _kind = merged;

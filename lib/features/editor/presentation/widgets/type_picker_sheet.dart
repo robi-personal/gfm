@@ -100,6 +100,11 @@ class TypePickerSheet extends StatelessWidget {
                         ratingScaleLevel: 5, iconType: RatingIconType.star),
                     current: current,
                   ),
+                  _TypeTile(
+                    label: 'File upload',
+                    kind: const FileUploadQuestion(),
+                    current: current,
+                  ),
                 ]),
                 const SizedBox(height: 16),
               ],

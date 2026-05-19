@@ -72,6 +72,10 @@ class EditorLoaded extends EditorState {
   /// Cleared by clearPendingEdit() as soon as the sheet is opened.
   final String? pendingEditItemId;
 
+  /// One-shot: set when the user picks "File upload" in the type picker.
+  /// Consumed by BlocListener to launch the Google Forms web editor flow.
+  final bool fileUploadViaWebRequested;
+
   EditorLoaded(
     this.form, {
     FormDoc? lastKnownGood,
@@ -81,6 +85,7 @@ class EditorLoaded extends EditorState {
     this.conflictPending = false,
     this.saveFailed = false,
     this.pendingEditItemId,
+    this.fileUploadViaWebRequested = false,
   })  : lastKnownGood = lastKnownGood ?? form,
         serverItemOrder =
             serverItemOrder ?? form.items.map((i) => i.itemId).toList();
@@ -107,6 +112,7 @@ class EditorLoaded extends EditorState {
     bool? conflictPending,
     bool? saveFailed,
     Object? pendingEditItemId = _unset,
+    bool? fileUploadViaWebRequested,
   }) =>
       EditorLoaded(
         form ?? this.form,
@@ -119,6 +125,8 @@ class EditorLoaded extends EditorState {
         pendingEditItemId: pendingEditItemId == _unset
             ? this.pendingEditItemId
             : pendingEditItemId as String?,
+        fileUploadViaWebRequested:
+            fileUploadViaWebRequested ?? this.fileUploadViaWebRequested,
       );
 }
 

@@ -37,6 +37,7 @@ import '../widgets/question_card.dart';
 import '../widgets/section_card.dart' show SectionCard, TextBlockCard, TextBlockEditSheet;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/layout.dart';
+import 'edit_form_webview_page.dart';
 
 class EditorPage extends StatelessWidget {
   final String formId;
@@ -114,6 +115,54 @@ class _EditorViewState extends State<_EditorView>
     if (discard && mounted) Navigator.of(context).pop();
   }
 
+  /// Triggered by the cubit signal when the user picks "File upload" in the
+  /// type picker. Shows an explainer dialog, optionally saves local pending
+  /// changes (so they aren't lost by the post-return reload), opens the
+  /// Google Forms web editor, and on return refreshes the form so the newly
+  /// created file-upload question shows up.
+  Future<void> _runFileUploadWebFlow(BuildContext context) async {
+    final proceed = await _showFileUploadInfoDialog(context);
+    if (proceed != true || !context.mounted) return;
+
+    final cubit = context.read<EditorCubit>();
+    final state = cubit.state;
+    if (state is! EditorLoaded) return;
+
+    // If the user has unsaved local changes, save them first so they aren't
+    // discarded by the post-return _silentRefresh.
+    if (state.isDirty) {
+      bool saveAndContinue = false;
+      await ErrorModal.show(
+        context,
+        title: 'Save your changes first?',
+        body: 'You have unsaved edits. We need to save them before opening '
+            'the web editor — otherwise they will be lost.',
+        primaryLabel: 'Save & continue',
+        onPrimary: () => saveAndContinue = true,
+        secondaryLabel: 'Cancel',
+        onSecondary: () {},
+      );
+      if (!saveAndContinue || !context.mounted) return;
+      await cubit.save();
+      if (!context.mounted) return;
+      final after = cubit.state;
+      if (after is EditorLoaded && (after.isDirty || after.saveFailed)) {
+        // Save didn't complete cleanly — don't open the web editor in a state
+        // where the user could lose work.
+        return;
+      }
+    }
+
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EditFormWebViewPage(formId: widget.formId),
+      ),
+    );
+    if (!context.mounted) return;
+    await context.read<EditorCubit>().refreshFromServer();
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -132,6 +181,10 @@ class _EditorViewState extends State<_EditorView>
           if (curr.saveFailed && !(p?.saveFailed ?? false)) return true;
           if (curr.pendingEditItemId != null &&
               curr.pendingEditItemId != (p?.pendingEditItemId)) {
+            return true;
+          }
+          if (curr.fileUploadViaWebRequested &&
+              !(p?.fileUploadViaWebRequested ?? false)) {
             return true;
           }
         }
@@ -405,6 +458,11 @@ class _EditorViewState extends State<_EditorView>
         primaryLabel: 'OK',
         onPrimary: () {},
       );
+    }
+
+    if (state case EditorLoaded(fileUploadViaWebRequested: true)) {
+      context.read<EditorCubit>().clearFileUploadRequest();
+      _runFileUploadWebFlow(context);
     }
 
     if (state case EditorError(:final kind)) {
@@ -1996,4 +2054,117 @@ class _FullScreenError extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<bool?> _showFileUploadInfoDialog(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.purple.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.arrow_up_doc,
+                    color: AppColors.purple,
+                    size: 15,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Add file upload',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(
+                height: 1, thickness: 1, color: AppColors.groupedBackground),
+            const SizedBox(height: 12),
+            const Text(
+              "File upload questions can only be created on the Google Forms "
+              "website — the Forms API doesn’t support them. Tap below to "
+              "open this form there. When you come back, your new question "
+              "will appear automatically.",
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: Color(0xFF6E6E73),
+              ),
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(true),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: AppColors.purple,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.purple.withValues(alpha: 0.30),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'Continue',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(false),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: AppColors.groupedBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
