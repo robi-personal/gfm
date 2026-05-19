@@ -13,7 +13,9 @@ Map<String, dynamic> _$$FeedbackImplToJson(_$FeedbackImpl instance) =>
     <String, dynamic>{'text': instance.text};
 
 _$CorrectAnswerImpl _$$CorrectAnswerImplFromJson(Map<String, dynamic> json) =>
-    _$CorrectAnswerImpl(value: json['value'] as String);
+    // Google Forms returns null for `value` on some answers (e.g. "Other").
+    // Match the patch in choice_option.g.dart — see SESSION_CONTEXT.md #15.
+    _$CorrectAnswerImpl(value: json['value'] as String? ?? '');
 
 Map<String, dynamic> _$$CorrectAnswerImplToJson(_$CorrectAnswerImpl instance) =>
     <String, dynamic>{'value': instance.value};
