@@ -616,6 +616,11 @@ End-to-end verified on Android: form response submission → Google Forms watch 
 - Editor settings tab: new "NOTIFICATIONS" section with `_NotificationToggle` widget. Toggle state derived from `forms.watches.list` (Google is source of truth, no local cache needed). Switch row swaps to a `CupertinoActivityIndicator` while a watch is being created/deleted to prevent layout shift and signal progress.
 - `EditorPage.initialTabIndex` parameter (clamped to [0, 2]). Dashboard notification-tap handler passes `initialTabIndex: 1` so the user lands on the Responses tab.
 
+### Polish (commit `3634aec`)
+
+- **Admin-configurable title** — `NOTIFICATION_TITLE_TEMPLATE` added alongside `NOTIFICATION_BODY_TEMPLATE`. Both support `{formTitle}` placeholder. Webhook calls a `fillTemplate()` helper for both. Admin's Notifications page edits both side-by-side with a unified iOS-style preview card.
+- **Permission rationale (soft-ask)** — `NotificationService.shouldShowRationale()` returns true iff `AuthorizationStatus.notDetermined`. Removed the auto-call to `registerForUser` from `SignInCubit` — the dashboard now owns the post-sign-in flow (via `initState` post-frame callback) so the rationale modal can show with a `BuildContext`. Modal text leads with the value ("Stay on top of new responses…") with **Enable** / **Not now** buttons. After the user taps Enable, `registerForUser()` triggers the OS-level prompt. Editor toggle also calls `registerForUser()` defensively before creating the watch in case the user dismissed the dashboard rationale and is opting in per-form.
+
 ### Gotchas (do not repeat)
 
 - **`echo "X='${VAR}'"` mangles JSON with `\n` in zsh** — `echo` interprets backslash escapes by default, turning the private_key's `\n` into actual newlines and breaking JSON parsing. Use base64 encoding or write the value with Python/Node instead. Codified by `fcm.service.ts` accepting both raw and base64-encoded values.
