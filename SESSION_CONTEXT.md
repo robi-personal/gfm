@@ -546,6 +546,37 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-20 session — paywall + webhook fixes)
+
+### Premium status — post-purchase polling (commit `d6c6713`)
+
+- Added `pollUntilPremium()` helper in `get_user_status.dart`: polls `/user/status` up to 6 retries, 3s delay after each response (~24s max wall time), calls `onPremiumConfirmed` and stops on success, gives up silently on timeout.
+- **Dashboard**: `_showPaywall()` wraps `PaywallPage.show()` + `pollUntilPremium` → crown hides in same session once server confirms premium.
+- **AI builder**: `_showPaywall()` replaces single `paywallDismissed()` call with `pollUntilPremium` → feature locks unlock as soon as server confirms.
+- Server remains single source of truth; no RC SDK calls spread into UI layer.
+
+### Paywall — current plan disabled (commit `433b491`)
+
+- `SubscriptionService.getCurrentProductId()`: reads active entitlement's `productIdentifier` from RC SDK `CustomerInfo` — immediate, no webhook needed.
+- `SubscriptionLoaded` state gains `currentProductId: String?` — populated in `load()`, `purchase()`, and `restore()`.
+- `_currentPlan()` maps product ID → `_Plan` via `offering` package identifiers.
+- Current plan card: grey (`0xFFF2F2F7`) background, non-tappable, label → `CURRENT` (side cards) / `Current` badge (annual featured card).
+- Purchase button: label → "Current Plan", disabled when selected plan == current plan.
+- Works immediately on paywall open; after purchase `CustomerInfo` from the purchase result updates `currentProductId` in the same state emission.
+
+### Dashboard crown — refresh after paywall (commit `90929ac`)
+
+- Moved `isPremiumFuture` into `_DashboardViewState`; `_refreshPremium()` resets it.
+- Both paywall tap paths (AppBar crown + drawer "Upgrade Plan") now use `_showPaywall()` which polls until confirmed then calls `_refreshPremium()`.
+
+### RevenueCat v10 + webhook fixes (commits `ba0a044`, `707583c`, `5127f36`)
+
+- RC SDK upgraded to v10, entitlement renamed `gfm_premium` → `GFMPremium` everywhere (Flutter + middleware).
+- `RC_WEBHOOK_SECRET` rotated; local `.env` updated (deploy.sh copies it — always update local `.env` before deploying).
+- `PRODUCT_CHANGE` webhook now credits new plan's quota via `creditQuota` (source: `subscription_upgrade`) — previously no quota was credited on plan upgrade.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
