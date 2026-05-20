@@ -634,6 +634,19 @@ End-to-end verified on Android: form response submission → Google Forms watch 
 - **Print loader UX** — clears the spinner BEFORE opening the system print dialog (the OS dialog covers the button anyway, and `Printing.layoutPdf` doesn't always resolve cleanly across app background/foreground transitions). Avoids the "loader stuck on" bug after returning from the print dialog.
 - **ErrorModal redesign** — replaced Material `AlertDialog` with a custom iOS-style modal: 16px rounded white card, centered title + secondary-grey body, soft shadow, 35% scrim. Primary button is now a filled purple pill (white text, w600); optional secondary button is a soft-grey pill with dark text. Applies app-wide since every confirm/error dialog routes through `ErrorModal.show()`.
 
+### Print format chooser (commit `9fe4753`)
+
+Tapping Print now opens a bottom sheet so the user can choose among four PDF formats — the table format alone is too cramped for forms with many questions.
+
+- **Four formats** — built in `lib/features/responses/data/pdf_builders.dart`:
+  - **Questionnaire** (default): one respondent per page section, form title + submitted timestamp + email at top, separator, numbered questions (`Q1.`, `Q2.`…) with compact answers below, `page X of Y` footer. Layout works for any question count.
+  - **Table**: existing landscape table.
+  - **Summary**: mirrors the on-screen Summary tab — cards per question with proportional purple bars (choice), numeric averages (scale/rating), text previews. PDF has no `FractionallySizedBox`, so the bars use `Row` + flex with integer ratios (`filledFlex` / `emptyFlex` summing to 100) to render proportionally.
+  - **Individual**: opens a second sheet to pick specific respondents, then prints them via the Questionnaire layout.
+- **Format chooser sheet** — 2×2 grid of column tiles (icon top, label bottom), Questionnaire first/top-left, theme-color selected state (purple bg + white fg), drag handle, full-width purple Continue button.
+- **Individual picker sheet** — explicit close button only (no swipe-to-dismiss to prevent accidents), dashboard-style flat search field (light grey fill, purple cursor, purple focus border, search icon prefix), select-all master row, scrollable list of respondent cards with light-purple avatar circles + initial letter, email + timestamp, purple-tint+border selected state, sticky `Print N selected` footer button (disabled when 0 selected).
+- **Perf** — responses are fetched once **before** the format sheet opens; both sheets and the OS print dialog read from the in-memory list, so navigation between sheets is instant after the initial fetch.
+
 ### Gotchas (do not repeat)
 
 - **`echo "X='${VAR}'"` mangles JSON with `\n` in zsh** — `echo` interprets backslash escapes by default, turning the private_key's `\n` into actual newlines and breaking JSON parsing. Use base64 encoding or write the value with Python/Node instead. Codified by `fcm.service.ts` accepting both raw and base64-encoded values.
@@ -641,6 +654,8 @@ End-to-end verified on Android: form response submission → Google Forms watch 
 - **`Stream.broadcast` drops events with no listener** — for terminated-app deep-links, you must buffer the tap data until the destination widget mounts and subscribes.
 - **Pub/Sub topic permission lives at topic level, not subscription** — granting `Pub/Sub Publisher` to a subscription is a no-op for Forms watches (subscriptions only have subscriber-side roles).
 - **Forms watches expire after 7 days** with no renewal endpoint in the app (by user decision: most forms are short-term surveys). If a user re-enables an expired watch, a new one is created via `forms.watches.create` and the mapping is upserted by `(form_id, user_id)`.
+- **`pdf` package has no `FractionallySizedBox`** — for proportional bars/widths in a PDF, use `Row` with `Expanded` children whose `flex` values are integer percentages of the total (e.g., `filledFlex` + `emptyFlex` = 100). The `intl` package isn't transitively available either; format dates by hand.
+- **`Printing.layoutPdf` doesn't resolve cleanly across app foreground/background transitions** — clear any "printing" loader state BEFORE calling `layoutPdf`, otherwise the spinner can be stuck on after the user returns from the OS print dialog. The OS dialog covers the button anyway so no loader is needed during it.
 
 ---
 
