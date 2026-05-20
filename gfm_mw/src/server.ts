@@ -14,10 +14,12 @@ import { logger } from "./infrastructure/logger";
 import { runMigrations } from "./infrastructure/db/migrate";
 import { pool } from "./infrastructure/db/postgres";
 import { configService } from "./config/config-service";
+import { initFcm } from "./infrastructure/fcm/fcm.service";
 
 async function start() {
   await runMigrations();
   await configService.load();
+  initFcm();
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {

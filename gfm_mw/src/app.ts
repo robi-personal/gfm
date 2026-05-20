@@ -15,6 +15,8 @@ import { webhookRouter } from "./presentation/routes/webhook.routes";
 import { aiRouter } from "./presentation/routes/ai.routes";
 import { healthRouter } from "./presentation/routes/health.routes";
 import { adminRouter } from "./presentation/routes/admin.routes";
+import { devicesRouter } from "./presentation/routes/devices.routes";
+import { watchesRouter } from "./presentation/routes/watches.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -50,6 +52,8 @@ export function createApp(): Application {
   // ── Routes ────────────────────────────────────────────────────────────────
   app.use("/ai",       aiRouter);
   app.use("/user",     userRouter);
+  app.use("/devices",  devicesRouter);
+  app.use("/watches",  watchesRouter);
   app.use("/webhooks", webhookRouter);
   // Static admin UI served before API routes — index.html and assets are public.
   // API routes under /admin/* are protected by adminAuthMiddleware inside adminRouter.

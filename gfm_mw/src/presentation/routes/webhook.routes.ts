@@ -2,15 +2,20 @@ import crypto from "node:crypto";
 import { Router } from "express";
 import * as Sentry from "@sentry/node";
 import { env } from "../../config/env";
+import { configService } from "../../config/config-service";
 import { pool, withTransaction } from "../../infrastructure/db/postgres";
 import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
+import { PgFormWatchRepository } from "../../infrastructure/db/repositories/pg-form-watch.repository";
+import { PgDeviceTokenRepository } from "../../infrastructure/db/repositories/pg-device-token.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { rcWebhookTotal, rcWebhookLagMs } from "../../infrastructure/metrics";
 import { logger } from "../../infrastructure/logger";
+import { verifyPubsubOidcToken } from "../../infrastructure/google-auth/pubsub-token-verifier";
+import { sendToTokens } from "../../infrastructure/fcm/fcm.service";
 
 export const webhookRouter = Router();
 
@@ -279,3 +284,117 @@ webhookRouter.post(
     res.json({ received: true });
   },
 );
+
+// ── Pub/Sub push handler: new form responses ──────────────────────────────────
+// Google Forms watches publish a message to our Pub/Sub topic when a new
+// response is submitted. Pub/Sub then POSTs that message to this endpoint as a
+// push subscription. The message includes the formId in its attributes; we
+// look up the user that owns the watch, fetch their FCM tokens, and send a push.
+//
+// See SESSION_CONTEXT — push-notification feature, Session 1.
+
+interface PubsubPushBody {
+  message?: {
+    messageId?: string;
+    data?: string;
+    attributes?: Record<string, string>;
+    publishTime?: string;
+  };
+  subscription?: string;
+}
+
+webhookRouter.post("/forms-watch", async (req, res) => {
+  // 1. Verify OIDC token from Pub/Sub. We do this even in dev (Google Pub/Sub
+  //    will refuse to deliver without one once configured).
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ code: "missing_oidc", message: "Missing Bearer token." });
+    return;
+  }
+  try {
+    await verifyPubsubOidcToken(authHeader.slice("Bearer ".length));
+  } catch (err) {
+    req.log.warn({ err }, "pubsub_oidc_invalid");
+    res.status(401).json({ code: "invalid_oidc", message: "OIDC verification failed." });
+    return;
+  }
+
+  // 2. Parse Pub/Sub envelope.
+  const body = req.body as PubsubPushBody;
+  const message = body.message;
+  if (!message?.messageId) {
+    res.status(400).json({ code: "invalid_envelope", message: "Missing message." });
+    return;
+  }
+
+  const formId = message.attributes?.formId;
+  const eventType = message.attributes?.eventType ?? "RESPONSES";
+  if (!formId) {
+    // Without a formId we can't route. Ack so Pub/Sub stops retrying.
+    req.log.warn({ messageId: message.messageId }, "pubsub_message_missing_formId");
+    res.status(204).end();
+    return;
+  }
+
+  // 3. Idempotency: skip if we've already processed this messageId.
+  const watchRepo = new PgFormWatchRepository(pool);
+  if (await watchRepo.isMessageProcessed(message.messageId)) {
+    req.log.info({ messageId: message.messageId }, "pubsub_duplicate_message");
+    res.status(204).end();
+    return;
+  }
+
+  // 4. Route: formId → watch → user → device tokens.
+  const watches = await watchRepo.listByFormId(formId);
+  if (watches.length === 0) {
+    // Watch may have been deleted or expired. Mark processed and ack.
+    await watchRepo.markMessageProcessed(message.messageId);
+    req.log.info({ formId }, "pubsub_no_active_watch");
+    res.status(204).end();
+    return;
+  }
+
+  // 5. For each watch (usually one row per form), send push to user's devices.
+  const deviceRepo = new PgDeviceTokenRepository(pool);
+  const bodyTemplate = configService.get<string>(
+    "NOTIFICATION_BODY_TEMPLATE",
+    env.NOTIFICATION_BODY_TEMPLATE,
+  );
+
+  for (const watch of watches) {
+    const tokens = await deviceRepo.listByUserId(watch.userId);
+    if (tokens.length === 0) continue;
+
+    const title = "New form response";
+    const bodyText = bodyTemplate.replaceAll("{formTitle}", watch.formTitle || "your form");
+
+    try {
+      const result = await sendToTokens(
+        tokens.map((t) => t.fcmToken),
+        title,
+        bodyText,
+        { formId, eventType, watchId: watch.watchId },
+      );
+      if (result.invalidTokens.length > 0) {
+        await deviceRepo.deleteMany(result.invalidTokens);
+      }
+      req.log.info(
+        {
+          formId,
+          userId: watch.userId,
+          success: result.successCount,
+          failure: result.failureCount,
+        },
+        "fcm_push_sent",
+      );
+    } catch (err) {
+      req.log.error({ err, formId, userId: watch.userId }, "fcm_push_failed");
+      // Don't ack — let Pub/Sub retry.
+      res.status(503).json({ code: "fcm_error", message: "FCM send failed." });
+      return;
+    }
+  }
+
+  await watchRepo.markMessageProcessed(message.messageId);
+  res.status(204).end();
+});

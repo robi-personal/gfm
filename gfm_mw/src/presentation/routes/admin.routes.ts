@@ -27,10 +27,10 @@ adminRouter.post("/login", (req, res) => {
 // All routes below require a valid bearer token
 adminRouter.use(adminAuthMiddleware);
 
-function currentConfig(): Record<string, number | boolean> {
-  const out: Record<string, number | boolean> = {};
+function currentConfig(): Record<string, number | boolean | string> {
+  const out: Record<string, number | boolean | string> = {};
   for (const key of CONFIG_KEYS) {
-    out[key] = configService.get<number | boolean>(key, false);
+    out[key] = configService.get<number | boolean | string>(key, false);
   }
   return out;
 }

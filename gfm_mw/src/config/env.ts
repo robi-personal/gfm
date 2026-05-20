@@ -58,6 +58,19 @@ const schema = z.object({
     .default("")
     .transform((v) => new Set(v.split(",").map((s) => s.trim()).filter(Boolean))),
 
+  // Push notifications (FCM + Pub/Sub)
+  // Paste the contents of the Firebase Admin SDK service account JSON.
+  // Used to authenticate FCM admin calls. If absent, push features no-op.
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  // Full Pub/Sub topic resource name: projects/{projectId}/topics/{topicId}
+  FORMS_PUBSUB_TOPIC: z.string().optional(),
+  // The audience we expect on incoming Pub/Sub OIDC tokens. Set this to the
+  // public URL of the push endpoint (https://gfm.robi-dev.tech/webhooks/forms-watch).
+  FORMS_PUBSUB_AUDIENCE: z.string().optional(),
+  // Default notification body template; admin can override via server_config.
+  // Supported placeholders: {formTitle}
+  NOTIFICATION_BODY_TEMPLATE: z.string().default("You have a new response in {formTitle}"),
+
   // Rate limits
   RL_AI_GLOBAL_HOURLY: z.coerce.number().default(300),
   RL_AI_IP_HOURLY: z.coerce.number().default(30),

@@ -32,7 +32,7 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export type Config = Record<string, number | boolean>;
+export type Config = Record<string, number | boolean | string>;
 export interface SpendData { daily: number; weekly: number; monthly: number }
 
 export async function login(email: string, password: string): Promise<void> {
