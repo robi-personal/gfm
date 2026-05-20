@@ -1,9 +1,9 @@
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class SubscriptionService {
-  static const String _appId = 'appl_VqBfURjMPtsRNeYwSTgjKBoJifp';
-  static const String entitlement = 'gfm_premium';
-  static const String _offeringId = 'GFMDefault';
+  static const String _appId = 'appl_MkzXtKeEEhIYCwtQEgOdWquRCGK';
+  static const String entitlement = 'GFMPremium';
+  static const String _offeringId = 'default';
 
   static Future<void> configure() async {
     await Purchases.configure(PurchasesConfiguration(_appId));
@@ -27,8 +27,9 @@ class SubscriptionService {
     return offerings.getOffering(_offeringId) ?? offerings.current;
   }
 
-  Future<CustomerInfo> purchase(Package package) {
-    return Purchases.purchasePackage(package);
+  Future<CustomerInfo> purchase(Package package) async {
+    final result = await Purchases.purchase(PurchaseParams.package(package));
+    return result.customerInfo;
   }
 
   Future<CustomerInfo> restore() {

@@ -80,7 +80,8 @@ dependencies:
   google_fonts: ^8.1.0
 
   # In-app purchases
-  purchases_flutter: ^8.0.0
+  purchases_flutter: ^10.1.0
+  purchases_ui_flutter: ^10.1.0
 
 dev_dependencies:
   flutter_test:
