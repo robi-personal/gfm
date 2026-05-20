@@ -31,6 +31,7 @@ import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../notifications/data/datasources/notifications_api.dart';
+import '../../../notifications/data/services/notification_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/cubit/responses_cubit.dart';
@@ -1504,6 +1505,11 @@ class _NotificationToggleState extends State<_NotificationToggle> {
   }
 
   Future<void> _enable() async {
+    // Make sure this device is registered with FCM before creating the watch —
+    // in case the user dismissed the dashboard rationale earlier and never
+    // granted permission. Idempotent if already registered.
+    await getIt<NotificationService>().registerForUser();
+
     final client = getIt<FormsClient>();
     final req = CreateWatchRequest(
       watch: Watch(

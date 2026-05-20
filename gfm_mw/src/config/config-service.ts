@@ -24,6 +24,7 @@ const KEY_TYPES = {
   // Document settings
   PDF_PAGES_PER_QUOTA:          "number",
   // Push notifications
+  NOTIFICATION_TITLE_TEMPLATE:  "string",
   NOTIFICATION_BODY_TEMPLATE:   "string",
 } as const satisfies Record<string, ScalarType>;
 

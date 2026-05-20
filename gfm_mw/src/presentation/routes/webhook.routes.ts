@@ -356,6 +356,10 @@ webhookRouter.post("/forms-watch", async (req, res) => {
 
   // 5. For each watch (usually one row per form), send push to user's devices.
   const deviceRepo = new PgDeviceTokenRepository(pool);
+  const titleTemplate = configService.get<string>(
+    "NOTIFICATION_TITLE_TEMPLATE",
+    env.NOTIFICATION_TITLE_TEMPLATE,
+  );
   const bodyTemplate = configService.get<string>(
     "NOTIFICATION_BODY_TEMPLATE",
     env.NOTIFICATION_BODY_TEMPLATE,
@@ -365,8 +369,10 @@ webhookRouter.post("/forms-watch", async (req, res) => {
     const tokens = await deviceRepo.listByUserId(watch.userId);
     if (tokens.length === 0) continue;
 
-    const title = "New form response";
-    const bodyText = bodyTemplate.replaceAll("{formTitle}", watch.formTitle || "your form");
+    const fillTemplate = (tpl: string): string =>
+      tpl.replaceAll("{formTitle}", watch.formTitle || "your form");
+    const title = fillTemplate(titleTemplate);
+    const bodyText = fillTemplate(bodyTemplate);
 
     try {
       const result = await sendToTokens(

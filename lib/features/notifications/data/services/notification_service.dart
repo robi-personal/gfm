@@ -113,6 +113,18 @@ class NotificationService {
     }
   }
 
+  /// Returns true if the platform permission state is "notDetermined" — i.e.,
+  /// the user has never been asked. UI should show a soft-ask rationale before
+  /// calling [registerForUser]. iOS HIG and Android 13+ both recommend this.
+  Future<bool> shouldShowRationale() async {
+    try {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.notDetermined;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Call after sign-in. Requests permission (if not already granted),
   /// fetches the FCM token, and registers it with our backend. Idempotent.
   Future<void> registerForUser() async {

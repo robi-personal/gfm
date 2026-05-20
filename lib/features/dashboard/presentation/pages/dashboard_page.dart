@@ -58,6 +58,33 @@ class _DashboardViewState extends State<_DashboardView> {
     _isPremiumFuture = _fetchIsPremium();
     // Deep-link on push tap → open the editor for the form referenced in payload.
     _notificationTapSub = getIt<NotificationService>().onNotificationTap.listen(_handleNotificationTap);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _setUpNotificationsAfterSignIn());
+  }
+
+  /// Soft-ask before the system permission prompt; only shows once (when
+  /// status is notDetermined). Subsequent app launches just attempt to refresh
+  /// the FCM token silently — no UI.
+  Future<void> _setUpNotificationsAfterSignIn() async {
+    if (!mounted) return;
+    final svc = getIt<NotificationService>();
+    final needsRationale = await svc.shouldShowRationale();
+    if (!mounted) return;
+    if (needsRationale) {
+      bool accepted = false;
+      await ErrorModal.show(
+        context,
+        title: 'Stay on top of new responses',
+        body:
+            'Get notified the moment someone submits to a form you\'ve enabled '
+            'notifications on. You can change this anytime in Settings.',
+        primaryLabel: 'Enable',
+        onPrimary: () => accepted = true,
+        secondaryLabel: 'Not now',
+        onSecondary: () {},
+      );
+      if (!accepted) return;
+    }
+    await svc.registerForUser();
   }
 
   void _handleNotificationTap(Map<String, String> data) {

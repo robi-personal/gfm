@@ -49,7 +49,8 @@ class SignInCubit extends Cubit<SignInState> {
       (user) {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
-        _notificationService.registerForUser().ignore();
+        // Notification registration is owned by the dashboard so it can show
+        // a soft-ask rationale before triggering the system permission prompt.
         emit(Authenticated(user));
       },
     );
@@ -67,7 +68,8 @@ class SignInCubit extends Cubit<SignInState> {
       (user) {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
-        _notificationService.registerForUser().ignore();
+        // Notification registration is owned by the dashboard so it can show
+        // a soft-ask rationale before triggering the system permission prompt.
         emit(Authenticated(user));
       },
     );

@@ -67,8 +67,9 @@ const schema = z.object({
   // The audience we expect on incoming Pub/Sub OIDC tokens. Set this to the
   // public URL of the push endpoint (https://gfm.robi-dev.tech/webhooks/forms-watch).
   FORMS_PUBSUB_AUDIENCE: z.string().optional(),
-  // Default notification body template; admin can override via server_config.
+  // Default notification title/body templates; admin can override via server_config.
   // Supported placeholders: {formTitle}
+  NOTIFICATION_TITLE_TEMPLATE: z.string().default("New form response"),
   NOTIFICATION_BODY_TEMPLATE: z.string().default("You have a new response in {formTitle}"),
 
   // Rate limits
