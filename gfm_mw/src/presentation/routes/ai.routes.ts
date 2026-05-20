@@ -216,7 +216,7 @@ aiRouter.post(
       if (req.user!.tier === "free" && premiumOnlyInputType(body.inputType)) {
         throw new HttpError(403, "premium_required",
           "This input type requires a premium subscription.",
-          { requiredEntitlement: "gfm_premium", requestedInputType: body.inputType },
+          { requiredEntitlement: "GFMPremium", requestedInputType: body.inputType },
         );
       }
 

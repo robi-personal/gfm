@@ -100,7 +100,7 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
       await userRepo.setSubscriptionProduct(userId, null);
       break;
     case "PRODUCT_CHANGE": {
-      const stillPremium = event.entitlement_ids?.includes("gfm_premium") ?? false;
+      const stillPremium = event.entitlement_ids?.includes("GFMPremium") ?? false;
       const resetAt = msToDate(event.expiration_at_ms) ?? new Date();
       await userRepo.updateProductChange(userId, stillPremium, resetAt);
       if (event.product_id) {
