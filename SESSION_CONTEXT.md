@@ -625,8 +625,14 @@ End-to-end verified on Android: form response submission → Google Forms watch 
 
 - **Action bar moved into Responses tab** — Export CSV and Print now live in a new `ResponseActionsBar` widget (`lib/features/responses/presentation/widgets/response_actions_bar.dart`) positioned between the main tab bar and the Summary/Individual sub-tabs. The actions are only visible when the Responses tab is selected (previously they were above the tab bar, visible from all tabs — but that felt out of place on Questions/Settings).
 - **Row-style action tiles** — 44pt-high rows with icon-left, label-right (was column with icon-on-top). The buildCsv helper moved into the same file. Settings tab no longer has the Export CSV row; DATA section only renders when a linked Sheet exists.
-- **Print** — opens the form's `responderUri` externally so the user can print a blank copy for paper distribution.
 - **Notification toggle cache** — `_NotificationToggle` now caches its watch state in a process-wide static map keyed by `formId`. `EditorCubit` emits `isSaving=true` on every settings change, which swaps the TabBarView for a skeleton and tears down all tab widgets — without the cache, `forms.watches.list` re-fired on every save. Cache stays in sync via writes in `_loadInitial`, `_enable`, and `_disable`. Cleared on cold-start, which is the intended invalidation point.
+
+### Print to network printer via PDF + ErrorModal redesign (commit `d8d92b1`)
+
+- **Print as PDF, not browser** — added `printing ^5.13.4` + `pdf ^3.11.1`. Tap Print → app generates a landscape PDF (rows = respondents, columns = questions) → opens the OS print dialog → user picks any printer the OS already sees (AirPrint on iOS, Mopria/IPP on Android). `Printing.layoutPdf` does the OS plumbing; we just hand it a `Uint8List`. `buildResponsesPdf` uses `pw.TableHelper.fromTextArray` for auto-pagination, with a purple header row and alternating shading.
+- **Empty-response guard** — both Export CSV and Print check `ResponsesCubit.state` first; if zero responses, show the "No responses yet" dialog instead of silently exporting an empty file.
+- **Print loader UX** — clears the spinner BEFORE opening the system print dialog (the OS dialog covers the button anyway, and `Printing.layoutPdf` doesn't always resolve cleanly across app background/foreground transitions). Avoids the "loader stuck on" bug after returning from the print dialog.
+- **ErrorModal redesign** — replaced Material `AlertDialog` with a custom iOS-style modal: 16px rounded white card, centered title + secondary-grey body, soft shadow, 35% scrim. Primary button is now a filled purple pill (white text, w600); optional secondary button is a soft-grey pill with dark text. Applies app-wide since every confirm/error dialog routes through `ErrorModal.show()`.
 
 ### Gotchas (do not repeat)
 
