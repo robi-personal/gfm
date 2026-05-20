@@ -91,6 +91,14 @@ class _PaywallViewState extends State<_PaywallView> {
     _Plan.monthly => offering.monthly,
   };
 
+  _Plan? _currentPlan(String? productId, Offering? offering) {
+    if (productId == null) return null;
+    if (productId == offering?.weekly?.storeProduct.identifier) return _Plan.weekly;
+    if (productId == offering?.monthly?.storeProduct.identifier) return _Plan.monthly;
+    if (productId == offering?.annual?.storeProduct.identifier) return _Plan.annual;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewPaddingOf(context).bottom;
@@ -116,6 +124,8 @@ class _PaywallViewState extends State<_PaywallView> {
           SubscriptionPurchasing(offering: final o) => o,
           _ => null,
         };
+        final currentProductId = state is SubscriptionLoaded ? state.currentProductId : null;
+        final currentPlan = _currentPlan(currentProductId, offering);
         final isPurchasing = state is SubscriptionPurchasing;
         final isLoading =
             state is SubscriptionLoading || state is SubscriptionInitial;
@@ -151,6 +161,7 @@ class _PaywallViewState extends State<_PaywallView> {
                         const SizedBox(height: 6),
                         _PricingSection(
                           selected: _selected,
+                          currentPlan: currentPlan,
                           offering: offering,
                           onSelect: (p) => setState(() => _selected = p),
                         ),
@@ -158,8 +169,10 @@ class _PaywallViewState extends State<_PaywallView> {
 
                         // Purchase button
                         _PurchaseButton(
-                          label: _buttonLabel(_selected, offering),
-                          enabled: !isPurchasing && !isLoading,
+                          label: _selected == currentPlan
+                              ? 'Current Plan'
+                              : _buttonLabel(_selected, offering),
+                          enabled: !isPurchasing && !isLoading && _selected != currentPlan,
                           isLoading: isLoading || isPurchasing,
                           onTap: () {
                             final package = offering != null
@@ -337,12 +350,14 @@ const _badgeHeight = 26.0;
 
 class _PricingSection extends StatelessWidget {
   final _Plan selected;
+  final _Plan? currentPlan;
   final ValueChanged<_Plan> onSelect;
   final Offering? offering;
 
   const _PricingSection({
     required this.selected,
     required this.onSelect,
+    this.currentPlan,
     this.offering,
   });
 
@@ -361,12 +376,14 @@ class _PricingSection extends StatelessWidget {
           price: weeklyPrice,
           perUnit: 'per week',
           selected: selected == _Plan.weekly,
+          isCurrent: currentPlan == _Plan.weekly,
           onTap: () => onSelect(_Plan.weekly),
         ),
         const SizedBox(width: 8),
         _FeaturedPlanCard(
           price: annualPrice,
           selected: selected == _Plan.annual,
+          isCurrent: currentPlan == _Plan.annual,
           onTap: () => onSelect(_Plan.annual),
         ),
         const SizedBox(width: 8),
@@ -375,6 +392,7 @@ class _PricingSection extends StatelessWidget {
           price: monthlyPrice,
           perUnit: 'per month',
           selected: selected == _Plan.monthly,
+          isCurrent: currentPlan == _Plan.monthly,
           onTap: () => onSelect(_Plan.monthly),
         ),
       ],
@@ -385,19 +403,24 @@ class _PricingSection extends StatelessWidget {
 class _FeaturedPlanCard extends StatelessWidget {
   final String price;
   final bool selected;
+  final bool isCurrent;
   final VoidCallback onTap;
 
   const _FeaturedPlanCard({
     required this.price,
     required this.selected,
     required this.onTap,
+    this.isCurrent = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final badgeLabel = isCurrent ? 'Current' : 'Save 78%';
+    final badgeColor = isCurrent ? AppColors.textSecondary : AppColors.purple;
+
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: isCurrent ? null : onTap,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
@@ -406,22 +429,23 @@ class _FeaturedPlanCard extends StatelessWidget {
               duration: const Duration(milliseconds: 180),
               width: double.infinity,
               margin: const EdgeInsets.only(top: _badgeHeight / 2),
-              padding: const EdgeInsets.fromLTRB(
-                8,
-                _badgeHeight / 2 + 14,
-                8,
-                18,
-              ),
+              padding: const EdgeInsets.fromLTRB(8, _badgeHeight / 2 + 14, 8, 18),
               decoration: BoxDecoration(
-                color: selected
-                    ? AppColors.purpleTint.withValues(alpha: 0.6)
-                    : Colors.white,
+                color: isCurrent
+                    ? const Color(0xFFF2F2F7)
+                    : selected
+                        ? AppColors.purpleTint.withValues(alpha: 0.6)
+                        : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? AppColors.purple : const Color(0xFFDDD8E8),
-                  width: selected ? 2 : 1.5,
+                  color: isCurrent
+                      ? const Color(0xFFDDD8E8)
+                      : selected
+                          ? AppColors.purple
+                          : const Color(0xFFDDD8E8),
+                  width: selected && !isCurrent ? 2 : 1.5,
                 ),
-                boxShadow: selected
+                boxShadow: selected && !isCurrent
                     ? [
                         BoxShadow(
                           color: AppColors.purple.withValues(alpha: 0.22),
@@ -440,7 +464,11 @@ class _FeaturedPlanCard extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
-                      color: selected ? AppColors.purple : Colors.grey[400],
+                      color: isCurrent
+                          ? AppColors.textSecondary
+                          : selected
+                              ? AppColors.purple
+                              : Colors.grey[400],
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -449,7 +477,11 @@ class _FeaturedPlanCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: selected ? AppColors.purple : AppColors.textPrimary,
+                      color: isCurrent
+                          ? AppColors.textSecondary
+                          : selected
+                              ? AppColors.purple
+                              : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -457,9 +489,11 @@ class _FeaturedPlanCard extends StatelessWidget {
                     'per year',
                     style: TextStyle(
                       fontSize: 10,
-                      color: selected
-                          ? AppColors.purple.withValues(alpha: 0.7)
-                          : Colors.grey[400],
+                      color: isCurrent
+                          ? AppColors.textSecondary.withValues(alpha: 0.7)
+                          : selected
+                              ? AppColors.purple.withValues(alpha: 0.7)
+                              : Colors.grey[400],
                     ),
                   ),
                 ],
@@ -469,13 +503,13 @@ class _FeaturedPlanCard extends StatelessWidget {
               height: _badgeHeight,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.purple,
+                color: badgeColor,
                 borderRadius: BorderRadius.circular(20),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                'Save 78%',
-                style: TextStyle(
+              child: Text(
+                badgeLabel,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -495,6 +529,7 @@ class _SidePlanCard extends StatelessWidget {
   final String price;
   final String perUnit;
   final bool selected;
+  final bool isCurrent;
   final VoidCallback onTap;
 
   const _SidePlanCard({
@@ -503,26 +538,33 @@ class _SidePlanCard extends StatelessWidget {
     required this.perUnit,
     required this.selected,
     required this.onTap,
+    this.isCurrent = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: isCurrent ? null : onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
           decoration: BoxDecoration(
-            color: selected
-                ? AppColors.purpleTint.withValues(alpha: 0.6)
-                : Colors.white,
+            color: isCurrent
+                ? const Color(0xFFF2F2F7)
+                : selected
+                    ? AppColors.purpleTint.withValues(alpha: 0.6)
+                    : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? AppColors.purple : const Color(0xFFDDD8E8),
-              width: selected ? 2 : 1.5,
+              color: isCurrent
+                  ? const Color(0xFFDDD8E8)
+                  : selected
+                      ? AppColors.purple
+                      : const Color(0xFFDDD8E8),
+              width: selected && !isCurrent ? 2 : 1.5,
             ),
-            boxShadow: selected
+            boxShadow: selected && !isCurrent
                 ? [
                     BoxShadow(
                       color: AppColors.purple.withValues(alpha: 0.18),
@@ -536,12 +578,16 @@ class _SidePlanCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                label,
+                isCurrent ? 'CURRENT' : label,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: selected ? AppColors.purple : Colors.grey[400],
+                  color: isCurrent
+                      ? AppColors.textSecondary
+                      : selected
+                          ? AppColors.purple
+                          : Colors.grey[400],
                 ),
               ),
               const SizedBox(height: 10),
@@ -550,7 +596,11 @@ class _SidePlanCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: selected ? AppColors.purple : AppColors.textPrimary,
+                  color: isCurrent
+                      ? AppColors.textSecondary
+                      : selected
+                          ? AppColors.purple
+                          : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -558,9 +608,11 @@ class _SidePlanCard extends StatelessWidget {
                 perUnit,
                 style: TextStyle(
                   fontSize: 10,
-                  color: selected
-                      ? AppColors.purple.withValues(alpha: 0.7)
-                      : Colors.grey[400],
+                  color: isCurrent
+                      ? AppColors.textSecondary.withValues(alpha: 0.7)
+                      : selected
+                          ? AppColors.purple.withValues(alpha: 0.7)
+                          : Colors.grey[400],
                 ),
                 textAlign: TextAlign.center,
               ),

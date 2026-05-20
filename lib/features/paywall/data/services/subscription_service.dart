@@ -22,6 +22,15 @@ class SubscriptionService {
     return info.entitlements.active.containsKey(entitlement);
   }
 
+  Future<String?> getCurrentProductId() async {
+    try {
+      final info = await Purchases.getCustomerInfo();
+      return info.entitlements.active[entitlement]?.productIdentifier;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Offering?> getOffering() async {
     final offerings = await Purchases.getOfferings();
     return offerings.getOffering(_offeringId) ?? offerings.current;

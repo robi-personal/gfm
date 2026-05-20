@@ -15,6 +15,7 @@ class SubscriptionLoading extends SubscriptionState {
 class SubscriptionLoaded extends SubscriptionState {
   final bool isPremium;
   final Offering? offering;
+  final String? currentProductId;
 
   /// True only immediately after a successful purchase or restore.
   final bool justPurchased;
@@ -22,6 +23,7 @@ class SubscriptionLoaded extends SubscriptionState {
   const SubscriptionLoaded({
     required this.isPremium,
     this.offering,
+    this.currentProductId,
     this.justPurchased = false,
   });
 }

@@ -17,10 +17,12 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
       final results = await Future.wait([
         _service.isPremium(),
         _service.getOffering(),
+        _service.getCurrentProductId(),
       ]);
       emit(SubscriptionLoaded(
         isPremium: results[0] as bool,
         offering: results[1] as Offering?,
+        currentProductId: results[2] as String?,
       ));
     } catch (_) {
       emit(const SubscriptionLoaded(isPremium: false));
@@ -34,10 +36,12 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     try {
       final info = await _service.purchase(package);
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
+      final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
       if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
         offering: current.offering,
+        currentProductId: currentProductId,
         justPurchased: isPremium,
       ));
     } on PlatformException catch (e) {
@@ -62,9 +66,11 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
       final info = await _service.restore();
       if (isClosed) return;
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
+      final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
         offering: current.offering,
+        currentProductId: currentProductId,
         justPurchased: isPremium,
       ));
     } catch (_) {
