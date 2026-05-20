@@ -11,6 +11,7 @@ import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question_kind.dart';
 import '../cubit/responses_cubit.dart';
+import '../widgets/response_actions_bar.dart';
 
 
 // ── Entry point ────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ class _ResponsesView extends StatefulWidget {
 
   const _ResponsesView({required this.formId, required this.items});
 
+
   @override
   State<_ResponsesView> createState() => _ResponsesViewState();
 }
@@ -63,6 +65,7 @@ class _ResponsesViewState extends State<_ResponsesView>
   Widget build(BuildContext context) {
     return Column(
       children: [
+        ResponseActionsBar(formId: widget.formId),
         ColoredBox(
           color: AppColors.background,
           child: TabBar(

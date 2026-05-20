@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -6,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:googleapis/forms/v1.dart' show CloudPubsubTopic, CreateWatchRequest, Watch, WatchTarget;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,8 +14,6 @@ import '../../../../core/api/forms_client.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/models/enums.dart';
-import '../../../../core/models/form_doc.dart';
-import '../../../../core/models/form_response.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
@@ -1171,115 +1167,12 @@ class _SettingsContentState extends State<_SettingsContent> {
   late EmailCollectionType _emailType;
   late bool _isQuiz;
   bool _isSaving = false;
-  bool _isExporting = false;
 
   @override
   void initState() {
     super.initState();
     _emailType = widget.initialSettings.emailCollectionType;
     _isQuiz = widget.initialSettings.quizSettings.isQuiz;
-  }
-
-  Future<void> _exportCsv() async {
-    if (_isExporting) return;
-    final result = await getIt<GetUserStatus>().call(const NoParams());
-    if (!mounted) return;
-    final isPremium = result.fold((_) => false, (status) => status.isPremium);
-    if (!isPremium) {
-      await PaywallPage.show(context);
-      return;
-    }
-    setState(() => _isExporting = true);
-    try {
-      final editorState = context.read<EditorCubit>().state;
-      if (editorState is! EditorLoaded) return;
-      final form = editorState.form;
-
-      // Load all responses
-      final client = getIt<FormsClient>();
-      final responses = <FormResponse>[];
-      String? pageToken;
-      do {
-        final result = await client.api.forms.responses.list(
-          widget.formId,
-          pageSize: 100,
-          pageToken: pageToken,
-        );
-        responses.addAll((result.responses ?? []).map(FormResponse.fromApi));
-        pageToken = result.nextPageToken;
-      } while (pageToken != null);
-      responses.sort((a, b) => a.createTime.compareTo(b.createTime));
-
-      final csv = _buildCsv(form, responses);
-
-      final dir = await getTemporaryDirectory();
-      final title = form.info.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
-      final file = File('${dir.path}/${title}_responses.csv');
-      await file.writeAsString(csv);
-
-      if (!mounted) return;
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'text/csv')],
-        subject: '${form.info.title} — Responses',
-      );
-      AnalyticsService.logCsvExported();
-    } catch (e) {
-      if (!mounted) return;
-      ErrorModal.show(
-        context,
-        title: "Export failed.",
-        body: 'Check your connection and try again.',
-        primaryLabel: 'OK',
-        onPrimary: () {},
-      );
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  String _buildCsv(FormDoc form, List<FormResponse> responses) {
-    // Build ordered question index
-    final cols = <({String title, String questionId})>[];
-    for (final item in form.items) {
-      final itemTitle =
-          item.title?.isNotEmpty == true ? item.title! : 'Untitled';
-      switch (item.content) {
-        case QuestionItemContent(:final question):
-          cols.add((title: itemTitle, questionId: question.questionId));
-        case QuestionGroupItemContent(:final questions):
-          for (final q in questions) {
-            cols.add((title: itemTitle, questionId: q.questionId));
-          }
-        default:
-          break;
-      }
-    }
-    final questions = cols;
-
-    String escape(String v) {
-      if (v.contains(',') || v.contains('"') || v.contains('\n')) {
-        return '"${v.replaceAll('"', '""')}"';
-      }
-      return v;
-    }
-
-    final buffer = StringBuffer();
-    // Header row
-    buffer.write('Timestamp,Email');
-    for (final q in questions) { buffer.write(',${escape(q.title)}'); }
-    buffer.writeln();
-
-    // Data rows
-    for (final r in responses) {
-      buffer.write(escape(r.createTime.toIso8601String()));
-      buffer.write(',${escape(r.respondentEmail ?? '')}');
-      for (final q in questions) {
-        final vals = r.answers[q.questionId] ?? [];
-        buffer.write(',${escape(vals.join('; '))}');
-      }
-      buffer.writeln();
-    }
-    return buffer.toString();
   }
 
   Future<void> _save({required EmailCollectionType emailType, required bool isQuiz}) async {
@@ -1386,20 +1279,12 @@ class _SettingsContentState extends State<_SettingsContent> {
           const SizedBox(height: 28),
 
           // ── Data ───────────────────────────────────────────────────────────
-          const _IosGroupLabel(label: 'DATA'),
-          _IosCard(children: [
-            _IosActionTile(
-              icon: _isExporting
-                  ? null
-                  : CupertinoIcons.arrow_down_circle,
-              leadingWidget: _isExporting
-                  ? const CupertinoActivityIndicator(radius: 10)
-                  : null,
-              label: 'Export responses as CSV',
-              isLast: widget.linkedSheetId == null,
-              onTap: _isExporting ? null : _exportCsv,
-            ),
-            if (widget.linkedSheetId != null)
+          // CSV export was moved to the action bar above the tabs. The DATA
+          // section now only appears when there's something else to put in it
+          // (currently: linked Google Sheet shortcut).
+          if (widget.linkedSheetId != null) ...[
+            const _IosGroupLabel(label: 'DATA'),
+            _IosCard(children: [
               _IosActionTile(
                 icon: CupertinoIcons.table,
                 label: 'Open linked Google Sheet',
@@ -1416,7 +1301,8 @@ class _SettingsContentState extends State<_SettingsContent> {
                   mode: LaunchMode.externalApplication,
                 ),
               ),
-          ]),
+            ]),
+          ],
         ],
       ),
     );
@@ -1443,10 +1329,24 @@ class _NotificationToggleState extends State<_NotificationToggle> {
 
   static const String _topicResource = 'projects/form-manager-493310/topics/forms-responses';
 
+  /// Process-wide cache keyed by formId. The parent EditorCubit emits an
+  /// `isSaving` state that swaps the TabBarView for a skeleton on every
+  /// settings change, which tears down this widget. Without a cache,
+  /// forms.watches.list would re-fire on every save. The cache is updated
+  /// after enable/disable so it stays accurate.
+  static final Map<String, ({bool isEnabled, String? watchId})> _cache = {};
+
   @override
   void initState() {
     super.initState();
-    _loadInitial();
+    final cached = _cache[widget.formId];
+    if (cached != null) {
+      _loading = false;
+      _isEnabled = cached.isEnabled;
+      _watchId = cached.watchId;
+    } else {
+      _loadInitial();
+    }
   }
 
   /// Derive the toggle state from forms.watches.list — Google is the source
@@ -1459,10 +1359,13 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         (w) => w.eventType == 'RESPONSES' && (w.state == 'ACTIVE' || w.state == null),
         orElse: () => Watch(),
       );
+      final isEnabled = watch?.id != null;
+      final watchId = watch?.id;
+      _cache[widget.formId] = (isEnabled: isEnabled, watchId: watchId);
       if (!mounted) return;
       setState(() {
-        _isEnabled = watch?.id != null;
-        _watchId = watch?.id;
+        _isEnabled = isEnabled;
+        _watchId = watchId;
         _loading = false;
       });
     } catch (_) {
@@ -1531,6 +1434,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
       expiresAt: DateTime.parse(expire),
     );
 
+    _cache[widget.formId] = (isEnabled: true, watchId: watchId);
     if (!mounted) return;
     setState(() {
       _isEnabled = true;
@@ -1541,7 +1445,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
   Future<void> _disable() async {
     final id = _watchId;
     if (id == null) {
-      // No-op: nothing to delete on Google's side. Still flip local UI.
+      _cache[widget.formId] = (isEnabled: false, watchId: null);
       if (mounted) setState(() => _isEnabled = false);
       return;
     }
@@ -1552,6 +1456,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
       // 404 means it was already deleted on Google's side — ignore.
     }
     await getIt<NotificationsApi>().unregisterWatch(id);
+    _cache[widget.formId] = (isEnabled: false, watchId: null);
     if (!mounted) return;
     setState(() {
       _isEnabled = false;
@@ -1766,7 +1671,6 @@ class _IosSwitchTile extends StatelessWidget {
 
 class _IosActionTile extends StatelessWidget {
   final IconData? icon;
-  final Widget? leadingWidget;
   final String label;
   final Widget? trailing;
   final bool isLast;
@@ -1774,7 +1678,6 @@ class _IosActionTile extends StatelessWidget {
 
   const _IosActionTile({
     this.icon,
-    this.leadingWidget,
     required this.label,
     this.trailing,
     this.isLast = false,
@@ -1783,10 +1686,9 @@ class _IosActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final leading = leadingWidget ??
-        (icon != null
-            ? Icon(icon, size: 20, color: AppColors.purple)
-            : const SizedBox(width: 20));
+    final leading = icon != null
+        ? Icon(icon, size: 20, color: AppColors.purple)
+        : const SizedBox(width: 20);
 
     return Column(
       children: [
