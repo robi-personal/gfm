@@ -522,6 +522,30 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-20 session — RevenueCat v10 upgrade)
+
+### RevenueCat SDK v10 migration (commits `ba0a044`, `707583c`)
+
+**Flutter (cherry-picked from `origin/chore/revenuecat-v10-upgrade`)**
+- `purchases_flutter` bumped `^8.0.0` → `^10.1.0`; `purchases_ui_flutter: ^10.1.0` added
+- App ID: `appl_MkzXtKeEEhIYCwtQEgOdWquRCGK` (new RC v10 project)
+- Entitlement: `gfm_premium` → `GFMPremium`
+- Offering: `GFMDefault` → `default`
+- `purchase()` migrated to v10 API: `Purchases.purchase(PurchaseParams.package(package))`
+- iOS Podfile.lock and Xcode project synced from pod update
+
+**Middleware**
+- `webhook.routes.ts`: `event.entitlement_ids?.includes("gfm_premium")` → `"GFMPremium"` (PRODUCT_CHANGE handler — critical for correct premium state on plan change)
+- `ai.routes.ts`: `requiredEntitlement` label updated to `"GFMPremium"`
+
+**Infrastructure**
+- `RC_WEBHOOK_SECRET` rotated to new value in local `.env` and deployed to VPS
+- Webhook URL: `https://gfm.robi-dev.tech/webhooks/revenuecat` — test passed ✅
+
+**Gotcha:** `deploy.sh` copies local `.env` to VPS on every deploy — always update local `.env` before deploying when secrets change, otherwise VPS gets overwritten with stale values.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
