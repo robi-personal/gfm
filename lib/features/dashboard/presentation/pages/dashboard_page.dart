@@ -7,8 +7,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
+import 'dart:async';
+
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../../notifications/data/services/notification_service.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/widgets/error_modal.dart';
@@ -47,11 +50,24 @@ class _DashboardViewState extends State<_DashboardView> {
   final _searchFocus = FocusNode();
   bool _searchOpen = false;
   late Future<bool> _isPremiumFuture;
+  StreamSubscription<Map<String, String>>? _notificationTapSub;
 
   @override
   void initState() {
     super.initState();
     _isPremiumFuture = _fetchIsPremium();
+    // Deep-link on push tap → open the editor for the form referenced in payload.
+    _notificationTapSub = getIt<NotificationService>().onNotificationTap.listen(_handleNotificationTap);
+  }
+
+  void _handleNotificationTap(Map<String, String> data) {
+    final formId = data['formId'];
+    if (formId == null || !mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EditorPage(formId: formId, formName: ''),
+      ),
+    );
   }
 
   Future<bool> _fetchIsPremium() => getIt<GetUserStatus>()
@@ -75,6 +91,7 @@ class _DashboardViewState extends State<_DashboardView> {
   void dispose() {
     _searchController.dispose();
     _searchFocus.dispose();
+    _notificationTapSub?.cancel();
     super.dispose();
   }
 

@@ -43,6 +43,8 @@ import '../../features/ai_form_builder/domain/usecases/create_form_from_ai.dart'
 import '../../features/ai_form_builder/domain/usecases/generate_form.dart';
 import '../../features/ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../features/ai_form_builder/presentation/cubit/ai_form_builder_cubit.dart';
+import '../../features/notifications/data/datasources/notifications_api.dart';
+import '../../features/notifications/data/services/notification_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -83,6 +85,7 @@ void configureDependencies() {
       formsClient: getIt(),
       driveClient: getIt(),
       subscriptionService: getIt(),
+      notificationService: getIt(),
     ),
   );
 
@@ -219,5 +222,13 @@ void configureDependencies() {
 
   getIt.registerFactory(
     () => SubscriptionCubit(getIt<SubscriptionService>()),
+  );
+
+  // ── Push notifications ────────────────────────────────────────────────────
+  getIt.registerLazySingleton(
+    () => NotificationsApi(auth: getIt<GoogleAuthDataSource>()),
+  );
+  getIt.registerLazySingleton(
+    () => NotificationService(getIt<NotificationsApi>()),
   );
 }

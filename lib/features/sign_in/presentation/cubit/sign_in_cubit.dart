@@ -5,6 +5,7 @@ import '../../../../core/api/forms_client.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../notifications/data/services/notification_service.dart';
 import '../../../paywall/data/services/subscription_service.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/sign_in_silently.dart';
@@ -20,6 +21,7 @@ class SignInCubit extends Cubit<SignInState> {
   final FormsClient _formsClient;
   final DriveClient _driveClient;
   final SubscriptionService _subscriptionService;
+  final NotificationService _notificationService;
 
   SignInCubit({
     required SignInWithGoogle signInWithGoogle,
@@ -28,12 +30,14 @@ class SignInCubit extends Cubit<SignInState> {
     required FormsClient formsClient,
     required DriveClient driveClient,
     required SubscriptionService subscriptionService,
+    required NotificationService notificationService,
   })  : _signInWithGoogle = signInWithGoogle,
         _signInSilently = signInSilently,
         _signOut = signOut,
         _formsClient = formsClient,
         _driveClient = driveClient,
         _subscriptionService = subscriptionService,
+        _notificationService = notificationService,
         super(const SignInInitial());
 
   /// Called on app launch. Uses cached credentials — no UI prompt.
@@ -45,6 +49,7 @@ class SignInCubit extends Cubit<SignInState> {
       (user) {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
+        _notificationService.registerForUser().ignore();
         emit(Authenticated(user));
       },
     );
@@ -62,12 +67,14 @@ class SignInCubit extends Cubit<SignInState> {
       (user) {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
+        _notificationService.registerForUser().ignore();
         emit(Authenticated(user));
       },
     );
   }
 
   Future<void> signOut() async {
+    await _notificationService.unregisterForUser();
     await _signOut();
     _formsClient.reset();
     _driveClient.reset();

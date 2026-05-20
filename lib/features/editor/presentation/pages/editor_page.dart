@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:googleapis/forms/v1.dart' show CloudPubsubTopic, CreateWatchRequest, Watch, WatchTarget;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
@@ -29,6 +30,7 @@ import '../widgets/video_search_dialog.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../../notifications/data/datasources/notifications_api.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../preview/preview_screen.dart';
 import '../../../responses/presentation/cubit/responses_cubit.dart';
@@ -1354,6 +1356,18 @@ class _SettingsContentState extends State<_SettingsContent> {
           ]),
           const SizedBox(height: 28),
 
+          // ── Notifications ──────────────────────────────────────────────────
+          const _IosGroupLabel(label: 'NOTIFICATIONS'),
+          _IosCard(children: [
+            _NotificationToggle(
+              formId: widget.formId,
+              formTitle: context.read<EditorCubit>().state is EditorLoaded
+                  ? (context.read<EditorCubit>().state as EditorLoaded).form.info.title
+                  : '',
+            ),
+          ]),
+          const SizedBox(height: 28),
+
           // ── Data ───────────────────────────────────────────────────────────
           const _IosGroupLabel(label: 'DATA'),
           _IosCard(children: [
@@ -1388,6 +1402,149 @@ class _SettingsContentState extends State<_SettingsContent> {
           ]),
         ],
       ),
+    );
+  }
+}
+
+// ── Notification toggle (per-form push opt-in) ───────────────────────────────
+
+class _NotificationToggle extends StatefulWidget {
+  final String formId;
+  final String formTitle;
+
+  const _NotificationToggle({required this.formId, required this.formTitle});
+
+  @override
+  State<_NotificationToggle> createState() => _NotificationToggleState();
+}
+
+class _NotificationToggleState extends State<_NotificationToggle> {
+  bool _loading = true;
+  bool _isEnabled = false;
+  bool _isWorking = false;
+  String? _watchId;
+
+  static const String _topicResource = 'projects/form-manager-493310/topics/forms-responses';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitial();
+  }
+
+  /// Derive the toggle state from forms.watches.list — Google is the source
+  /// of truth, so this stays accurate even across reinstalls.
+  Future<void> _loadInitial() async {
+    try {
+      final client = getIt<FormsClient>();
+      final res = await client.api.forms.watches.list(widget.formId);
+      final watch = res.watches?.firstWhere(
+        (w) => w.eventType == 'RESPONSES' && (w.state == 'ACTIVE' || w.state == null),
+        orElse: () => Watch(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _isEnabled = watch?.id != null;
+        _watchId = watch?.id;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _onToggle(bool value) async {
+    if (_isWorking) return;
+
+    // Premium gate (uses server as source of truth).
+    final statusResult = await getIt<GetUserStatus>().call(const NoParams());
+    if (!mounted) return;
+    final isPremium = statusResult.fold((_) => false, (s) => s.isPremium);
+    if (!isPremium) {
+      await PaywallPage.show(context);
+      return;
+    }
+
+    setState(() => _isWorking = true);
+    try {
+      if (value) {
+        await _enable();
+      } else {
+        await _disable();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ErrorModal.show(
+        context,
+        title: value ? 'Could not enable notifications' : 'Could not disable notifications',
+        body: e.toString(),
+        primaryLabel: 'OK',
+        onPrimary: () {},
+      );
+    } finally {
+      if (mounted) setState(() => _isWorking = false);
+    }
+  }
+
+  Future<void> _enable() async {
+    final client = getIt<FormsClient>();
+    final req = CreateWatchRequest(
+      watch: Watch(
+        target: WatchTarget(topic: CloudPubsubTopic(topicName: _topicResource)),
+        eventType: 'RESPONSES',
+      ),
+    );
+    final created = await client.api.forms.watches.create(req, widget.formId);
+    final watchId = created.id;
+    final expire = created.expireTime;
+    if (watchId == null || expire == null) {
+      throw Exception('Forms API returned an incomplete watch object.');
+    }
+
+    await getIt<NotificationsApi>().registerWatch(
+      formId: widget.formId,
+      watchId: watchId,
+      formTitle: widget.formTitle,
+      expiresAt: DateTime.parse(expire),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isEnabled = true;
+      _watchId = watchId;
+    });
+  }
+
+  Future<void> _disable() async {
+    final id = _watchId;
+    if (id == null) {
+      // No-op: nothing to delete on Google's side. Still flip local UI.
+      if (mounted) setState(() => _isEnabled = false);
+      return;
+    }
+    final client = getIt<FormsClient>();
+    try {
+      await client.api.forms.watches.delete(widget.formId, id);
+    } catch (_) {
+      // 404 means it was already deleted on Google's side — ignore.
+    }
+    await getIt<NotificationsApi>().unregisterWatch(id);
+    if (!mounted) return;
+    setState(() {
+      _isEnabled = false;
+      _watchId = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _IosSwitchTile(
+      label: 'New responses',
+      subtitle: 'Get a push notification when this form receives a new response',
+      value: _isEnabled,
+      isLast: true,
+      onChanged: (_loading || _isWorking) ? null : _onToggle,
     );
   }
 }

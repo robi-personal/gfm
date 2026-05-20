@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'features/notifications/data/services/notification_service.dart';
 import 'features/paywall/data/services/subscription_service.dart';
 import 'firebase_options.dart';
 
@@ -28,5 +29,12 @@ void main() async {
   };
 
   configureDependencies();
+
+  // Initialise FCM + local notifications listeners. Permission is requested at
+  // sign-in time (registerForUser), not here, so this is a no-op for unsigned users.
+  try {
+    await getIt<NotificationService>().init();
+  } catch (_) {}
+
   runApp(const App());
 }
