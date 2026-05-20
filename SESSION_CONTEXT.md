@@ -577,6 +577,55 @@ No Sheets API scope — export is CSV-only (via share_plus), linked sheet opened
 
 ---
 
+## Recent changes (2026-05-20 / 2026-05-21 sessions — push notifications)
+
+End-to-end verified on Android: form response submission → Google Forms watch → Pub/Sub push → backend → FCM → device → tap deep-links into Responses tab.
+
+### Backend (commit `f149c8d`)
+
+- Migration `006_push_notifications.sql` — `device_tokens`, `form_watches`, `processed_pubsub_messages`.
+- Domain entities + `pg-device-token.repository.ts`, `pg-form-watch.repository.ts`.
+- `infrastructure/fcm/fcm.service.ts` — Firebase Admin SDK wrapper. Accepts either raw JSON or base64-encoded JSON in `FIREBASE_SERVICE_ACCOUNT_JSON` (base64 sidesteps shell-escaping issues with the private_key newlines). Multicast send, returns invalid tokens for cleanup.
+- `infrastructure/google-auth/pubsub-token-verifier.ts` — OIDC verification of incoming Pub/Sub push deliveries; audience must match `FORMS_PUBSUB_AUDIENCE` env var (= the public webhook URL).
+- `middleware/premium.middleware.ts` — reusable `premiumOnlyMiddleware` (403 if `req.user.tier !== "premium"`).
+- Routes:
+  - `POST /devices`, `DELETE /devices/:token` (authenticated)
+  - `POST /watches`, `DELETE /watches/:watchId` (premium-gated)
+  - `POST /webhooks/forms-watch` — Pub/Sub push handler (verified OIDC, idempotent via `processed_pubsub_messages.message_id`, fan-out across all of user's devices, deletes invalid tokens, 503 on FCM failure so Pub/Sub retries)
+- `config-service.ts` now supports `string`-typed configs; `NOTIFICATION_BODY_TEMPLATE` admin-configurable (default `"You have a new response in {formTitle}"`).
+- Admin UI page `NotificationsPage.tsx` for editing the template with a live preview.
+
+### GCP / Firebase config
+
+- GCP project: `form-manager-493310`. Pub/Sub topic: `projects/form-manager-493310/topics/forms-responses`.
+- Granted `roles/pubsub.publisher` to `forms-notifications@system.gserviceaccount.com` on the topic — required by Google Forms watches.
+- Push subscription `forms-responses-push` → `https://gfm.robi-dev.tech/webhooks/forms-watch`. OIDC enabled with audience = same URL. Service account is `firebase-adminsdk-fbsvc@form-manager-493310.iam.gserviceaccount.com` (any project SA works; the verifier doesn't pin email).
+- APNs auth key (single `.p8`) uploaded to Firebase Console; same key serves both dev and prod since the `aps-environment` entitlement determines the APNs server.
+
+### Flutter (commits `54ff93c`, `4aa87fc`)
+
+- `firebase_messaging ^15.2.5`, `flutter_local_notifications ^18.0.1` (mirrors foreground messages — FCM only auto-displays in background/terminated).
+- iOS: `aps-environment: development` (switch to `production` before App Store), `UIBackgroundModes: fetch, remote-notification`. Bundle ID `com.rashed.gfm` matches Firebase iOS app.
+- Android: `POST_NOTIFICATIONS` permission, default FCM channel meta-data → `form_responses`, core library desugaring enabled (required by `flutter_local_notifications`). Bundle ID `com.app.formmanager` matches Firebase Android app.
+- `NotificationService`:
+  - `init()` runs via `unawaited()` from `main.dart` so startup isn't blocked.
+  - Each step wrapped in try/catch — single hang/failure can't block the rest.
+  - iOS-only `_waitForApnsToken()` polls `FirebaseMessaging.getAPNSToken()` with 10s timeout before requesting FCM token (FCM token requires APNs registration on iOS).
+  - `_pendingInitialTap` field buffers a terminated-app tap until the dashboard listener attaches (broadcast streams drop events without listeners). `onNotificationTap` getter returns a `Stream.multi` that replays the pending tap to the first subscriber, then forwards live events.
+- `SignInCubit` calls `registerForUser()` on sign-in (interactive and silent) and `unregisterForUser()` on sign-out (single-device cleanup; other devices stay).
+- Editor settings tab: new "NOTIFICATIONS" section with `_NotificationToggle` widget. Toggle state derived from `forms.watches.list` (Google is source of truth, no local cache needed). Switch row swaps to a `CupertinoActivityIndicator` while a watch is being created/deleted to prevent layout shift and signal progress.
+- `EditorPage.initialTabIndex` parameter (clamped to [0, 2]). Dashboard notification-tap handler passes `initialTabIndex: 1` so the user lands on the Responses tab.
+
+### Gotchas (do not repeat)
+
+- **`echo "X='${VAR}'"` mangles JSON with `\n` in zsh** — `echo` interprets backslash escapes by default, turning the private_key's `\n` into actual newlines and breaking JSON parsing. Use base64 encoding or write the value with Python/Node instead. Codified by `fcm.service.ts` accepting both raw and base64-encoded values.
+- **iOS Simulator APNs is unreliable** — even on iOS 16+ Apple Silicon, `getAPNSToken()` often returns null. Test push delivery on a real iOS device.
+- **`Stream.broadcast` drops events with no listener** — for terminated-app deep-links, you must buffer the tap data until the destination widget mounts and subscribes.
+- **Pub/Sub topic permission lives at topic level, not subscription** — granting `Pub/Sub Publisher` to a subscription is a no-op for Forms watches (subscriptions only have subscriber-side roles).
+- **Forms watches expire after 7 days** with no renewal endpoint in the app (by user decision: most forms are short-term surveys). If a user re-enables an expired watch, a new one is created via `forms.watches.create` and the mapping is upserted by `(form_id, user_id)`.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
