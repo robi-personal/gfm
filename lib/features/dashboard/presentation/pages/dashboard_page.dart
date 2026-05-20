@@ -46,6 +46,19 @@ class _DashboardViewState extends State<_DashboardView> {
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   bool _searchOpen = false;
+  late Future<bool> _isPremiumFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPremiumFuture = _fetchIsPremium();
+  }
+
+  Future<bool> _fetchIsPremium() => getIt<GetUserStatus>()
+      .call(const NoParams())
+      .then((r) => r.fold((_) => false, (s) => s.isPremium));
+
+  void _refreshPremium() => setState(() => _isPremiumFuture = _fetchIsPremium());
 
   @override
   void dispose() {
@@ -287,13 +300,14 @@ class _DashboardViewState extends State<_DashboardView> {
           },
         ),
         FutureBuilder<bool>(
-          future: getIt<GetUserStatus>()
-              .call(const NoParams())
-              .then((r) => r.fold((_) => false, (s) => s.isPremium)),
+          future: _isPremiumFuture,
           builder: (context, snapshot) {
             if (snapshot.data != false) return const SizedBox.shrink();
             return GestureDetector(
-              onTap: () => PaywallPage.show(context),
+              onTap: () async {
+                await PaywallPage.show(context);
+                _refreshPremium();
+              },
               child: Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: SvgPicture.asset(
@@ -440,9 +454,10 @@ class _DashboardViewState extends State<_DashboardView> {
                     _DrawerItem(
                       assetIcon: 'assets/upgrade_to_premium.png',
                       title: 'Upgrade Plan',
-                      onTap: () {
+                      onTap: () async {
                         close();
-                        PaywallPage.show(context);
+                        await PaywallPage.show(context);
+                        _refreshPremium();
                       },
                     ),
                   ],
