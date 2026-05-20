@@ -60,6 +60,17 @@ class _DashboardViewState extends State<_DashboardView> {
 
   void _refreshPremium() => setState(() => _isPremiumFuture = _fetchIsPremium());
 
+  Future<void> _showPaywall() async {
+    await PaywallPage.show(context);
+    if (!mounted) return;
+    await pollUntilPremium(
+      useCase: getIt<GetUserStatus>(),
+      onPremiumConfirmed: () async {
+        if (mounted) _refreshPremium();
+      },
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -304,10 +315,7 @@ class _DashboardViewState extends State<_DashboardView> {
           builder: (context, snapshot) {
             if (snapshot.data != false) return const SizedBox.shrink();
             return GestureDetector(
-              onTap: () async {
-                await PaywallPage.show(context);
-                _refreshPremium();
-              },
+              onTap: () => _showPaywall(),
               child: Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: SvgPicture.asset(
@@ -456,8 +464,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       title: 'Upgrade Plan',
                       onTap: () async {
                         close();
-                        await PaywallPage.show(context);
-                        _refreshPremium();
+                        await _showPaywall();
                       },
                     ),
                   ],

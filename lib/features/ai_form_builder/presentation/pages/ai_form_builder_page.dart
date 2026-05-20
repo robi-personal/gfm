@@ -13,6 +13,7 @@ import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../domain/entities/user_status.dart';
+import '../../domain/usecases/get_user_status.dart';
 import '../cubit/ai_form_builder_cubit.dart';
 import 'ai_form_preview_page.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -347,7 +348,12 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
   Future<void> _showPaywall(AiFormBuilderCubit cubit) async {
     await PaywallPage.show(context);
     if (!mounted) return;
-    await cubit.paywallDismissed();
+    await pollUntilPremium(
+      useCase: getIt<GetUserStatus>(),
+      onPremiumConfirmed: () async {
+        if (mounted) await cubit.paywallDismissed();
+      },
+    );
   }
 
   void _submitText(AiFormBuilderCubit cubit, int? questionCountHint, bool isQuiz) {
