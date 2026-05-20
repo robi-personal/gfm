@@ -621,6 +621,13 @@ End-to-end verified on Android: form response submission → Google Forms watch 
 - **Admin-configurable title** — `NOTIFICATION_TITLE_TEMPLATE` added alongside `NOTIFICATION_BODY_TEMPLATE`. Both support `{formTitle}` placeholder. Webhook calls a `fillTemplate()` helper for both. Admin's Notifications page edits both side-by-side with a unified iOS-style preview card.
 - **Permission rationale (soft-ask)** — `NotificationService.shouldShowRationale()` returns true iff `AuthorizationStatus.notDetermined`. Removed the auto-call to `registerForUser` from `SignInCubit` — the dashboard now owns the post-sign-in flow (via `initState` post-frame callback) so the rationale modal can show with a `BuildContext`. Modal text leads with the value ("Stay on top of new responses…") with **Enable** / **Not now** buttons. After the user taps Enable, `registerForUser()` triggers the OS-level prompt. Editor toggle also calls `registerForUser()` defensively before creating the watch in case the user dismissed the dashboard rationale and is opting in per-form.
 
+### Responses tab action bar + toggle cache (commit `95a0838`)
+
+- **Action bar moved into Responses tab** — Export CSV and Print now live in a new `ResponseActionsBar` widget (`lib/features/responses/presentation/widgets/response_actions_bar.dart`) positioned between the main tab bar and the Summary/Individual sub-tabs. The actions are only visible when the Responses tab is selected (previously they were above the tab bar, visible from all tabs — but that felt out of place on Questions/Settings).
+- **Row-style action tiles** — 44pt-high rows with icon-left, label-right (was column with icon-on-top). The buildCsv helper moved into the same file. Settings tab no longer has the Export CSV row; DATA section only renders when a linked Sheet exists.
+- **Print** — opens the form's `responderUri` externally so the user can print a blank copy for paper distribution.
+- **Notification toggle cache** — `_NotificationToggle` now caches its watch state in a process-wide static map keyed by `formId`. `EditorCubit` emits `isSaving=true` on every settings change, which swaps the TabBarView for a skeleton and tears down all tab widgets — without the cache, `forms.watches.list` re-fired on every save. Cache stays in sync via writes in `_loadInitial`, `_enable`, and `_disable`. Cleared on cold-start, which is the intended invalidation point.
+
 ### Gotchas (do not repeat)
 
 - **`echo "X='${VAR}'"` mangles JSON with `\n` in zsh** — `echo` interprets backslash escapes by default, turning the private_key's `\n` into actual newlines and breaking JSON parsing. Use base64 encoding or write the value with Python/Node instead. Codified by `fcm.service.ts` accepting both raw and base64-encoded values.
