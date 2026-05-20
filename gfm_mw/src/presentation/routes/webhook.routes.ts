@@ -104,6 +104,12 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
       const resetAt = msToDate(event.expiration_at_ms) ?? new Date();
       await userRepo.updateProductChange(userId, stillPremium, resetAt);
       if (event.product_id) {
+        const product = await productRepo.getById(event.product_id);
+        if (!product) {
+          logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+        } else {
+          await userRepo.creditQuota(userId, product.quotaAmount, "subscription_upgrade", product.productId, event.id);
+        }
         await userRepo.setSubscriptionProduct(userId, event.product_id);
       }
       break;
