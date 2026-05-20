@@ -1,20 +1,16 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/models/form_doc.dart';
 import '../../../../core/models/form_response.dart';
-import '../../../../core/models/item_content.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -22,7 +18,9 @@ import '../../../../core/widgets/error_modal.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../editor/presentation/cubit/editor_cubit.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
+import '../../data/pdf_builders.dart';
 import '../cubit/responses_cubit.dart';
+import 'print_options_sheet.dart';
 
 /// Action row shown inside the Responses tab, above the Summary/Individual
 /// sub-tabs. Two column-style buttons (icon top, label bottom): Export CSV
@@ -124,9 +122,9 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
     }
   }
 
-  /// Build a printable PDF mirroring the CSV layout (rows = respondents,
-  /// columns = questions) and open the OS print dialog. iOS uses AirPrint;
-  /// Android uses the system Print Framework. Both support network printers.
+  /// Tap → fetch responses → format chooser sheet → optional individual
+  /// picker → OS print dialog. Responses are fetched BEFORE the format sheet
+  /// so the individual picker can open instantly with the data in hand.
   Future<void> _print() async {
     if (_isPrinting) return;
     if (!_hasAnyResponses()) {
@@ -138,22 +136,59 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
     if (editorState is! EditorLoaded) return;
     final form = editorState.form;
 
+    // ── 1. Fetch all responses (loader visible on Print button) ─────────────
     setState(() => _isPrinting = true);
+    final List<FormResponse> responses;
     try {
-      final responses = await _fetchAllResponses();
-      // Clear the loader before opening the system print dialog. The OS
-      // dialog covers the button anyway, and Printing.layoutPdf may not
-      // resolve reliably across app background/foreground transitions.
-      if (mounted) setState(() => _isPrinting = false);
-
-      await Printing.layoutPdf(
-        name: '${form.info.title} — Responses',
-        onLayout: (PdfPageFormat format) =>
-            buildResponsesPdf(form, responses, format.landscape),
-      );
+      responses = await _fetchAllResponses();
     } catch (_) {
       if (!mounted) return;
       setState(() => _isPrinting = false);
+      ErrorModal.show(
+        context,
+        title: 'Print failed.',
+        body: 'Check your connection and try again.',
+        primaryLabel: 'OK',
+        onPrimary: () {},
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isPrinting = false);
+
+    // ── 2. Format chooser ───────────────────────────────────────────────────
+    final format = await showPrintOptionsSheet(context);
+    if (format == null || !mounted) return;
+
+    // ── 3. Individual picker (in-memory list, opens instantly) ──────────────
+    List<FormResponse>? selected;
+    if (format == PrintFormat.individual) {
+      selected = await showIndividualPickerSheet(
+        context,
+        allResponses: responses,
+      );
+      if (selected == null || selected.isEmpty || !mounted) return;
+    }
+
+    // ── 4. System print dialog ──────────────────────────────────────────────
+    try {
+      await Printing.layoutPdf(
+        name: '${form.info.title} — Responses',
+        onLayout: (PdfPageFormat pageFormat) {
+          switch (format) {
+            case PrintFormat.table:
+              return buildResponsesPdf(form, responses, pageFormat.landscape);
+            case PrintFormat.questionnaire:
+              return buildQuestionnairePdf(form, responses, pageFormat);
+            case PrintFormat.summary:
+              return buildSummaryPdf(form, responses, pageFormat);
+            case PrintFormat.individual:
+              return buildQuestionnairePdf(form, selected!, pageFormat);
+          }
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
       ErrorModal.show(
         context,
         title: 'Print failed.',
@@ -258,121 +293,4 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-// ── PDF builder ──────────────────────────────────────────────────────────────
-
-/// Build a printable PDF: rows = respondents, columns = questions. Mirrors the
-/// CSV layout but in tabular PDF form. Long forms with many questions auto-page
-/// thanks to pdf's TableHelper. Uses landscape orientation since wide tables
-/// don't fit well on portrait.
-Future<Uint8List> buildResponsesPdf(
-  FormDoc form,
-  List<FormResponse> responses,
-  PdfPageFormat landscape,
-) async {
-  final cols = <({String title, String questionId})>[];
-  for (final item in form.items) {
-    final itemTitle =
-        item.title?.isNotEmpty == true ? item.title! : 'Untitled';
-    switch (item.content) {
-      case QuestionItemContent(:final question):
-        cols.add((title: itemTitle, questionId: question.questionId));
-      case QuestionGroupItemContent(:final questions):
-        for (final q in questions) {
-          cols.add((title: itemTitle, questionId: q.questionId));
-        }
-      default:
-        break;
-    }
-  }
-
-  final headers = <String>['Timestamp', 'Email', ...cols.map((c) => c.title)];
-  final rows = responses.map((r) {
-    return <String>[
-      r.createTime.toLocal().toString().split('.').first,
-      r.respondentEmail ?? '',
-      ...cols.map((c) => (r.answers[c.questionId] ?? const []).join('; ')),
-    ];
-  }).toList();
-
-  final doc = pw.Document();
-  doc.addPage(
-    pw.MultiPage(
-      pageFormat: landscape,
-      margin: const pw.EdgeInsets.all(24),
-      build: (context) => [
-        pw.Text(
-          form.info.title.isEmpty ? 'Responses' : form.info.title,
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 4),
-        pw.Text(
-          '${responses.length} response${responses.length == 1 ? '' : 's'}',
-          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-        ),
-        pw.SizedBox(height: 14),
-        pw.TableHelper.fromTextArray(
-          headers: headers,
-          data: rows,
-          headerStyle: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.white,
-          ),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.deepPurple),
-          cellStyle: const pw.TextStyle(fontSize: 9),
-          cellAlignment: pw.Alignment.topLeft,
-          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-          border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.4),
-          oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
-        ),
-      ],
-    ),
-  );
-  return doc.save();
-}
-
-// ── CSV builder ──────────────────────────────────────────────────────────────
-
-String buildCsv(FormDoc form, List<FormResponse> responses) {
-  final cols = <({String title, String questionId})>[];
-  for (final item in form.items) {
-    final itemTitle =
-        item.title?.isNotEmpty == true ? item.title! : 'Untitled';
-    switch (item.content) {
-      case QuestionItemContent(:final question):
-        cols.add((title: itemTitle, questionId: question.questionId));
-      case QuestionGroupItemContent(:final questions):
-        for (final q in questions) {
-          cols.add((title: itemTitle, questionId: q.questionId));
-        }
-      default:
-        break;
-    }
-  }
-  final questions = cols;
-
-  String escape(String v) {
-    if (v.contains(',') || v.contains('"') || v.contains('\n')) {
-      return '"${v.replaceAll('"', '""')}"';
-    }
-    return v;
-  }
-
-  final buffer = StringBuffer();
-  buffer.write('Timestamp,Email');
-  for (final q in questions) {
-    buffer.write(',${escape(q.title)}');
-  }
-  buffer.writeln();
-
-  for (final r in responses) {
-    buffer.write(escape(r.createTime.toIso8601String()));
-    buffer.write(',${escape(r.respondentEmail ?? '')}');
-    for (final q in questions) {
-      final vals = r.answers[q.questionId] ?? [];
-      buffer.write(',${escape(vals.join('; '))}');
-    }
-    buffer.writeln();
-  }
-  return buffer.toString();
-}
+// CSV + PDF builders moved to lib/features/responses/data/pdf_builders.dart.
