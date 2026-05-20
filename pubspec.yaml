@@ -73,6 +73,10 @@ dependencies:
   # them in background/terminated state).
   flutter_local_notifications: ^18.0.1
 
+  # PDF generation + native print dialog (AirPrint on iOS, Print Framework on Android).
+  printing: ^5.13.4
+  pdf: ^3.11.1
+
   # Image picker
   image_picker: ^1.1.2
 
