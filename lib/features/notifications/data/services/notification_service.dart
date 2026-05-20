@@ -29,6 +29,10 @@ class NotificationService {
   final StreamController<Map<String, String>> _onTapController =
       StreamController<Map<String, String>>.broadcast();
 
+  /// Holds a tap event that fired before any listener attached (typically
+  /// from a terminated-app launch). Replayed to the first subscriber.
+  Map<String, String>? _pendingInitialTap;
+
   /// Tracks the token most recently sent to the backend so we can DELETE it
   /// on sign-out (calling getToken on a logged-out FCM instance can return null).
   String? _lastRegisteredToken;
@@ -36,83 +40,115 @@ class NotificationService {
 
   NotificationService(this._api);
 
-  Stream<Map<String, String>> get onNotificationTap => _onTapController.stream;
+  /// Emits notification-tap events. The first listener will receive any
+  /// pending initial tap (from a terminated-app launch) as soon as it
+  /// subscribes; subsequent events come live from the broadcast controller.
+  Stream<Map<String, String>> get onNotificationTap {
+    return Stream.multi((controller) {
+      if (_pendingInitialTap != null) {
+        controller.add(_pendingInitialTap!);
+        _pendingInitialTap = null;
+      }
+      final sub = _onTapController.stream.listen(
+        controller.add,
+        onError: controller.addError,
+        onDone: controller.close,
+      );
+      controller.onCancel = () => sub.cancel();
+    });
+  }
 
   /// Call once at app startup BEFORE sign-in. Sets up local notifications
   /// channel and message listeners. Does NOT request permission here —
-  /// permission is requested at sign-in time.
+  /// permission is requested at sign-in time. Best-effort: any individual
+  /// failure is swallowed so a single broken step can't block init().
   Future<void> init() async {
-    // Configure flutter_local_notifications. Channel "form_responses" matches
-    // the channelId the backend sets in android notification payload.
-    const initSettings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(
-        // We request permissions explicitly in [registerForUser], not here.
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      ),
-    );
-    await _local.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (response) {
-        // Payload is JSON-ish "formId=...&watchId=...&eventType=..."
-        final data = _parsePayload(response.payload);
-        if (data.isNotEmpty) _onTapController.add(data);
-      },
-    );
+    try {
+      const initSettings = InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
+      );
+      await _local.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (response) {
+          final data = _parsePayload(response.payload);
+          if (data.isNotEmpty) _onTapController.add(data);
+        },
+      );
+    } catch (e) {
+      debugPrint('[notifications] _local.initialize failed: $e');
+    }
 
-    // iOS only — make sure foreground notifications still show a banner.
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    try {
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('[notifications] setForegroundNotificationPresentationOptions failed: $e');
+    }
 
-    // Foreground messages: FCM doesn't show them automatically; mirror them to
-    // the local notifications plugin so the user sees a banner.
     _msgSub = FirebaseMessaging.onMessage.listen(_showLocalForForeground);
-
-    // App was in background and the user tapped the notification.
     _openedSub = FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       final data = _mapFromData(msg.data);
       if (data.isNotEmpty) _onTapController.add(data);
     });
 
-    // App was terminated and the user tapped the notification.
-    final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) {
-      final data = _mapFromData(initial.data);
-      if (data.isNotEmpty) {
-        // Defer to next frame so listeners can attach.
-        scheduleMicrotask(() => _onTapController.add(data));
+    try {
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) {
+        final data = _mapFromData(initial.data);
+        if (data.isNotEmpty) {
+          // Buffer until the dashboard listener attaches (sign-in completes).
+          _pendingInitialTap = data;
+        }
       }
+    } catch (e) {
+      debugPrint('[notifications] getInitialMessage failed: $e');
     }
   }
 
   /// Call after sign-in. Requests permission (if not already granted),
   /// fetches the FCM token, and registers it with our backend. Idempotent.
   Future<void> registerForUser() async {
+    debugPrint('[notifications] registerForUser START');
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
+      debugPrint('[notifications] permission = ${settings.authorizationStatus}');
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        debugPrint('[notifications] permission denied');
         return;
       }
 
+      // On iOS, FCM token requires APNs registration first. APNs token arrives
+      // asynchronously after launch — poll briefly until it shows up.
+      if (Platform.isIOS) {
+        final apns = await _waitForApnsToken();
+        if (apns == null) {
+          debugPrint('[notifications] APNs token unavailable — skipping device registration');
+          return;
+        }
+        debugPrint('[notifications] APNs token ready');
+      }
+
       final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('[notifications] FCM token = ${token == null ? "null" : "(${token.length} chars)"}');
       if (token == null) {
-        debugPrint('[notifications] FCM token null');
         return;
       }
       await _api.registerDevice(
         fcmToken: token,
         platform: Platform.isIOS ? 'ios' : 'android',
       );
+      debugPrint('[notifications] registered with backend');
       _lastRegisteredToken = token;
 
       // Re-register on token refresh (FCM occasionally rotates).
@@ -149,6 +185,23 @@ class NotificationService {
       await _tokenSub?.cancel();
       _tokenSub = null;
     }
+  }
+
+  /// Poll FirebaseMessaging.getAPNSToken() until it returns a token or we
+  /// time out. APNs registration is asynchronous on iOS — the token usually
+  /// arrives within a couple seconds of permission grant. On simulators
+  /// without APNs support it never arrives, so we cap at 10 seconds.
+  Future<String?> _waitForApnsToken({
+    Duration timeout = const Duration(seconds: 10),
+    Duration interval = const Duration(milliseconds: 500),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final token = await FirebaseMessaging.instance.getAPNSToken();
+      if (token != null) return token;
+      await Future.delayed(interval);
+    }
+    return null;
   }
 
   Future<void> _showLocalForForeground(RemoteMessage msg) async {

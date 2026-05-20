@@ -46,11 +46,13 @@ import 'edit_form_webview_page.dart';
 class EditorPage extends StatelessWidget {
   final String formId;
   final String formName;
+  final int initialTabIndex;
 
   const EditorPage({
     super.key,
     required this.formId,
     required this.formName,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -60,7 +62,11 @@ class EditorPage extends StatelessWidget {
         BlocProvider(create: (_) => getIt<EditorCubit>()..loadForm(formId)),
         BlocProvider(create: (_) => getIt<ResponsesCubit>()..loadResponses(formId)),
       ],
-      child: _EditorView(formId: formId, initialName: formName),
+      child: _EditorView(
+        formId: formId,
+        initialName: formName,
+        initialTabIndex: initialTabIndex,
+      ),
     );
   }
 }
@@ -70,8 +76,13 @@ class EditorPage extends StatelessWidget {
 class _EditorView extends StatefulWidget {
   final String formId;
   final String initialName;
+  final int initialTabIndex;
 
-  const _EditorView({required this.formId, required this.initialName});
+  const _EditorView({
+    required this.formId,
+    required this.initialName,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<_EditorView> createState() => _EditorViewState();
@@ -84,7 +95,12 @@ class _EditorViewState extends State<_EditorView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, animationDuration: Duration.zero);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      animationDuration: Duration.zero,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
     _tabController.addListener(_onTabChanged);
   }
 
@@ -1539,12 +1555,45 @@ class _NotificationToggleState extends State<_NotificationToggle> {
 
   @override
   Widget build(BuildContext context) {
-    return _IosSwitchTile(
-      label: 'New responses',
-      subtitle: 'Get a push notification when this form receives a new response',
-      value: _isEnabled,
-      isLast: true,
-      onChanged: (_loading || _isWorking) ? null : _onToggle,
+    final disabled = _loading || _isWorking;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'New responses',
+                  style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Get a push notification when this form receives a new response',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (disabled)
+            const SizedBox(
+              width: 51, // matches default CupertinoSwitch width so layout doesn't shift
+              child: Center(
+                child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
+              ),
+            )
+          else
+            CupertinoSwitch(
+              value: _isEnabled,
+              activeTrackColor: AppColors.purple,
+              onChanged: _onToggle,
+            ),
+        ],
+      ),
     );
   }
 }

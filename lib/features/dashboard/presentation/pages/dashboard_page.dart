@@ -65,7 +65,12 @@ class _DashboardViewState extends State<_DashboardView> {
     if (formId == null || !mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => EditorPage(formId: formId, formName: ''),
+        builder: (_) => EditorPage(
+          formId: formId,
+          formName: '',
+          // Land on the Responses tab so the user sees what triggered the push.
+          initialTabIndex: 1,
+        ),
       ),
     );
   }

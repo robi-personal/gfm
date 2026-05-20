@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -30,11 +31,9 @@ void main() async {
 
   configureDependencies();
 
-  // Initialise FCM + local notifications listeners. Permission is requested at
-  // sign-in time (registerForUser), not here, so this is a no-op for unsigned users.
-  try {
-    await getIt<NotificationService>().init();
-  } catch (_) {}
+  // Initialise FCM + local notifications listeners in the background; permission
+  // is requested at sign-in time, so blocking startup here is unnecessary.
+  unawaited(getIt<NotificationService>().init());
 
   runApp(const App());
 }
