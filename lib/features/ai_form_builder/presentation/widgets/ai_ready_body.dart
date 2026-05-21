@@ -360,11 +360,19 @@ class _AiReadyBodyState extends State<AiReadyBody> {
             },
             onLockedTap: widget.onUpgrade,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text('INPUT', style: AppTextStyles.sectionLabel),
+          ),
           _IosCard(child: _buildInputArea()),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text('OPTIONS', style: AppTextStyles.sectionLabel),
+          ),
           _IosCard(
             child: Column(
               children: [
@@ -609,6 +617,7 @@ class _IosCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.hairline),
         boxShadow: AppShapes.cardShadow,
       ),
       child: child,

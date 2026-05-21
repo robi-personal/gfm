@@ -18,61 +18,104 @@ class AiQuotaCounter extends StatelessWidget {
     final isUnlimited = status.unlimited;
     final balance     = status.quotaBalance;
     final isExhausted = status.isQuotaExhausted;
+    final isPremium   = status.isPremium;
 
-    final counterText = isUnlimited
+    final label = isUnlimited
         ? 'Unlimited generations'
-        : '$balance generations remaining';
+        : isExhausted
+            ? 'No generations left'
+            : '$balance generation${balance == 1 ? '' : 's'} remaining';
 
-    final barColor = isExhausted
-        ? AppColors.error
-        : isUnlimited || balance > 5
-            ? AppColors.purple600
-            : AppColors.warning;
-
-    final fraction = isUnlimited ? 1.0 : (balance / 10.0).clamp(0.0, 1.0);
-
-    return GestureDetector(
-      onTap: (!isUnlimited && isExhausted) ? onUpgradeTap : null,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: AppShapes.cardShadow,
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.purpleMid, AppColors.purple600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: AppColors.purple600, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    counterText,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isExhausted ? AppColors.error : AppColors.ink,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (!isUnlimited) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Resets monthly',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (!isPremium) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: onUpgradeTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Upgrade',
+                      style: TextStyle(
+                        color: AppColors.purple600,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
-                if (!isUnlimited && !status.isPremium)
-                  const Icon(Icons.chevron_right, color: AppColors.muted2, size: 18),
               ],
-            ),
-            const SizedBox(height: 10),
+            ],
+          ),
+          if (!isUnlimited) ...[
+            const SizedBox(height: 14),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 5,
-                backgroundColor: AppColors.bg,
-                valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                value: (balance / 10.0).clamp(0.0, 1.0),
+                minHeight: 4,
+                backgroundColor: Colors.white.withValues(alpha: 0.25),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isExhausted
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.white,
+                ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
