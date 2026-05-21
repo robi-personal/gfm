@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../api/drive_client.dart';
 import '../api/forms_client.dart';
 import '../auth/google_auth_datasource.dart';
+import '../services/webview_session_manager.dart';
 import '../../features/paywall/data/services/subscription_service.dart';
 import '../../features/paywall/presentation/cubit/subscription_cubit.dart';
 import '../../features/dashboard/data/datasources/drive_datasource.dart';
@@ -62,6 +63,10 @@ void configureDependencies() {
     () => DriveClient(getIt<GoogleAuthDataSource>()),
   );
 
+  getIt.registerLazySingleton<WebViewSessionManager>(
+    () => WebViewSessionManager(),
+  );
+
   // ── Sign-in feature ───────────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt<GoogleAuthDataSource>()),
@@ -86,6 +91,7 @@ void configureDependencies() {
       driveClient: getIt(),
       subscriptionService: getIt(),
       notificationService: getIt(),
+      webViewSessionManager: getIt(),
     ),
   );
 

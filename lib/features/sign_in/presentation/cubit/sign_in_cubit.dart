@@ -4,6 +4,7 @@ import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/webview_session_manager.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../notifications/data/services/notification_service.dart';
 import '../../../paywall/data/services/subscription_service.dart';
@@ -22,6 +23,7 @@ class SignInCubit extends Cubit<SignInState> {
   final DriveClient _driveClient;
   final SubscriptionService _subscriptionService;
   final NotificationService _notificationService;
+  final WebViewSessionManager _webViewSession;
 
   SignInCubit({
     required SignInWithGoogle signInWithGoogle,
@@ -31,6 +33,7 @@ class SignInCubit extends Cubit<SignInState> {
     required DriveClient driveClient,
     required SubscriptionService subscriptionService,
     required NotificationService notificationService,
+    required WebViewSessionManager webViewSessionManager,
   })  : _signInWithGoogle = signInWithGoogle,
         _signInSilently = signInSilently,
         _signOut = signOut,
@@ -38,17 +41,22 @@ class SignInCubit extends Cubit<SignInState> {
         _driveClient = driveClient,
         _subscriptionService = subscriptionService,
         _notificationService = notificationService,
+        _webViewSession = webViewSessionManager,
         super(const SignInInitial());
 
   /// Called on app launch. Uses cached credentials — no UI prompt.
   Future<void> checkAuth() async {
     emit(const SignInLoading());
     final result = await _signInSilently(const NoParams());
-    result.fold(
-      (_) => emit(const Unauthenticated()),
-      (user) {
+    await result.fold<Future<void>>(
+      (_) async => emit(const Unauthenticated()),
+      (user) async {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
+        // Awaited so the dashboard never renders while a WebView clear is
+        // still in flight — otherwise Import could open against half-cleared
+        // cookies. Same-user case is a fast storage read + write (no clear).
+        await _webViewSession.syncWithUser(user.googleId);
         // Notification registration is owned by the dashboard so it can show
         // a soft-ask rationale before triggering the system permission prompt.
         emit(Authenticated(user));
@@ -60,16 +68,15 @@ class SignInCubit extends Cubit<SignInState> {
   Future<void> signIn() async {
     emit(const SignInLoading());
     final result = await _signInWithGoogle(const NoParams());
-    result.fold(
-      (failure) => switch (failure) {
+    await result.fold<Future<void>>(
+      (failure) async => switch (failure) {
         AuthCancelledFailure() => emit(const Unauthenticated()),
         _ => emit(SignInError(failure.message)),
       },
-      (user) {
+      (user) async {
         AnalyticsService.setUser(user.email);
         _subscriptionService.identifyUser(user.googleId).ignore();
-        // Notification registration is owned by the dashboard so it can show
-        // a soft-ask rationale before triggering the system permission prompt.
+        await _webViewSession.syncWithUser(user.googleId);
         emit(Authenticated(user));
       },
     );
