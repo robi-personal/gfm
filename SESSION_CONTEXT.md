@@ -688,6 +688,51 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 
 ---
 
+---
+
+## Recent changes (2026-05-22 session — design system + UI polish)
+
+### Design system (commit `1fbf295`)
+
+- New `lib/core/design.dart` barrel export for all design tokens.
+- `lib/core/theme/app_colors.dart` — full token set (`purple600`, `bg`, `surface`, `ink`, `ink2`, `muted`, `muted2`, `hairline`, `shimmerBase`, `warning`, `error`, `purpleAccent`, `purpleMid`) + legacy aliases so existing screens compile unchanged.
+- `lib/core/theme/app_text_styles.dart` — `screenHeader`, `title`, `cardTitle`, `body`, `meta`, `sectionLabel`.
+- `lib/core/theme/app_shapes.dart` — `cardRadius`, `cardRadius2`, `pillRadius`, `cardShadow`, `primaryButtonShadow`, `primaryGradient`, `cardDecoration`.
+- `lib/core/widgets/brand_mark.dart` — 28px purple600 rounded square with clipboard icon.
+- `lib/core/widgets/skeleton_bone.dart` — shimmer bone widget.
+- Dropped Lato / Google Fonts — `app.dart` now uses bare `ThemeData` with system font (SF Pro on iOS, Roboto on Android).
+
+### Sign-in screen — clean code + redesign (commit `1fbf295`)
+
+- `sign_in_screen.dart` slimmed to a thin shell (~40 lines); all widgets extracted to `features/sign_in/presentation/widgets/`:
+  - `sign_in_hero.dart` — SVG illustration + headline + subtitle
+  - `google_sign_in_button.dart` — 54px white button with Google SVG
+  - `sign_in_error_row.dart` — inline error + Retry link
+  - `sign_in_legal_row.dart` — Privacy/Terms links
+
+### Dashboard — full redesign + clean code (commits `f7e54f2`, `914464e`, `efc4d0d`)
+
+- All dashboard UI extracted to `features/dashboard/presentation/widgets/`:
+  - `dashboard_header.dart` — `StatefulWidget + PreferredSizeWidget`; owns search open/close state; app bar shows `app_logo.png` → later changed to GFM text only
+  - `dashboard_sub_header.dart` — form count + sort pill
+  - `dashboard_form_card.dart` — card with thumb, meta, kebab menu
+  - `dashboard_form_list.dart` — grouped list (TODAY / THIS WEEK / EARLIER) using sealed `_ListItem`
+  - `dashboard_drawer.dart` — full nav drawer with gradient header + user avatar
+  - `dashboard_states.dart` — empty, search-empty, error, skeleton, importing overlay, cache banner, inline banner
+  - `dashboard_dialogs.dart` — `showImportInfoDialog`, `showRenameDialog`
+  - `dashboard_fab.dart` — `DashboardFab` widget + `_FabAction` row (label pill + icon button)
+  - `form_clipboard_thumb.dart` — `FormClipboardThumb` with regular/imported variants
+- `dashboard_page.dart` is pure orchestration — no inline widget classes.
+- Removed `DashboardFilterStrip` and all filter state (All / Imported toggle).
+- FAB overlay: `rgba(20,16,40,0.35)` scrim + 3px backdrop blur.
+- Duplicate `_showImportInfoDialogLocal` removed from page; now calls shared `showImportInfoDialog`.
+
+### Code rules established
+
+- **Clean code + clean architecture applies to all future changes**: every medium-level widget must be extracted to the feature's `widgets/` directory; page files orchestrate only. Saved to memory (`feedback-clean-code.md`).
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
