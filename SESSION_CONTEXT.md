@@ -824,6 +824,26 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 
 ---
 
+## Recent changes (2026-05-22 session — dashboard import bug fix)
+
+### Imported forms not showing after sign-in (commit `802344a`)
+
+**Bug:** After sign-out → sign-in (same process), imported forms were missing from the dashboard. After a full app restart they appeared correctly.
+
+**Root cause:** `DriveDataSource._appDataFileId` (the cached ID of `gfm_data.json` in Drive) was never cleared on sign-out. `DriveClient._api` and `FormsClient._api` were already reset in `SignInCubit.signOut()`, but `_appDataFileId` persisted. On the next sign-in:
+- Same user: stale ID is valid — imports show (no bug here).
+- Different user: stale ID belongs to the old user's file. The new user's Drive API returns 404/403. `readImportedForms` catches all exceptions silently and returns `[]`. No imported forms shown.
+- On restart: `_appDataFileId = null` (fresh singleton). `_findAppDataFileId()` searches Drive as the current user, finds the correct file, and reads it.
+
+**Fix:**
+- Added `DriveDataSource.reset()` that sets `_appDataFileId = null`.
+- `SignInCubit.signOut()` now calls `_driveDataSource.reset()` alongside the existing `_driveClient.reset()` / `_formsClient.reset()`.
+- `DriveDataSource` injected into `SignInCubit` via DI registration.
+
+**Do NOT remove `_driveDataSource.reset()` from `signOut()`** — imported forms will silently vanish for users who switch accounts without restarting the app.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
