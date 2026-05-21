@@ -327,100 +327,109 @@ class _AiReadyBodyState extends State<AiReadyBody> {
     final isPremium = status.isPremium;
     final selectedType = widget.selectedType;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade),
-          const SizedBox(height: 12),
-
-          if (status.gracePeriodUntil != null) ...[
-            AiGracePeriodBanner(until: status.gracePeriodUntil!),
-            const SizedBox(height: 12),
-          ],
-
-          if (!status.unlimited && isQuotaExhausted) ...[
-            AiUpgradeBanner(onUpgrade: widget.onUpgrade),
-            const SizedBox(height: 16),
-          ] else
-            const SizedBox(height: 4),
-
-          AiInputTypePicker(
-            selected: selectedType,
-            enabled: !widget.isSubmitting,
-            isPremium: isPremium,
-            onChanged: (type) {
-              if (type == AiInputType.book &&
-                  _descriptionController.text.trim().isEmpty) {
-                _descriptionController.text =
-                    'Generate a comprehension quiz from this material.';
-              }
-              widget.cubit.setSelectedType(type);
-            },
-            onLockedTap: widget.onUpgrade,
-          ),
-          const SizedBox(height: 16),
-
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text('INPUT', style: AppTextStyles.sectionLabel),
-          ),
-          _IosCard(child: _buildInputArea()),
-          const SizedBox(height: 16),
-
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text('OPTIONS', style: AppTextStyles.sectionLabel),
-          ),
-          _IosCard(
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AiQuestionCountRow(
-                  value: _questionCountHint,
+                AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade),
+                const SizedBox(height: 12),
+
+                if (status.gracePeriodUntil != null) ...[
+                  AiGracePeriodBanner(until: status.gracePeriodUntil!),
+                  const SizedBox(height: 12),
+                ],
+
+                if (!status.unlimited && isQuotaExhausted) ...[
+                  AiUpgradeBanner(onUpgrade: widget.onUpgrade),
+                  const SizedBox(height: 16),
+                ] else
+                  const SizedBox(height: 4),
+
+                AiInputTypePicker(
+                  selected: selectedType,
                   enabled: !widget.isSubmitting,
-                  onChanged: (v) => setState(() => _questionCountHint = v),
-                ),
-                const Divider(height: 24, color: AppColors.bg),
-                AiQuizToggleRow(
-                  value: _isQuiz,
-                  enabled: !widget.isSubmitting,
-                  onChanged: (v) {
-                    setState(() => _isQuiz = v);
-                    _notifyBodyChanged();
+                  isPremium: isPremium,
+                  onChanged: (type) {
+                    if (type == AiInputType.book &&
+                        _descriptionController.text.trim().isEmpty) {
+                      _descriptionController.text =
+                          'Generate a comprehension quiz from this material.';
+                    }
+                    widget.cubit.setSelectedType(type);
                   },
+                  onLockedTap: widget.onUpgrade,
+                ),
+                const SizedBox(height: 16),
+
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text('INPUT', style: AppTextStyles.sectionLabel),
+                ),
+                _IosCard(child: _buildInputArea()),
+                const SizedBox(height: 16),
+
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text('OPTIONS', style: AppTextStyles.sectionLabel),
+                ),
+                _IosCard(
+                  child: Column(
+                    children: [
+                      AiQuestionCountRow(
+                        value: _questionCountHint,
+                        enabled: !widget.isSubmitting,
+                        onChanged: (v) => setState(() => _questionCountHint = v),
+                      ),
+                      const Divider(height: 24, color: AppColors.bg),
+                      AiQuizToggleRow(
+                        value: _isQuiz,
+                        enabled: !widget.isSubmitting,
+                        onChanged: (v) {
+                          setState(() => _isQuiz = v);
+                          _notifyBodyChanged();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          if (widget.isSubmitting) ...[
-            Center(
-              child: Column(
-                children: [
-                  const CupertinoActivityIndicator(radius: 13),
-                  const SizedBox(height: 12),
-                  Text(
-                    _loadingLabel(widget.elapsed),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          AiGenerateButton(
-            enabled: _canGenerate && !_isCheckingQuota,
-            isLoading: _isCheckingQuota,
-            onPressed: _onGeneratePressed,
+        ),
+        Container(
+          padding: EdgeInsets.fromLTRB(
+            16, 12, 16,
+            MediaQuery.of(context).padding.bottom + 12,
           ),
-        ],
-      ),
+          decoration: const BoxDecoration(
+            color: AppColors.bg,
+            border: Border(top: BorderSide(color: AppColors.hairline)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.isSubmitting) ...[
+                const CupertinoActivityIndicator(radius: 13),
+                const SizedBox(height: 8),
+                Text(
+                  _loadingLabel(widget.elapsed),
+                  style: const TextStyle(fontSize: 14, color: AppColors.muted),
+                ),
+                const SizedBox(height: 12),
+              ],
+              AiGenerateButton(
+                enabled: _canGenerate && !_isCheckingQuota,
+                isLoading: _isCheckingQuota,
+                onPressed: _onGeneratePressed,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
