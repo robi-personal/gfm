@@ -727,9 +727,16 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 - FAB overlay: `rgba(20,16,40,0.35)` scrim + 3px backdrop blur.
 - Duplicate `_showImportInfoDialogLocal` removed from page; now calls shared `showImportInfoDialog`.
 
+### Import info sheet redesign (commit `ad8d2c6`)
+
+- Replaced `Dialog` with `showModalBottomSheet` — 28px top radius, `rgba(20,16,40,0.45)` scrim, top shadow.
+- Sheet content: grab handle → header row (purple50 icon box, "Heads up" / "Privacy & scope") → body copy → privacy bullets card (purple50 bg, purple100 border, check-circle rows) → `PrimaryButton` "Import Existing Forms" → muted "Maybe later" tertiary.
+
 ### Code rules established
 
-- **Clean code + clean architecture applies to all future changes**: every medium-level widget must be extracted to the feature's `widgets/` directory; page files orchestrate only. Saved to memory (`feedback-clean-code.md`).
+- **Clean code + clean architecture applies to all future changes**: every medium-level widget must be extracted to the feature's `widgets/` directory; page files orchestrate only.
+- **No monolithic `build()` methods**: large widget trees must be broken into private builder methods (`_buildHeader()`, `_buildBodyCopy()`, etc.).
+- Both rules saved to memory (`feedback-clean-code.md`).
 
 ---
 
