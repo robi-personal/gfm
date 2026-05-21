@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+
 import '../../../../core/models/choice_option.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/form_image.dart';
@@ -10,6 +12,7 @@ class FormTemplate {
   final String title;
   final String category;
   final String imagePath;
+  final IconData icon;
   final List<Item> items;
   final bool quizMode;
 
@@ -17,6 +20,7 @@ class FormTemplate {
     required this.title,
     required this.category,
     required this.imagePath,
+    required this.icon,
     required this.items,
     this.quizMode = false,
   });
@@ -52,6 +56,7 @@ final _contactInfo = FormTemplate(
   title: 'Contact information',
   category: 'Work',
   imagePath: 'assets/template_image/contact_information.png',
+  icon: CupertinoIcons.phone,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),
@@ -65,6 +70,7 @@ final _customerFeedback = FormTemplate(
   title: 'Customer Feedback',
   category: 'Work',
   imagePath: 'assets/template_image/customer_feedback.png',
+  icon: CupertinoIcons.chat_bubble_text,
   items: [
     _q('1', 'Feedback Type',
         _radio(['Comments', 'Questions', 'Bug Reports', 'Feature Request'])),
@@ -79,6 +85,7 @@ final _workRequest = FormTemplate(
   title: 'Work Request',
   category: 'Work',
   imagePath: 'assets/template_image/work_request.png',
+  icon: CupertinoIcons.wrench,
   items: [
     Item(
       itemId: 'ti1',
@@ -120,6 +127,7 @@ final _orderForm = FormTemplate(
   title: 'Order Request',
   category: 'Work',
   imagePath: 'assets/template_image/order_form.png',
+  icon: CupertinoIcons.cart,
   items: [
     _q('1', 'Are you a new or existing customer?',
         _radio(['I am a new customer', 'I am an existing customer'])),
@@ -145,6 +153,7 @@ final _jobApplication = FormTemplate(
   title: 'Job application form',
   category: 'Work',
   imagePath: 'assets/template_image/job_application.png',
+  icon: CupertinoIcons.person_crop_rectangle,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),
@@ -159,6 +168,7 @@ final _timeOffRequest = FormTemplate(
   title: 'Time off request',
   category: 'Work',
   imagePath: 'assets/template_image/time_off_request.png',
+  icon: CupertinoIcons.calendar_badge_minus,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Leave date(s)', _text, required: true),
@@ -194,6 +204,7 @@ final _rsvp = FormTemplate(
   title: 'Event RSVP',
   category: 'Personal',
   imagePath: 'assets/template_image/rsvp.png',
+  icon: CupertinoIcons.checkmark_seal,
   items: [
     _q('1', 'Can you attend?', _radio(['Yes, I\'ll be there', 'Sorry, can\'t make it']),
         required: true),
@@ -208,6 +219,7 @@ final _eventRegistration = FormTemplate(
   title: 'Event Registration',
   category: 'Personal',
   imagePath: 'assets/template_image/event_registration.png',
+  icon: CupertinoIcons.calendar,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),
@@ -236,6 +248,7 @@ final _eventFeedback = FormTemplate(
   title: 'Event Feedback',
   category: 'Personal',
   imagePath: 'assets/template_image/event_feedback.png',
+  icon: CupertinoIcons.star,
   items: [
     _q('1', 'How satisfied were you with the event?',
         const ScaleQuestion(low: 1, high: 5, lowLabel: 'Not very', highLabel: 'Very much'),
@@ -312,6 +325,7 @@ final _partyInvite = FormTemplate(
   title: 'Party Invite',
   category: 'Personal',
   imagePath: 'assets/template_image/party_invite.png',
+  icon: CupertinoIcons.gift,
   items: [
     _q('1', 'What is your name?', _text),
     _q('2', 'Can you attend?',
@@ -348,6 +362,7 @@ final _tshirtSignup = FormTemplate(
   title: 'T-Shirt Sign Up',
   category: 'Personal',
   imagePath: 'assets/template_image/tshirt_size.png',
+  icon: CupertinoIcons.tag,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Shirt size', _radio(['XS', 'S', 'M', 'L', 'XL'])),
@@ -369,6 +384,7 @@ final _findATime = FormTemplate(
   title: 'Find a Time',
   category: 'Personal',
   imagePath: 'assets/template_image/find_a_time.png',
+  icon: CupertinoIcons.clock,
   items: [
     Item(
       itemId: 'g1',
@@ -419,6 +435,7 @@ final _courseEvaluation = FormTemplate(
   title: 'Course evaluation',
   category: 'Education',
   imagePath: 'assets/template_image/course_evaluation.png',
+  icon: CupertinoIcons.chart_bar_square,
   items: [
     _q('1', 'Class name', _text, required: true),
     _q('2', 'Instructor', _text, required: true),
@@ -528,6 +545,7 @@ final _exitTicket = FormTemplate(
   title: 'Exit Ticket',
   category: 'Education',
   imagePath: 'assets/template_image/exit_ticket.png',
+  icon: CupertinoIcons.lightbulb,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text),
@@ -541,6 +559,7 @@ final _blankQuiz = FormTemplate(
   title: 'Blank Quiz',
   category: 'Education',
   imagePath: 'assets/template_image/blank_quiz.png',
+  icon: CupertinoIcons.question_circle,
   quizMode: true,
   items: [
     _q('1', 'Question 1', _radio(['Option A', 'Option B', 'Option C', 'Option D']), required: true),
@@ -551,6 +570,7 @@ final _assessment = FormTemplate(
   title: 'Assessment',
   category: 'Education',
   imagePath: 'assets/template_image/assessment.png',
+  icon: CupertinoIcons.checkmark_circle,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),
@@ -591,6 +611,7 @@ final _worksheet = FormTemplate(
   title: 'Worksheet title',
   category: 'Education',
   imagePath: 'assets/template_image/worksheet.png',
+  icon: CupertinoIcons.doc_text,
   items: [
     _q('1', 'Name', _text, required: true),
     _q('2', 'Email', _text, required: true),

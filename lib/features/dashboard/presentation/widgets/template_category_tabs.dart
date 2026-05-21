@@ -14,7 +14,7 @@ const _kTabDefs = [
 
 // ── Category tab bar ──────────────────────────────────────────────────────────
 
-class TemplateCategoryTabBar extends StatelessWidget {
+class TemplateCategoryTabBar extends StatefulWidget {
   final String selected;
   final ValueChanged<String> onSelected;
 
@@ -23,6 +23,33 @@ class TemplateCategoryTabBar extends StatelessWidget {
     required this.selected,
     required this.onSelected,
   });
+
+  @override
+  State<TemplateCategoryTabBar> createState() => _TemplateCategoryTabBarState();
+}
+
+class _TemplateCategoryTabBarState extends State<TemplateCategoryTabBar> {
+  final _keys = List.generate(_kTabDefs.length, (_) => GlobalKey());
+
+  @override
+  void didUpdateWidget(TemplateCategoryTabBar old) {
+    super.didUpdateWidget(old);
+    if (old.selected != widget.selected) _scrollToSelected();
+  }
+
+  void _scrollToSelected() {
+    final idx = _kTabDefs.indexWhere((t) => t.$1 == widget.selected);
+    if (idx == -1) return;
+    final ctx = _keys[idx].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+      alignment: 0.5,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,12 +65,13 @@ class TemplateCategoryTabBar extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         child: Row(
           children: [
-            for (final (label, icon) in _kTabDefs)
+            for (var i = 0; i < _kTabDefs.length; i++)
               _TabChip(
-                label: label,
-                icon: icon,
-                selected: selected == label,
-                onTap: () => onSelected(label),
+                key: _keys[i],
+                label: _kTabDefs[i].$1,
+                icon: _kTabDefs[i].$2,
+                selected: widget.selected == _kTabDefs[i].$1,
+                onTap: () => widget.onSelected(_kTabDefs[i].$1),
               ),
           ],
         ),
@@ -61,6 +89,7 @@ class _TabChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TabChip({
+    super.key,
     required this.label,
     required this.icon,
     required this.selected,

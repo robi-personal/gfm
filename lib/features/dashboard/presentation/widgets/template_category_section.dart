@@ -87,10 +87,12 @@ class TemplateCategorySection extends StatelessWidget {
         crossAxisCount: isTablet(context) ? 4 : 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.82,
+        childAspectRatio: 1.6,
       ),
-      itemBuilder: (context, index) =>
-          _TemplateCard(template: templates[index]),
+      itemBuilder: (context, index) => _TemplateCard(
+        template: templates[index],
+        category: category,
+      ),
     );
   }
 }
@@ -99,65 +101,61 @@ class TemplateCategorySection extends StatelessWidget {
 
 class _TemplateCard extends StatelessWidget {
   final FormTemplate template;
+  final String category;
 
-  const _TemplateCard({required this.template});
+  const _TemplateCard({required this.template, required this.category});
 
   @override
   Widget build(BuildContext context) {
+    final colors = _categoryColors(category);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: AppColors.surface,
         borderRadius: AppShapes.cardRadius,
         border: Border.all(color: AppColors.hairline),
+        boxShadow: AppShapes.cardShadow,
       ),
       child: InkWell(
         onTap: () => _createFromTemplate(context, template),
         borderRadius: AppShapes.cardRadius,
-        splashColor: AppColors.purple600.withValues(alpha: 0.06),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _buildThumbnail()),
-            _buildLabel(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThumbnail() {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-      child: Image.asset(
-        template.imagePath,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => Container(
-          color: AppColors.purple600.withValues(alpha: 0.06),
-          child: const Center(
-            child: Icon(
-              CupertinoIcons.doc_text,
-              color: AppColors.purple600,
-              size: 32,
-            ),
+        splashColor: colors.accent.withValues(alpha: 0.06),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            spacing: 12,
+            children: [
+              _buildIconBox(colors),
+              Expanded(child: _buildLabel()),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Widget _buildIconBox(_CategoryColors colors) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: colors.bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(template.icon, color: colors.accent, size: 22),
+    );
+  }
+
   Widget _buildLabel() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-      child: Text(
-        template.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.ink,
-          height: 1.3,
-        ),
+    return Text(
+      template.title,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w600,
+        color: AppColors.ink,
+        height: 1.35,
       ),
     );
   }
@@ -188,11 +186,24 @@ class _TemplateCard extends StatelessWidget {
   }
 }
 
-// ── Category icon helper ──────────────────────────────────────────────────────
+// ── Category helpers ──────────────────────────────────────────────────────────
 
 IconData _categoryIcon(String category) => switch (category) {
       'Work'      => CupertinoIcons.briefcase,
       'Personal'  => CupertinoIcons.person,
       'Education' => CupertinoIcons.book,
       _           => CupertinoIcons.doc_text,
+    };
+
+class _CategoryColors {
+  final Color bg;
+  final Color accent;
+  const _CategoryColors({required this.bg, required this.accent});
+}
+
+_CategoryColors _categoryColors(String category) => switch (category) {
+      'Work'      => const _CategoryColors(bg: Color(0xFFEEF2FF), accent: Color(0xFF4F6CDE)),
+      'Personal'  => const _CategoryColors(bg: Color(0xFFF0FDF4), accent: Color(0xFF2E9E5B)),
+      'Education' => const _CategoryColors(bg: Color(0xFFFFF7ED), accent: Color(0xFFD97706)),
+      _           => _CategoryColors(bg: AppColors.purple50,     accent: AppColors.purple600),
     };
