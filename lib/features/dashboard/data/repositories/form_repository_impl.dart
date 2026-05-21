@@ -120,16 +120,18 @@ class FormRepositoryImpl implements FormRepository {
   @override
   Future<Either<Failure, List<FormEntry>>> getImportedForms() async {
     try {
-      final ids = await _drive.readImportedFormIds();
-      if (ids.isEmpty) return const Right([]);
+      final refs = await _drive.readImportedForms();
+      if (refs.isEmpty) return const Right([]);
 
       final entries = await Future.wait(
-        ids.map((id) async {
+        refs.map((ref) async {
           try {
-            final f = await _forms.getForm(id);
+            final f = await _forms.getForm(ref.id);
             return FormEntry(
-              id: id,
+              id: ref.id,
               name: f.info?.title ?? 'Untitled form',
+              modifiedTime: ref.importedAt,
+              createdTime: ref.importedAt,
               isOwned: false,
             );
           } catch (_) {
@@ -153,13 +155,24 @@ class FormRepositoryImpl implements FormRepository {
     try {
       final form = await _forms.getForm(formId);
       final name = form.info?.title ?? 'Untitled form';
+      final now = DateTime.now().toUtc();
 
-      final ids = await _drive.readImportedFormIds();
-      if (!ids.contains(formId)) {
-        await _drive.writeImportedFormIds([...ids, formId]);
-      }
+      // Re-import refreshes the timestamp so the form moves to the top of the
+      // list, matching the user's intent of "I want to use this form now."
+      final refs = await _drive.readImportedForms();
+      final updated = [
+        ...refs.where((r) => r.id != formId),
+        (id: formId, importedAt: now),
+      ];
+      await _drive.writeImportedForms(updated);
 
-      return Right(FormEntry(id: formId, name: name, isOwned: false));
+      return Right(FormEntry(
+        id: formId,
+        name: name,
+        modifiedTime: now,
+        createdTime: now,
+        isOwned: false,
+      ));
     } on SocketException catch (e) {
       dev.log('[FormRepository] importForm network error: $e', name: 'API');
       return Left(NetworkFailure("Couldn't import. Check your connection."));
@@ -175,9 +188,9 @@ class FormRepositoryImpl implements FormRepository {
   @override
   Future<Either<Failure, Unit>> removeImportedForm(String formId) async {
     try {
-      final ids = await _drive.readImportedFormIds();
-      await _drive.writeImportedFormIds(
-          ids.where((id) => id != formId).toList());
+      final refs = await _drive.readImportedForms();
+      await _drive.writeImportedForms(
+          refs.where((r) => r.id != formId).toList());
       return const Right(unit);
     } on SocketException catch (e) {
       dev.log('[FormRepository] removeImportedForm network error: $e', name: 'API');

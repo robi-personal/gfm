@@ -8,6 +8,12 @@ import '../models/form_entry_model.dart';
 
 const _kAppDataFileName = 'gfm_data.json';
 
+/// Reference to a form the user imported from outside the app's
+/// `drive.file` scope. [importedAt] is the time the user added it; the Forms
+/// API doesn't expose the form's real created/modified time without a wider
+/// Drive scope, so we use this as a stand-in for sort ordering.
+typedef ImportedFormRef = ({String id, DateTime? importedAt});
+
 class DriveDataSource {
   final DriveClient _client;
   String? _appDataFileId;
@@ -44,7 +50,12 @@ class DriveDataSource {
 
   // ── App data (imported forms list) ─────────────────────────────────────────
 
-  Future<List<String>> readImportedFormIds() async {
+  /// Reads imported form refs from the app-data file. Accepts both the legacy
+  /// `["formId", ...]` string-array format and the current
+  /// `[{"id": "...", "importedAt": "..."}, ...]` object format. Legacy entries
+  /// surface with [ImportedFormRef.importedAt] = null and get persisted in the
+  /// new shape on the next write.
+  Future<List<ImportedFormRef>> readImportedForms() async {
     final fileId = await _findAppDataFileId();
     if (fileId == null) return [];
     try {
@@ -56,16 +67,39 @@ class DriveDataSource {
           .fold<List<int>>([], (buf, chunk) => buf..addAll(chunk));
       final json =
           jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-      return (json['importedForms'] as List<dynamic>? ?? [])
-          .whereType<String>()
+      final raw = json['importedForms'] as List<dynamic>? ?? [];
+      return raw
+          .map<ImportedFormRef?>((entry) {
+            if (entry is String) {
+              return (id: entry, importedAt: null);
+            }
+            if (entry is Map<String, dynamic>) {
+              final id = entry['id'] as String?;
+              if (id == null) return null;
+              final tsStr = entry['importedAt'] as String?;
+              final ts = tsStr != null ? DateTime.tryParse(tsStr) : null;
+              return (id: id, importedAt: ts);
+            }
+            return null;
+          })
+          .whereType<ImportedFormRef>()
           .toList();
     } catch (_) {
       return [];
     }
   }
 
-  Future<void> writeImportedFormIds(List<String> ids) async {
-    final bytes = utf8.encode(jsonEncode({'importedForms': ids}));
+  Future<void> writeImportedForms(List<ImportedFormRef> refs) async {
+    final payload = {
+      'importedForms': refs
+          .map((r) => {
+                'id': r.id,
+                if (r.importedAt != null)
+                  'importedAt': r.importedAt!.toUtc().toIso8601String(),
+              })
+          .toList(),
+    };
+    final bytes = utf8.encode(jsonEncode(payload));
     // Stream.value is single-subscription — create a fresh Media for each
     // upload attempt so the stream isn't already consumed on the retry path.
     Media buildMedia() => Media(
