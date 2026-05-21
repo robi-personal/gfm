@@ -760,6 +760,32 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 
 ---
 
+## Recent changes (2026-05-22 session — template cards + drawer polish)
+
+### Template gallery — per-template icon cards (commits `dafef74`)
+
+- Replaced thumbnail `Image.asset` cards with horizontal icon+label cards (Option C).
+- `FormTemplate` gained `final IconData icon` field; every template has a unique icon assigned in `template_data.dart` (e.g. phone → Contact info, wrench → Work Request, gift → Party Invite, question_circle → Blank Quiz).
+- `_TemplateCard` layout: 44×44 category-colored icon box (tinted bg, accent icon) + title text. `childAspectRatio` 0.82 → 1.6.
+- Per-category accent colors: Work blue `#4F6CDE`, Personal green `#2E9E5B`, Education amber `#D97706`. Default falls back to `AppColors.purple600`.
+- Label font size reduced 13 → 11.5.
+
+### Template category tabs — scroll to selected (commit `dafef74`)
+
+- `TemplateCategoryTabBar` converted to `StatefulWidget`; each chip gets a `GlobalKey`.
+- `didUpdateWidget` calls `Scrollable.ensureVisible` with 250ms ease-in-out when selection changes — selected chip scrolls to center.
+
+### Dashboard drawer — icon redesign + functional actions (commits `168d5a7`, `98d079d`, `abd5911`)
+
+- All asset image icons replaced with `CupertinoIcons` / Material icons.
+- Icon boxes: 32×32 rounded with `iconBg.withValues(alpha: 0.12)` tint and matching icon color. Default = `AppColors.purple600`; Sign out = `AppColors.error`.
+- Item title font size 15 → 13.5.
+- **Share on the App Store**: wired via `Share.share()` (`share_plus`) with App Store URL.
+- **Rate the app**: wired via `launchUrl(itms-apps://itunes.apple.com/app/id6479591930?action=write-review)`. Note: `itms-apps://` only works on a real device — App Store does not exist in Simulator.
+- App Store ID: `6479591930`. Constants at top of `dashboard_drawer.dart`: `_kAppStoreId`, `_kAppStoreUrl`, `_kAppStoreReviewUrl`.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
