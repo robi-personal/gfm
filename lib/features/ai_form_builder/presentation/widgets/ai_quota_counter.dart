@@ -86,13 +86,20 @@ class AiQuotaCounter extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      'Upgrade',
-                      style: TextStyle(
-                        color: AppColors.purple600,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.workspace_premium, color: AppColors.purple600, size: 13),
+                        SizedBox(width: 4),
+                        Text(
+                          'Upgrade',
+                          style: TextStyle(
+                            color: AppColors.purple600,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
