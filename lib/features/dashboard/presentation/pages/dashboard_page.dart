@@ -1,13 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
-import 'package:lottie/lottie.dart';
 
-import '../../../../core/di/injection.dart';
 import '../../../../core/design.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/layout.dart';
 import '../../../../core/widgets/error_modal.dart';
@@ -18,7 +16,9 @@ import '../../../notifications/data/services/notification_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
+import '../widgets/dashboard_dialogs.dart';
 import '../widgets/dashboard_drawer.dart';
+import '../widgets/dashboard_fab.dart';
 import '../widgets/dashboard_form_list.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/dashboard_states.dart';
@@ -120,7 +120,7 @@ class _DashboardViewState extends State<_DashboardView> {
     ));
   }
 
-  // ── Navigation helpers ──────────────────────────────────────────────────────
+  // ── Navigation ──────────────────────────────────────────────────────────────
 
   void _onNewForm(BuildContext context) {
     final cubit = context.read<DashboardCubit>();
@@ -133,8 +133,7 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   Future<void> _openImport(BuildContext context) async {
-    // The info dialog is shown from here so we have a BuildContext with Scaffold.
-    final proceed = await _showImportInfoDialogLocal(context);
+    final proceed = await showImportInfoDialog(context);
     if (proceed != true || !context.mounted) return;
 
     final cubit = context.read<DashboardCubit>();
@@ -163,8 +162,7 @@ class _DashboardViewState extends State<_DashboardView> {
     if (context.mounted) context.read<DashboardCubit>().loadForms();
   }
 
-  void _handleCreateNavigation(
-      BuildContext context, CreateNavigation nav) async {
+  void _handleCreateNavigation(BuildContext context, CreateNavigation nav) async {
     final cubit = context.read<DashboardCubit>();
     cubit.clearNavigation();
     if (nav.publishFailed && context.mounted) {
@@ -184,8 +182,7 @@ class _DashboardViewState extends State<_DashboardView> {
 
   void _navigateToForm(BuildContext context, CreateNavigation nav) async {
     await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) =>
-          EditorPage(formId: nav.formId, formName: nav.formName),
+      builder: (_) => EditorPage(formId: nav.formId, formName: nav.formName),
     ));
     if (context.mounted) context.read<DashboardCubit>().loadForms();
   }
@@ -198,10 +195,8 @@ class _DashboardViewState extends State<_DashboardView> {
 
     return BlocConsumer<DashboardCubit, DashboardState>(
       listenWhen: (prev, curr) {
-        final prevNav =
-            prev is DashboardLoaded ? prev.createNav : null;
-        final currNav =
-            curr is DashboardLoaded ? curr.createNav : null;
+        final prevNav = prev is DashboardLoaded ? prev.createNav : null;
+        final currNav = curr is DashboardLoaded ? curr.createNav : null;
         return currNav != null && currNav != prevNav;
       },
       listener: (context, state) {
@@ -215,8 +210,7 @@ class _DashboardViewState extends State<_DashboardView> {
           DashboardError(:final isCreating) => isCreating,
           _ => false,
         };
-        final isImporting =
-            state is DashboardLoaded && state.isImporting;
+        final isImporting = state is DashboardLoaded && state.isImporting;
 
         final header = DashboardHeader(
           isTablet: tablet,
@@ -229,6 +223,13 @@ class _DashboardViewState extends State<_DashboardView> {
           body = Stack(children: [body, const DashboardImportingOverlay()]);
         }
 
+        final drawer = DashboardDrawer(
+          onAiBuilder: () => _openAiBuilder(context),
+          onCreateForm: () => _onNewForm(context),
+          onImportForm: () => _openImport(context),
+          onShowPaywall: _showPaywall,
+        );
+
         if (tablet) {
           return Scaffold(
             backgroundColor: AppColors.bg,
@@ -236,14 +237,9 @@ class _DashboardViewState extends State<_DashboardView> {
             appBar: header,
             body: Row(
               children: [
-                SizedBox(
-                  width: 280,
-                  child: _tabletSidebar(context),
-                ),
+                SizedBox(width: 280, child: drawer),
                 const VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color: AppColors.hairline),
+                    width: 1, thickness: 1, color: AppColors.hairline),
                 Expanded(child: body),
               ],
             ),
@@ -254,30 +250,20 @@ class _DashboardViewState extends State<_DashboardView> {
           backgroundColor: AppColors.bg,
           resizeToAvoidBottomInset: false,
           appBar: header,
-          drawer: DashboardDrawer(
-            onAiBuilder: () => _openAiBuilder(context),
-            onCreateForm: () => _onNewForm(context),
-            onImportForm: () => _openImport(context),
-            onShowPaywall: _showPaywall,
-          ),
+          drawer: drawer,
           body: body,
           floatingActionButtonLocation: ExpandableFab.location,
-          floatingActionButton: _buildFab(context, isCreating),
+          floatingActionButton: DashboardFab(
+            fabKey: _fabKey,
+            isCreating: isCreating,
+            onAiBuilder: () => _openAiBuilder(context),
+            onCreateForm: () => _onNewForm(context),
+            onImport: () => _openImport(context),
+          ),
         );
       },
     );
   }
-
-  Widget _tabletSidebar(BuildContext context) {
-    return DashboardDrawer(
-      onAiBuilder: () => _openAiBuilder(context),
-      onCreateForm: () => _onNewForm(context),
-      onImportForm: () => _openImport(context),
-      onShowPaywall: _showPaywall,
-    );
-  }
-
-  // ── Body ────────────────────────────────────────────────────────────────────
 
   Widget _buildBody(BuildContext context, DashboardState state) {
     return switch (state) {
@@ -304,13 +290,11 @@ class _DashboardViewState extends State<_DashboardView> {
             ? Column(children: [
                 DashboardInlineBanner(message: message),
                 Expanded(
-                    child: DashboardFormList(
-                        forms: cachedForms, query: '')),
+                    child: DashboardFormList(forms: cachedForms, query: '')),
               ])
             : DashboardFullScreenError(
                 message: message,
-                onRetry: () =>
-                    context.read<DashboardCubit>().refresh(),
+                onRetry: () => context.read<DashboardCubit>().refresh(),
               ),
     };
   }
@@ -343,291 +327,6 @@ class _DashboardViewState extends State<_DashboardView> {
                 ),
         ),
       ],
-    );
-  }
-
-  // ── FAB ─────────────────────────────────────────────────────────────────────
-
-  Widget _buildFab(BuildContext context, bool isCreating) {
-    return ExpandableFab(
-      key: _fabKey,
-      type: ExpandableFabType.up,
-      distance: 75,
-      duration: const Duration(milliseconds: 220),
-      overlayStyle: ExpandableFabOverlayStyle(
-        color: const Color(0xFF141028).withValues(alpha: 0.35),
-        blur: 3.0,
-      ),
-      openButtonBuilder: RotateFloatingActionButtonBuilder(
-        child: isCreating
-            ? const CupertinoActivityIndicator(
-                radius: 10, color: Colors.white)
-            : const Icon(Icons.add_rounded, size: 26),
-        fabSize: ExpandableFabSize.regular,
-        foregroundColor: Colors.white,
-        backgroundColor: AppColors.purple,
-        shape: const CircleBorder(),
-      ),
-      closeButtonBuilder: DefaultFloatingActionButtonBuilder(
-        child: const Icon(Icons.close_rounded, size: 22),
-        fabSize: ExpandableFabSize.regular,
-        foregroundColor: Colors.white,
-        backgroundColor: AppColors.purple,
-        shape: const CircleBorder(),
-      ),
-      children: [
-        _FabAction(
-          icon: Icons.auto_awesome_rounded,
-          label: 'AI Form Builder',
-          color: AppColors.purpleAccent,
-          lottieAsset: 'assets/lottie/aiFormBuilder.json',
-          onTap: isCreating
-              ? null
-              : () {
-                  _fabKey.currentState?.toggle();
-                  _openAiBuilder(context);
-                },
-        ),
-        _FabAction(
-          icon: Icons.edit_note_rounded,
-          label: 'Create Form',
-          color: AppColors.purple,
-          lottieAsset: 'assets/lottie/createForm.json',
-          lottieSize: 75,
-          onTap: isCreating
-              ? null
-              : () {
-                  _fabKey.currentState?.toggle();
-                  _onNewForm(context);
-                },
-        ),
-        _FabAction(
-          icon: CupertinoIcons.link,
-          label: 'Import Form',
-          color: AppColors.purple,
-          onTap: isCreating
-              ? null
-              : () {
-                  _fabKey.currentState?.toggle();
-                  _openImport(context);
-                },
-        ),
-      ],
-    );
-  }
-}
-
-// ── FAB action child ──────────────────────────────────────────────────────────
-
-class _FabAction extends StatelessWidget {
-  static const _buttonSize = 52.0;
-
-  final IconData icon;
-  final String label;
-  final Color color;
-  final String? lottieAsset;
-  final double? lottieSize;
-  final VoidCallback? onTap;
-
-  const _FabAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    this.lottieAsset,
-    this.lottieSize,
-    this.onTap,
-  });
-
-  static Future<LottieComposition?> _dotLottieDecoder(List<int> bytes) {
-    return LottieComposition.decodeZip(
-      bytes,
-      filePicker: (files) => files.firstWhere(
-        (f) =>
-            f.name.startsWith('animations/') && f.name.endsWith('.json'),
-        orElse: () => files.first,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDotLottie = lottieAsset?.endsWith('.lottie') ?? false;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: _buttonSize,
-            height: _buttonSize,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.30),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: lottieAsset != null
-                  ? OverflowBox(
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
-                      child: Lottie.asset(
-                        lottieAsset!,
-                        width: lottieSize ?? _buttonSize,
-                        height: lottieSize ?? _buttonSize,
-                        fit: BoxFit.contain,
-                        repeat: true,
-                        decoder:
-                            isDotLottie ? _dotLottieDecoder : null,
-                        errorBuilder: (ctx, e, _) =>
-                            Icon(icon, size: 28, color: color),
-                      ),
-                    )
-                  : Icon(icon, size: 28, color: color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Import info dialog (local — needs Scaffold context from this page) ─────────
-
-Future<bool?> _showImportInfoDialogLocal(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) => Dialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: AppColors.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              spacing: 10,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.purple600.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(CupertinoIcons.info,
-                      color: AppColors.purple600, size: 15),
-                ),
-                const Text(
-                  'Heads up',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(
-                height: 1, thickness: 1, color: AppColors.hairline),
-            const SizedBox(height: 12),
-            const Text(
-              "For your privacy, this app requests only minimal Google Drive "
-              "access — so it can see only the forms it created here. Forms "
-              "made on the Google Forms website or in other apps don't show "
-              "up automatically. Tap below to browse your Drive and pick the "
-              "ones to import.",
-              style: TextStyle(
-                  fontSize: 13, height: 1.45, color: AppColors.ink2),
-            ),
-            const SizedBox(height: 20),
-            _ImportDialogButton(
-              label: 'Import Existing Forms',
-              filled: true,
-              onTap: () => Navigator.of(ctx).pop(true),
-            ),
-            const SizedBox(height: 10),
-            _ImportDialogButton(
-              label: 'Later',
-              filled: false,
-              onTap: () => Navigator.of(ctx).pop(false),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _ImportDialogButton extends StatelessWidget {
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  const _ImportDialogButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        decoration: BoxDecoration(
-          color: filled ? AppColors.purple600 : AppColors.bg,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: filled ? AppShapes.primaryButtonShadow : null,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: filled ? Colors.white : AppColors.muted,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
