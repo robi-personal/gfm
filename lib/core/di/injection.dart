@@ -89,6 +89,7 @@ void configureDependencies() {
       signOut: getIt(),
       formsClient: getIt(),
       driveClient: getIt(),
+      driveDataSource: getIt(),
       subscriptionService: getIt(),
       notificationService: getIt(),
       webViewSessionManager: getIt(),

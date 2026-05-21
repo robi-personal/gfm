@@ -48,6 +48,10 @@ class DriveDataSource {
     await _client.api.files.update(File()..name = name, fileId);
   }
 
+  /// Call after sign-out so the next sign-in searches Drive fresh for the
+  /// current user's file instead of reusing a stale ID from the previous session.
+  void reset() => _appDataFileId = null;
+
   // ── App data (imported forms list) ─────────────────────────────────────────
 
   /// Reads imported form refs from the app-data file. Accepts both the legacy

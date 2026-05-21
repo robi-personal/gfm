@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 
 import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
+import '../../../dashboard/data/datasources/drive_datasource.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/webview_session_manager.dart';
@@ -21,6 +22,7 @@ class SignInCubit extends Cubit<SignInState> {
   final SignOut _signOut;
   final FormsClient _formsClient;
   final DriveClient _driveClient;
+  final DriveDataSource _driveDataSource;
   final SubscriptionService _subscriptionService;
   final NotificationService _notificationService;
   final WebViewSessionManager _webViewSession;
@@ -31,6 +33,7 @@ class SignInCubit extends Cubit<SignInState> {
     required SignOut signOut,
     required FormsClient formsClient,
     required DriveClient driveClient,
+    required DriveDataSource driveDataSource,
     required SubscriptionService subscriptionService,
     required NotificationService notificationService,
     required WebViewSessionManager webViewSessionManager,
@@ -39,6 +42,7 @@ class SignInCubit extends Cubit<SignInState> {
         _signOut = signOut,
         _formsClient = formsClient,
         _driveClient = driveClient,
+        _driveDataSource = driveDataSource,
         _subscriptionService = subscriptionService,
         _notificationService = notificationService,
         _webViewSession = webViewSessionManager,
@@ -87,6 +91,7 @@ class SignInCubit extends Cubit<SignInState> {
     await _signOut();
     _formsClient.reset();
     _driveClient.reset();
+    _driveDataSource.reset();
     AnalyticsService.clearUser();
     _subscriptionService.clearUser().ignore();
     emit(const Unauthenticated());
