@@ -732,6 +732,26 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 - Replaced `Dialog` with `showModalBottomSheet` — 28px top radius, `rgba(20,16,40,0.45)` scrim, top shadow.
 - Sheet content: grab handle → header row (purple50 icon box, "Heads up" / "Privacy & scope") → body copy → privacy bullets card (purple50 bg, purple100 border, check-circle rows) → `PrimaryButton` "Import Existing Forms" → muted "Maybe later" tertiary.
 
+### Rename dialog → bottom sheet (commit `d91463e`)
+
+- Converted rename `Dialog` to `showModalBottomSheet` — same design as import sheet.
+- `_RenameSheet` is a `StatefulWidget`; controller listener drives reactive Save button state.
+- Keyboard inset included in bottom padding so sheet lifts above keyboard.
+
+### Delete / Remove from list → bottom sheets (commit `d44f05b`)
+
+- `showDeleteConfirmSheet` and `showRemoveImportSheet` added to `dashboard_dialogs.dart`.
+- Both use shared sheet primitives; destructive actions use `_DestructiveButton` (matte red `#D0302A`).
+- `dashboard_form_card.dart` now awaits sheet result instead of inline `ErrorModal` callbacks.
+
+### Shared sheet primitives extracted (commit `bbabe91`)
+
+- `_showSheet<T>`, `_SheetContainer`, `_SheetHandle`, `_SheetHeader`, `_SheetTertiaryButton` shared by all sheets — no duplication.
+
+### Error color updated (commit `a8b857c`)
+
+- `AppColors.error` changed from `#FF3B30` (orange-red) to `#D0302A` (matte red). Applies app-wide.
+
 ### Code rules established
 
 - **Clean code + clean architecture applies to all future changes**: every medium-level widget must be extracted to the feature's `widgets/` directory; page files orchestrate only.
