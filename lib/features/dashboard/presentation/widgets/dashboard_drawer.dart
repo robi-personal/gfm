@@ -9,7 +9,7 @@ import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 
 const _kAppStoreId = '6479591930';
 const _kAppStoreUrl = 'https://apps.apple.com/app/id$_kAppStoreId';
-const _kAppStoreReviewUrl = '$_kAppStoreUrl?action=write-review';
+const _kAppStoreReviewUrl = 'itms-apps://itunes.apple.com/app/id$_kAppStoreId?action=write-review';
 
 class DashboardDrawer extends StatelessWidget {
   final VoidCallback onAiBuilder;
