@@ -3,6 +3,118 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/design.dart';
 
+// ── Form name sheet ───────────────────────────────────────────────────────────
+
+Future<String?> showFormNameSheet(BuildContext context,
+    {String prefill = ''}) {
+  return _showSheet<String>(
+      context, child: _FormNameSheet(prefill: prefill));
+}
+
+class _FormNameSheet extends StatefulWidget {
+  final String prefill;
+
+  const _FormNameSheet({required this.prefill});
+
+  @override
+  State<_FormNameSheet> createState() => _FormNameSheetState();
+}
+
+class _FormNameSheetState extends State<_FormNameSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.prefill);
+    if (widget.prefill.isNotEmpty) {
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: widget.prefill.length,
+      );
+    }
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _canCreate => _controller.text.trim().isNotEmpty;
+
+  void _submit() {
+    if (_canCreate) Navigator.of(context).pop(_controller.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom +
+        MediaQuery.viewInsetsOf(context).bottom +
+        28;
+
+    return _SheetContainer(
+      bottomPad: bottomPad,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SheetHandle(),
+          const _SheetHeader(
+            icon: CupertinoIcons.doc_text,
+            title: 'Name Your Form',
+            subtitle: 'You can rename it anytime',
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(),
+          const SizedBox(height: 20),
+          PrimaryButton(
+            label: 'Create',
+            onTap: _canCreate ? _submit : null,
+          ),
+          const SizedBox(height: 4),
+          _SheetTertiaryButton(
+            label: 'Cancel',
+            onTap: () => Navigator.of(context).pop(null),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField() => TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        style: const TextStyle(fontSize: 15, color: AppColors.ink),
+        cursorColor: AppColors.purple600,
+        decoration: InputDecoration(
+          hintText: 'e.g. Customer Feedback',
+          hintStyle: const TextStyle(color: AppColors.muted2),
+          filled: true,
+          fillColor: AppColors.bg,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                const BorderSide(color: AppColors.purple600, width: 1.5),
+          ),
+        ),
+        onSubmitted: (_) => _submit(),
+      );
+}
+
 // ── Import info sheet ─────────────────────────────────────────────────────────
 
 Future<bool?> showImportInfoDialog(BuildContext context) {
