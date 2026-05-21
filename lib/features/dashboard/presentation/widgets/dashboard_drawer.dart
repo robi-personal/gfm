@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
+import '../../../../../core/widgets/simple_web_view_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 
 const _kAppStoreId = '6479591930';
@@ -130,10 +131,12 @@ class _DrawerContent extends StatelessWidget {
                     title: 'Privacy Policy',
                     onTap: () {
                       Navigator.of(context).pop();
-                      launchUrl(
-                        Uri.parse('https://gformmanager.netlify.app/privacy'),
-                        mode: LaunchMode.externalApplication,
-                      );
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const SimpleWebViewPage(
+                          title: 'Privacy Policy',
+                          url: 'https://gformmanager.netlify.app/privacy',
+                        ),
+                      ));
                     },
                   ),
                   _DrawerItem(
@@ -141,10 +144,12 @@ class _DrawerContent extends StatelessWidget {
                     title: 'Terms of Use',
                     onTap: () {
                       Navigator.of(context).pop();
-                      launchUrl(
-                        Uri.parse('https://gformmanager.netlify.app/terms'),
-                        mode: LaunchMode.externalApplication,
-                      );
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const SimpleWebViewPage(
+                          title: 'Terms of Use',
+                          url: 'https://gformmanager.netlify.app/terms',
+                        ),
+                      ));
                     },
                   ),
                 ],

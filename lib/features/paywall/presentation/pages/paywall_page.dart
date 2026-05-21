@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/error_modal.dart';
+import '../../../../core/widgets/simple_web_view_page.dart';
 import '../cubit/subscription_cubit.dart';
 
 // Apple requires a visible link to manage/cancel during purchase flow.
@@ -687,8 +688,10 @@ class _Footer extends StatelessWidget {
 
   const _Footer({required this.onRestore});
 
-  Future<void> _open(String url) =>
-      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  void _open(BuildContext context, String url, String title) =>
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SimpleWebViewPage(title: title, url: url),
+      ));
 
   @override
   Widget build(BuildContext context) {
@@ -718,17 +721,18 @@ class _Footer extends StatelessWidget {
             const _FooterDot(),
             _FooterLink(
               label: 'Manage Subscription',
-              onTap: () => _open(_manageSubscriptionsUrl),
+              onTap: () => launchUrl(Uri.parse(_manageSubscriptionsUrl),
+                  mode: LaunchMode.externalApplication),
             ),
             const _FooterDot(),
             _FooterLink(
               label: 'Privacy Policy',
-              onTap: () => _open(_privacyUrl),
+              onTap: () => _open(context, _privacyUrl, 'Privacy Policy'),
             ),
             const _FooterDot(),
             _FooterLink(
               label: 'Terms of Use',
-              onTap: () => _open(_termsUrl),
+              onTap: () => _open(context, _termsUrl, 'Terms of Use'),
             ),
           ],
         ),

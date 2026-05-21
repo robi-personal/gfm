@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
+import '../../../../../core/widgets/simple_web_view_page.dart';
 
 class SignInLegalRow extends StatelessWidget {
   const SignInLegalRow({super.key});
@@ -44,10 +44,9 @@ class _LegalLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SimpleWebViewPage(title: label, url: url),
+      )),
       child: Text(
         label,
         style: const TextStyle(
