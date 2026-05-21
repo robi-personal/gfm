@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'core/di/injection.dart';
 import 'core/services/analytics_service.dart';
@@ -21,7 +20,6 @@ class App extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4285F4)),
           useMaterial3: true,
-          textTheme: GoogleFonts.latoTextTheme(),
         ),
         navigatorObservers: [AnalyticsService.observer],
         home: const _AuthGate(),
