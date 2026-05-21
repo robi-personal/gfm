@@ -786,6 +786,44 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 
 ---
 
+## Recent changes (2026-05-22 session — in-app WebView + AI builder polish)
+
+### Privacy/Terms — opened in-app via `SimpleWebViewPage` (commit `4f1f82a`)
+
+- New `lib/core/widgets/simple_web_view_page.dart` — reusable `StatefulWidget(title, url)`. Progress bar in AppBar bottom. Back nav goes back in WebView if `canGoBack`, otherwise closes. Black-artifact guard: swap WebView for `CupertinoActivityIndicator`, wait 120ms, then `Navigator.pop()` (same pattern as `ImportFormWebViewPage`).
+- **Dashboard drawer**: Privacy Policy + Terms of Use items now push `SimpleWebViewPage` instead of `launchUrl`.
+- **Sign-in screen** (`sign_in_legal_row.dart`): PP/ToU links push `SimpleWebViewPage` instead of `launchUrl`.
+- **Paywall footer** (`paywall_page.dart`): PP/ToU links push `SimpleWebViewPage`. Manage Subscription still uses `launchUrl` (must go to App Store externally per Apple guidelines).
+
+### Import form WebView — clean-code refactor (commit `4f1f82a`)
+
+- `ImportFormWebViewPage` monolithic `build()` split into: `_buildAppBar()`, `_buildBody()`, `_buildWebView()`, `_buildHideHeaderScript()`, `_onWebViewCreated()`, `_shouldOverrideUrlLoading()`, `_injectTapHook()`.
+- Constants extracted: `_kDriveSearchUrl`, `_kSafariUserAgent`.
+- Lint fixes: `(_, __)` replaced with named params in `onPopInvokedWithResult`, `onLoadStart`, `onLoadStop`.
+
+### AI Form Builder — widget extraction refactor (commit `c7e0be4`)
+
+- `ai_form_builder_page.dart` slimmed from ~1940 → 515 lines. All medium-level widgets extracted to `lib/features/ai_form_builder/presentation/widgets/`:
+  - `ai_quota_counter.dart` — `AiQuotaCounter`
+  - `ai_upgrade_banner.dart` — `AiUpgradeBanner`
+  - `ai_grace_period_banner.dart` — `AiGracePeriodBanner`
+  - `ai_generate_button.dart` — `AiGenerateButton`
+  - `ai_question_count_row.dart` — `AiQuestionCountRow` + `_StepperButton`
+  - `ai_quiz_toggle_row.dart` — `AiQuizToggleRow`
+  - `ai_file_picker_button.dart` — `AiFilePickerButton`
+  - `ai_input_type_picker.dart` — `AiInputTypePicker` + `_TypeChip`
+  - `ai_ready_body.dart` — `AiReadyBody` + `_IosCard`, `_SectionLabel`, `_IosTextField`
+
+### AI Form Builder — UI polish (commits `77dc6af`, `5ac3f39`, `a8e8ae4`, `6e1e159`)
+
+- **Quota counter** (`ai_quota_counter.dart`) redesigned as a gradient hero card: purple gradient (`purpleMid` → `purple600`), 40×40 sparkle icon box, white progress bar, "Upgrade" pill (non-premium users). Progress bar uses white @ 25% opacity for the empty track, full white for the fill, and 35% white when exhausted.
+- **Upgrade pill** shows the dashboard crown SVG (`assets/dashboard_premium.svg` at 14×14) via `flutter_svg` beside the "Upgrade" label.
+- **Section labels**: `INPUT` and `OPTIONS` (uppercase `AppTextStyles.sectionLabel`) appear above each card group in the scrollable body.
+- **Card borders**: `_IosCard` now has `Border.all(color: AppColors.hairline)` for crisp definition on the `AppColors.bg` background.
+- **Sticky Generate button**: `AiReadyBody.build()` is now a `Column` — `Expanded(SingleChildScrollView(...))` for all content, and a bottom container (hairline top border + safe-area padding) pinning the `AiGenerateButton` + loading indicator to the screen bottom.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
