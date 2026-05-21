@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/design.dart';
 
+// ── Import info sheet ─────────────────────────────────────────────────────────
+
 Future<bool?> showImportInfoDialog(BuildContext context) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: const Color(0xFF141028).withValues(alpha: 0.45),
-    builder: (ctx) => const _ImportInfoSheet(),
+    builder: (_) => const _ImportInfoSheet(),
   );
 }
 
@@ -37,116 +39,118 @@ class _ImportInfoSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Grab handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              margin: const EdgeInsets.only(bottom: 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE4E1EB),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          // Header row
-          Row(
-            spacing: 14,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.purple50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(CupertinoIcons.info_circle,
-                    color: AppColors.purple600, size: 20),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Heads up',
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  Text(
-                    'Privacy & scope',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          _buildHandle(),
+          _buildHeader(),
           const SizedBox(height: 16),
-          // Body copy
-          const Text(
-            'For your privacy, GFM only sees forms it created here. '
-            'Forms you made on the Google Forms website or in other apps '
-            'won\'t show up automatically — tap below to browse your Drive '
-            'and pick the ones to import.',
-            style: TextStyle(
-              fontSize: 14.5,
-              height: 1.55,
-              color: AppColors.ink2,
-            ),
-          ),
+          _buildBodyCopy(),
           const SizedBox(height: 16),
-          // Privacy bullets card
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.purple50,
-              border: Border.all(color: AppColors.purple100),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              spacing: 10,
-              children: const [
-                _BulletRow(text: 'Only see forms you select'),
-                _BulletRow(text: 'Revoke access anytime in Settings'),
-              ],
-            ),
-          ),
+          _buildPrivacyCard(),
           const SizedBox(height: 20),
-          // Primary action
-          PrimaryButton(
-            label: 'Import Existing Forms',
-            onTap: () => Navigator.of(context).pop(true),
-          ),
+          _buildPrimaryButton(context),
           const SizedBox(height: 4),
-          // Tertiary action
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(false),
-              behavior: HitTestBehavior.opaque,
-              child: const Center(
-                child: Text(
-                  'Maybe later',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _buildTertiaryButton(context),
         ],
       ),
     );
   }
+
+  Widget _buildHandle() => Center(
+        child: Container(
+          width: 40,
+          height: 5,
+          margin: const EdgeInsets.only(bottom: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4E1EB),
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+      );
+
+  Widget _buildHeader() => Row(
+        spacing: 14,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.purple50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(CupertinoIcons.info_circle,
+                color: AppColors.purple600, size: 20),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Heads up',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppColors.ink,
+                ),
+              ),
+              Text(
+                'Privacy & scope',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+  Widget _buildBodyCopy() => const Text(
+        'For your privacy, GFM only sees forms it created here. '
+        'Forms you made on the Google Forms website or in other apps '
+        'won\'t show up automatically — tap below to browse your Drive '
+        'and pick the ones to import.',
+        style: TextStyle(fontSize: 14.5, height: 1.55, color: AppColors.ink2),
+      );
+
+  Widget _buildPrivacyCard() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.purple50,
+          border: Border.all(color: AppColors.purple100),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Column(
+          spacing: 10,
+          children: [
+            _BulletRow(text: 'Only see forms you select'),
+            _BulletRow(text: 'Revoke access anytime in Settings'),
+          ],
+        ),
+      );
+
+  Widget _buildPrimaryButton(BuildContext context) => PrimaryButton(
+        label: 'Import Existing Forms',
+        onTap: () => Navigator.of(context).pop(true),
+      );
+
+  Widget _buildTertiaryButton(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: 44,
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(false),
+          behavior: HitTestBehavior.opaque,
+          child: const Center(
+            child: Text(
+              'Maybe later',
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class _BulletRow extends StatelessWidget {
@@ -181,18 +185,30 @@ class _BulletRow extends StatelessWidget {
   }
 }
 
+// ── Rename dialog ─────────────────────────────────────────────────────────────
+
 Future<String?> showRenameDialog(BuildContext context,
     {required String current}) {
   final controller = TextEditingController(text: current)
-    ..selection =
-        TextSelection(baseOffset: 0, extentOffset: current.length);
+    ..selection = TextSelection(baseOffset: 0, extentOffset: current.length);
 
   return showDialog<String>(
     context: context,
     barrierDismissible: true,
-    builder: (ctx) => Dialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    builder: (ctx) => _RenameDialog(controller: controller, ctx: ctx),
+  );
+}
+
+class _RenameDialog extends StatelessWidget {
+  final TextEditingController controller;
+  final BuildContext ctx;
+
+  const _RenameDialog({required this.controller, required this.ctx});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: AppColors.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 32),
       child: Padding(
@@ -201,106 +217,105 @@ Future<String?> showRenameDialog(BuildContext context,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.purple600.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(CupertinoIcons.pencil,
-                      color: AppColors.purple600, size: 15),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Rename Form',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ],
-            ),
+            _buildHeader(),
             const SizedBox(height: 12),
             const Divider(height: 1, thickness: 1, color: AppColors.hairline),
             const SizedBox(height: 12),
-            const Text(
-              'Enter a new name for your form.',
-              style: TextStyle(fontSize: 13, color: AppColors.muted),
-            ),
+            _buildHint(),
             const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              style:
-                  const TextStyle(fontSize: 15, color: AppColors.ink),
-              cursorColor: AppColors.purple600,
-              decoration: InputDecoration(
-                hintText: 'Form name',
-                hintStyle: const TextStyle(color: AppColors.muted2),
-                filled: true,
-                fillColor: AppColors.bg,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                      color: AppColors.purple600, width: 1.5),
-                ),
-              ),
-              onSubmitted: (v) {
-                final name = v.trim();
-                if (name.isNotEmpty) Navigator.of(context).pop(name);
-              },
-            ),
+            _buildTextField(context),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _DialogButton(
-                    label: 'Cancel',
-                    onTap: () => Navigator.of(context).pop(null),
-                    filled: false,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: StatefulBuilder(
-                    builder: (ctx2, setLocal) {
-                      controller.addListener(() => setLocal(() {}));
-                      final canSave = controller.text.trim().isNotEmpty;
-                      return _DialogButton(
-                        label: 'Save',
-                        onTap: canSave
-                            ? () => Navigator.of(ctx)
-                                .pop(controller.text.trim())
-                            : null,
-                        filled: true,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+            _buildActions(),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildHeader() => Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.purple600.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(CupertinoIcons.pencil,
+                color: AppColors.purple600, size: 15),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            'Rename Form',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
+          ),
+        ],
+      );
+
+  Widget _buildHint() => const Text(
+        'Enter a new name for your form.',
+        style: TextStyle(fontSize: 13, color: AppColors.muted),
+      );
+
+  Widget _buildTextField(BuildContext context) => TextField(
+        controller: controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        style: const TextStyle(fontSize: 15, color: AppColors.ink),
+        cursorColor: AppColors.purple600,
+        decoration: InputDecoration(
+          hintText: 'Form name',
+          hintStyle: const TextStyle(color: AppColors.muted2),
+          filled: true,
+          fillColor: AppColors.bg,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.purple600, width: 1.5),
+          ),
+        ),
+        onSubmitted: (v) {
+          final name = v.trim();
+          if (name.isNotEmpty) Navigator.of(ctx).pop(name);
+        },
+      );
+
+  Widget _buildActions() => Row(
+        children: [
+          Expanded(child: _DialogButton(label: 'Cancel', onTap: () => Navigator.of(ctx).pop(null), filled: false)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: StatefulBuilder(
+              builder: (ctx2, setLocal) {
+                controller.addListener(() => setLocal(() {}));
+                final canSave = controller.text.trim().isNotEmpty;
+                return _DialogButton(
+                  label: 'Save',
+                  onTap: canSave ? () => Navigator.of(ctx).pop(controller.text.trim()) : null,
+                  filled: true,
+                );
+              },
+            ),
+          ),
+        ],
+      );
 }
+
+// ── Shared dialog button ──────────────────────────────────────────────────────
 
 class _DialogButton extends StatelessWidget {
   final String label;
