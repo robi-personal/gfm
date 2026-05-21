@@ -55,119 +55,102 @@ class _DrawerContent extends StatelessWidget {
       children: [
         _DrawerHeader(topPad: topPad),
         Expanded(
-          child: Container(
-            color: AppColors.bg,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              children: [
-                _DrawerSection(
-                  label: 'CREATE',
-                  items: [
-                    _DrawerItem(
-                      icon: Icons.auto_awesome_rounded,
-                      title: 'AI Form Builder',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onAiBuilder();
-                      },
-                    ),
-                    _DrawerItem(
-                      icon: Icons.edit_note_rounded,
-                      title: 'Create Form',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onCreateForm();
-                      },
-                    ),
-                    _DrawerItem(
-                      icon: CupertinoIcons.link,
-                      title: 'Import Form',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onImportForm();
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DrawerSection(
-                  label: 'SUBSCRIPTION',
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/upgrade_to_premium.png',
-                      title: 'Upgrade Plan',
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        onShowPaywall();
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DrawerSection(
-                  label: 'SUPPORT US',
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/nav_share.png',
-                      title: 'Share on the App Store',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                    _DrawerItem(
-                      assetIcon: 'assets/rate_us.png',
-                      title: 'Rate the app',
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DrawerSection(
-                  label: 'LEGAL',
-                  items: [
-                    _DrawerItem(
-                      icon: CupertinoIcons.lock_shield,
-                      title: 'Privacy Policy',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        launchUrl(
-                          Uri.parse(
-                              'https://gformmanager.netlify.app/privacy'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                    ),
-                    _DrawerItem(
-                      icon: CupertinoIcons.doc_text,
-                      title: 'Terms of Use',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        launchUrl(
-                          Uri.parse(
-                              'https://gformmanager.netlify.app/terms'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DrawerSection(
-                  label: 'ACCOUNT',
-                  labelColor: AppColors.error,
-                  items: [
-                    _DrawerItem(
-                      assetIcon: 'assets/logout.png',
-                      assetColor: AppColors.error,
-                      title: 'Sign out',
-                      textColor: AppColors.error,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        context.read<SignInCubit>().signOut();
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            children: [
+              _DrawerSection(
+                label: 'CREATE',
+                items: [
+                  _DrawerItem(
+                    icon: Icons.auto_awesome_rounded,
+                    title: 'AI Form Builder',
+                    onTap: () { Navigator.of(context).pop(); onAiBuilder(); },
+                  ),
+                  _DrawerItem(
+                    icon: CupertinoIcons.pencil,
+                    title: 'Create Form',
+                    onTap: () { Navigator.of(context).pop(); onCreateForm(); },
+                  ),
+                  _DrawerItem(
+                    icon: CupertinoIcons.arrow_down_circle,
+                    title: 'Import Form',
+                    onTap: () { Navigator.of(context).pop(); onImportForm(); },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _DrawerSection(
+                label: 'SUBSCRIPTION',
+                items: [
+                  _DrawerItem(
+                    icon: CupertinoIcons.star_fill,
+                    title: 'Upgrade Plan',
+                    onTap: () { Navigator.of(context).pop(); onShowPaywall(); },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _DrawerSection(
+                label: 'SUPPORT US',
+                items: [
+                  _DrawerItem(
+                    icon: CupertinoIcons.share,
+                    title: 'Share on the App Store',
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                  _DrawerItem(
+                    icon: CupertinoIcons.hand_thumbsup,
+                    title: 'Rate the app',
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _DrawerSection(
+                label: 'LEGAL',
+                items: [
+                  _DrawerItem(
+                    icon: CupertinoIcons.lock_shield,
+                    title: 'Privacy Policy',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      launchUrl(
+                        Uri.parse('https://gformmanager.netlify.app/privacy'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: CupertinoIcons.doc_text,
+                    title: 'Terms of Use',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      launchUrl(
+                        Uri.parse('https://gformmanager.netlify.app/terms'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _DrawerSection(
+                label: 'ACCOUNT',
+                labelColor: AppColors.error,
+                items: [
+                  _DrawerItem(
+                    icon: CupertinoIcons.square_arrow_right,
+                    title: 'Sign out',
+                    iconBg: AppColors.error,
+                    textColor: AppColors.error,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.read<SignInCubit>().signOut();
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ],
@@ -212,40 +195,42 @@ class _DrawerHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           spacing: 12,
           children: [
-            _UserAvatar(
-                photoUrl: user.photoUrl, displayName: user.displayName),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (user.displayName != null)
-                    Text(
-                      user.displayName!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  if (user.email.isNotEmpty)
-                    Text(
-                      user.email,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.70),
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            _UserAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
+            Expanded(child: _buildUserInfo(user)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildUserInfo(
+      ({String? displayName, String? photoUrl, String email}) user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (user.displayName != null)
+          Text(
+            user.displayName!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        if (user.email.isNotEmpty)
+          Text(
+            user.email,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.70),
+              fontSize: 12,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -325,7 +310,7 @@ class _DrawerSection extends StatelessWidget {
                     height: 1,
                     thickness: 1,
                     color: AppColors.hairline,
-                    indent: 50,
+                    indent: 54,
                   ),
               ],
             ],
@@ -340,18 +325,16 @@ class _DrawerSection extends StatelessWidget {
 
 class _DrawerItem extends StatelessWidget {
   final String title;
-  final String? assetIcon;
-  final IconData? icon;
-  final Color assetColor;
+  final IconData icon;
+  final Color iconBg;
   final Color textColor;
   final VoidCallback onTap;
 
   const _DrawerItem({
     required this.title,
+    required this.icon,
     required this.onTap,
-    this.assetIcon,
-    this.icon,
-    this.assetColor = AppColors.ink2,
+    this.iconBg = AppColors.purple600,
     this.textColor = AppColors.ink,
   });
 
@@ -361,19 +344,11 @@ class _DrawerItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: AppShapes.cardRadius2,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
-          spacing: 14,
+          spacing: 12,
           children: [
-            SizedBox(
-              width: 22,
-              child: assetIcon != null
-                  ? Image.asset(assetIcon!, width: 20, height: 20,
-                      color: assetColor)
-                  : icon != null
-                      ? Icon(icon, size: 20, color: AppColors.ink2)
-                      : const SizedBox.shrink(),
-            ),
+            _buildIconBox(),
             Expanded(
               child: Text(
                 title,
@@ -385,10 +360,22 @@ class _DrawerItem extends StatelessWidget {
               ),
             ),
             const Icon(CupertinoIcons.chevron_right,
-                size: 14, color: AppColors.muted2),
+                size: 13, color: AppColors.muted2),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildIconBox() {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: iconBg.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 16, color: iconBg),
     );
   }
 }
