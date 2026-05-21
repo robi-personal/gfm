@@ -4,71 +4,181 @@ import 'package:flutter/material.dart';
 import '../../../../../core/design.dart';
 
 Future<bool?> showImportInfoDialog(BuildContext context) {
-  return showDialog<bool>(
+  return showModalBottomSheet<bool>(
     context: context,
-    barrierDismissible: true,
-    builder: (ctx) => Dialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: AppColors.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.purple600.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(CupertinoIcons.info,
-                      color: AppColors.purple600, size: 15),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: const Color(0xFF141028).withValues(alpha: 0.45),
+    builder: (ctx) => const _ImportInfoSheet(),
+  );
+}
+
+class _ImportInfoSheet extends StatelessWidget {
+  const _ImportInfoSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 28;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x29141028),
+            blurRadius: 30,
+            offset: Offset(0, -10),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Grab handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE4E1EB),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          // Header row
+          Row(
+            spacing: 14,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.purple50,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Heads up',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
+                child: const Icon(CupertinoIcons.info_circle,
+                    color: AppColors.purple600, size: 20),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Heads up',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      color: AppColors.ink,
+                    ),
                   ),
-                ),
+                  Text(
+                    'Privacy & scope',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Body copy
+          const Text(
+            'For your privacy, GFM only sees forms it created here. '
+            'Forms you made on the Google Forms website or in other apps '
+            'won\'t show up automatically — tap below to browse your Drive '
+            'and pick the ones to import.',
+            style: TextStyle(
+              fontSize: 14.5,
+              height: 1.55,
+              color: AppColors.ink2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Privacy bullets card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.purple50,
+              border: Border.all(color: AppColors.purple100),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              spacing: 10,
+              children: const [
+                _BulletRow(text: 'Only see forms you select'),
+                _BulletRow(text: 'Revoke access anytime in Settings'),
               ],
             ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-            const SizedBox(height: 12),
-            const Text(
-              "For your privacy, this app requests only minimal Google Drive "
-              "access — so it can see only the forms it created here. Forms "
-              "made on the Google Forms website or in other apps don't show "
-              "up automatically. Tap below to browse your Drive and pick the "
-              "ones to import.",
-              style: TextStyle(fontSize: 13, height: 1.45, color: AppColors.ink2),
+          ),
+          const SizedBox(height: 20),
+          // Primary action
+          PrimaryButton(
+            label: 'Import Existing Forms',
+            onTap: () => Navigator.of(context).pop(true),
+          ),
+          const SizedBox(height: 4),
+          // Tertiary action
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(false),
+              behavior: HitTestBehavior.opaque,
+              child: const Center(
+                child: Text(
+                  'Maybe later',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            _DialogButton(
-              label: 'Import Existing Forms',
-              onTap: () => Navigator.of(ctx).pop(true),
-              filled: true,
-            ),
-            const SizedBox(height: 10),
-            _DialogButton(
-              label: 'Later',
-              onTap: () => Navigator.of(ctx).pop(false),
-              filled: false,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _BulletRow extends StatelessWidget {
+  final String text;
+
+  const _BulletRow({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      spacing: 10,
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: const BoxDecoration(
+            color: AppColors.purple600,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check, size: 9, color: Colors.white),
+        ),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.purple600,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 Future<String?> showRenameDialog(BuildContext context,
@@ -153,7 +263,7 @@ Future<String?> showRenameDialog(BuildContext context,
               ),
               onSubmitted: (v) {
                 final name = v.trim();
-                if (name.isNotEmpty) Navigator.of(ctx).pop(name);
+                if (name.isNotEmpty) Navigator.of(context).pop(name);
               },
             ),
             const SizedBox(height: 20),
@@ -162,7 +272,7 @@ Future<String?> showRenameDialog(BuildContext context,
                 Expanded(
                   child: _DialogButton(
                     label: 'Cancel',
-                    onTap: () => Navigator.of(ctx).pop(null),
+                    onTap: () => Navigator.of(context).pop(null),
                     filled: false,
                   ),
                 ),
