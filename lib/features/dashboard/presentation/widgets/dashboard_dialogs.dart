@@ -25,7 +25,7 @@ class _ImportInfoSheet extends StatelessWidget {
           const _SheetHandle(),
           const _SheetHeader(
             icon: CupertinoIcons.info_circle,
-            title: 'Heads up',
+            title: 'Import Your Existing Forms',
             subtitle: 'Privacy & scope',
           ),
           const SizedBox(height: 16),
@@ -45,9 +45,9 @@ class _ImportInfoSheet extends StatelessWidget {
   }
 
   Widget _buildBodyCopy() => const Text(
-        'For your privacy, GFM only sees forms it created here. '
-        'Forms you made on the Google Forms website or in other apps '
-        'won\'t show up automatically — tap below to browse your Drive '
+        'For your privacy, GFM only sees forms it created by this app. '
+        'Forms you made on the Google Forms website '
+        'won\'t show up automatically — tap "Import Existing Forms" to browse your google forms '
         'and pick the ones to import.',
         style: TextStyle(fontSize: 14.5, height: 1.55, color: AppColors.ink2),
       );
@@ -62,8 +62,8 @@ class _ImportInfoSheet extends StatelessWidget {
         child: const Column(
           spacing: 10,
           children: [
-            _BulletRow(text: 'Only see forms you select'),
-            _BulletRow(text: 'Revoke access anytime in Settings'),
+            _BulletRow(text: 'Sign-in to your google form'),
+            _BulletRow(text: 'Pick the form you want to import'),
           ],
         ),
       );
