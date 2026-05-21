@@ -659,6 +659,35 @@ Tapping Print now opens a bottom sheet so the user can choose among four PDF for
 
 ---
 
+## Recent changes (2026-05-22 session — import polish)
+
+### Imported forms — per-form timestamps (commit `1d1d663`)
+
+- Imported forms had no `modifiedTime`/`createdTime`, so they always clumped at the bottom of the dashboard list regardless of sort order. The Forms API doesn't expose form timestamps and Drive `files.get` for a foreign-created form requires a wider scope (`drive.metadata.readonly`) we don't want to take on.
+- Stamp each imported form with `importedAt = DateTime.now().toUtc()` at import time; use it as both `modifiedTime` and `createdTime` on the resulting `FormEntry`. Sort order then mixes imports in correctly with owned forms.
+- Storage shape evolves in `gfm_data.json`: was `{"importedForms": ["abc", ...]}`, now `{"importedForms": [{"id": "abc", "importedAt": "..."}, ...]}`. `DriveDataSource.readImportedForms` accepts both shapes — legacy string entries surface with `importedAt: null` and get rewritten in the object shape on the next write.
+- Re-import refreshes the timestamp (the form moves to the top), matching the user's intent of "I want to use this form now."
+- Methods renamed for clarity: `readImportedFormIds` → `readImportedForms`, `writeImportedFormIds` → `writeImportedForms`. New typedef `ImportedFormRef = ({String id, DateTime? importedAt})`.
+
+### WebView session — clear on account switch (commit `24f0e2e`)
+
+- The import flow (`ImportFormWebViewPage`) and the file-upload edit flow (`EditFormWebViewPage`) load Google web pages inside `InAppWebView`. That WebView keeps its own cookie/storage jar, completely independent of the native Google Sign-In token. Result: User A signs out → User B signs in → User B opens Import and sees User A's Drive forms.
+- New `lib/core/services/webview_session_manager.dart`. `WebViewSessionManager.syncWithUser(googleSub)` reads the last-known sub from `flutter_secure_storage`, compares; on mismatch, clears `CookieManager.deleteAllCookies()` + `WebStorageManager.deleteAllData()` + `InAppWebViewController.clearAllCache()`. Then writes the current sub.
+- Hooked into `SignInCubit.checkAuth()` and `.signIn()` success branches — **awaited** before emitting `Authenticated`, so the dashboard can't open Import against a half-cleared cookie jar. Each clear step has its own try/catch so a single failure doesn't stop the others.
+- **Sign-out is intentionally NOT hooked.** Same-user sign-out → sign-in keeps the WebView session warm (no annoying Google re-login). The compare-on-sign-in check still catches account switches.
+- Null stored = first launch → no clear, just record the sub.
+- Keyed on `google_sub`, not email — email can change (alias swaps, account merges), sub is immutable.
+- Uses existing `flutter_secure_storage` dep (no new package).
+
+### Gotchas
+
+- **WebView cookies are independent of native Google Sign-In** — the `google_sign_in` plugin uses native OS account picker (no cookies). Drive/Forms loaded in `InAppWebView` use cookies. The two sessions can drift apart without warning.
+- **Can't read WHO is signed into a WebView** — Google's session cookie value is opaque, scraping `myaccount.google.com` is brittle, and `/drive/u/N/` only gives a slot index. Best path is to track app-side state and clear proactively on account change.
+- **iOS keychain (used by `flutter_secure_storage`) persists across uninstall by default** — for our purpose this is harmless (a stale stored sub triggers one unnecessary clear on first launch of a fresh install), but worth knowing if we ever store auth tokens there.
+- **The "force quit creates a session-mismatch bug" worry was overblown** — changing the app's signed-in account requires either (a) explicit sign-out → sign-in (caught by compare-on-sign-in), (b) reinstall (wipes WebView), or (c) removing the Google account from device Settings (rare). Path (c) is still covered because the compare runs on every silent sign-in, not just sign-out events.
+
+---
+
 ## Next steps
 
 1. ~~**Analytics + Crashlytics**~~ — ✅ Done
