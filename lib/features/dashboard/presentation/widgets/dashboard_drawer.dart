@@ -1,10 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
+
+const _kAppStoreId = '6479591930';
+const _kAppStoreUrl = 'https://apps.apple.com/app/id$_kAppStoreId';
+const _kAppStoreReviewUrl = '$_kAppStoreUrl?action=write-review';
 
 class DashboardDrawer extends StatelessWidget {
   final VoidCallback onAiBuilder;
@@ -96,12 +101,23 @@ class _DrawerContent extends StatelessWidget {
                   _DrawerItem(
                     icon: CupertinoIcons.share,
                     title: 'Share on the App Store',
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Share.share(
+                        'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
+                      );
+                    },
                   ),
                   _DrawerItem(
                     icon: CupertinoIcons.hand_thumbsup,
                     title: 'Rate the app',
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      launchUrl(
+                        Uri.parse(_kAppStoreReviewUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -353,7 +369,7 @@ class _DrawerItem extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13.5,
                   color: textColor,
                   fontWeight: FontWeight.w500,
                 ),
