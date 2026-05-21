@@ -185,84 +185,142 @@ class _BulletRow extends StatelessWidget {
   }
 }
 
-// ── Rename dialog ─────────────────────────────────────────────────────────────
+// ── Rename sheet ──────────────────────────────────────────────────────────────
 
 Future<String?> showRenameDialog(BuildContext context,
     {required String current}) {
-  final controller = TextEditingController(text: current)
-    ..selection = TextSelection(baseOffset: 0, extentOffset: current.length);
-
-  return showDialog<String>(
+  return showModalBottomSheet<String>(
     context: context,
-    barrierDismissible: true,
-    builder: (ctx) => _RenameDialog(controller: controller, ctx: ctx),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: const Color(0xFF141028).withValues(alpha: 0.45),
+    builder: (_) => _RenameSheet(current: current),
   );
 }
 
-class _RenameDialog extends StatelessWidget {
-  final TextEditingController controller;
-  final BuildContext ctx;
+class _RenameSheet extends StatefulWidget {
+  final String current;
 
-  const _RenameDialog({required this.controller, required this.ctx});
+  const _RenameSheet({required this.current});
+
+  @override
+  State<_RenameSheet> createState() => _RenameSheetState();
+}
+
+class _RenameSheetState extends State<_RenameSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.current)
+      ..selection =
+          TextSelection(baseOffset: 0, extentOffset: widget.current.length);
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave => _controller.text.trim().isNotEmpty;
+
+  void _submit() {
+    if (_canSave) Navigator.of(context).pop(_controller.text.trim());
+  }
+
+  void _cancel() => Navigator.of(context).pop(null);
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: AppColors.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 12),
-            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-            const SizedBox(height: 12),
-            _buildHint(),
-            const SizedBox(height: 16),
-            _buildTextField(context),
-            const SizedBox(height: 20),
-            _buildActions(),
-          ],
-        ),
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom +
+        MediaQuery.viewInsetsOf(context).bottom +
+        28;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x29141028),
+            blurRadius: 30,
+            offset: Offset(0, -10),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHandle(),
+          _buildHeader(),
+          const SizedBox(height: 16),
+          _buildTextField(),
+          const SizedBox(height: 20),
+          _buildActions(),
+          const SizedBox(height: 4),
+          _buildCancelButton(),
+        ],
       ),
     );
   }
 
+  Widget _buildHandle() => Center(
+        child: Container(
+          width: 40,
+          height: 5,
+          margin: const EdgeInsets.only(bottom: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4E1EB),
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+      );
+
   Widget _buildHeader() => Row(
+        spacing: 14,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: AppColors.purple600.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.purple50,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(CupertinoIcons.pencil,
-                color: AppColors.purple600, size: 15),
+                color: AppColors.purple600, size: 20),
           ),
-          const SizedBox(width: 10),
-          const Text(
-            'Rename Form',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Rename Form',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppColors.ink,
+                ),
+              ),
+              Text(
+                'Enter a new name',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
           ),
         ],
       );
 
-  Widget _buildHint() => const Text(
-        'Enter a new name for your form.',
-        style: TextStyle(fontSize: 13, color: AppColors.muted),
-      );
-
-  Widget _buildTextField(BuildContext context) => TextField(
-        controller: controller,
+  Widget _buildTextField() => TextField(
+        controller: _controller,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
         style: const TextStyle(fontSize: 15, color: AppColors.ink),
@@ -285,86 +343,35 @@ class _RenameDialog extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.purple600, width: 1.5),
+            borderSide:
+                const BorderSide(color: AppColors.purple600, width: 1.5),
           ),
         ),
-        onSubmitted: (v) {
-          final name = v.trim();
-          if (name.isNotEmpty) Navigator.of(ctx).pop(name);
-        },
+        onSubmitted: (_) => _submit(),
       );
 
-  Widget _buildActions() => Row(
-        children: [
-          Expanded(child: _DialogButton(label: 'Cancel', onTap: () => Navigator.of(ctx).pop(null), filled: false)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: StatefulBuilder(
-              builder: (ctx2, setLocal) {
-                controller.addListener(() => setLocal(() {}));
-                final canSave = controller.text.trim().isNotEmpty;
-                return _DialogButton(
-                  label: 'Save',
-                  onTap: canSave ? () => Navigator.of(ctx).pop(controller.text.trim()) : null,
-                  filled: true,
-                );
-              },
-            ),
-          ),
-        ],
+  Widget _buildActions() => PrimaryButton(
+        label: 'Save',
+        onTap: _canSave ? _submit : null,
       );
-}
 
-// ── Shared dialog button ──────────────────────────────────────────────────────
-
-class _DialogButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-  final bool filled;
-
-  const _DialogButton({
-    required this.label,
-    required this.onTap,
-    required this.filled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+  Widget _buildCancelButton() => SizedBox(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        decoration: BoxDecoration(
-          color: filled
-              ? (enabled
-                  ? AppColors.purple600
-                  : AppColors.purple600.withValues(alpha: 0.35))
-              : AppColors.bg,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: filled && enabled
-              ? [
-                  BoxShadow(
-                    color: AppColors.purple600.withValues(alpha: 0.30),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: filled ? Colors.white : AppColors.muted,
+        height: 44,
+        child: GestureDetector(
+          onTap: _cancel,
+          behavior: HitTestBehavior.opaque,
+          child: const Center(
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
+
