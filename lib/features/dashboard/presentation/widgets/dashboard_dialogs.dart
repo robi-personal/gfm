@@ -181,6 +181,111 @@ class _RenameSheetState extends State<_RenameSheet> {
       );
 }
 
+// ── Delete confirm sheet ──────────────────────────────────────────────────────
+
+Future<bool?> showDeleteConfirmSheet(BuildContext context) {
+  return _showSheet<bool>(context, child: const _DeleteConfirmSheet());
+}
+
+class _DeleteConfirmSheet extends StatelessWidget {
+  const _DeleteConfirmSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 28;
+
+    return _SheetContainer(
+      bottomPad: bottomPad,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SheetHandle(),
+          const _SheetHeader(
+            icon: CupertinoIcons.trash,
+            title: 'Delete this form?',
+            subtitle: 'This action cannot be undone',
+          ),
+          const SizedBox(height: 16),
+          _buildBody(),
+          const SizedBox(height: 20),
+          _buildDeleteButton(context),
+          const SizedBox(height: 4),
+          _SheetTertiaryButton(
+            label: 'Cancel',
+            onTap: () => Navigator.of(context).pop(false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() => const Text(
+        'The form will be moved to trash in your Google Drive.',
+        style: TextStyle(fontSize: 14.5, height: 1.55, color: AppColors.ink2),
+      );
+
+  Widget _buildDeleteButton(BuildContext context) => _DestructiveButton(
+        label: 'Delete',
+        onTap: () => Navigator.of(context).pop(true),
+      );
+}
+
+// ── Remove import sheet ───────────────────────────────────────────────────────
+
+Future<bool?> showRemoveImportSheet(BuildContext context,
+    {required String formName}) {
+  return _showSheet<bool>(
+      context, child: _RemoveImportSheet(formName: formName));
+}
+
+class _RemoveImportSheet extends StatelessWidget {
+  final String formName;
+
+  const _RemoveImportSheet({required this.formName});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 28;
+
+    return _SheetContainer(
+      bottomPad: bottomPad,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SheetHandle(),
+          const _SheetHeader(
+            icon: CupertinoIcons.minus_circle,
+            title: 'Remove from list?',
+            subtitle: 'The original form won\'t be affected',
+          ),
+          const SizedBox(height: 16),
+          _buildBody(),
+          const SizedBox(height: 20),
+          _buildRemoveButton(context),
+          const SizedBox(height: 4),
+          _SheetTertiaryButton(
+            label: 'Cancel',
+            onTap: () => Navigator.of(context).pop(false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() => Text(
+        '"$formName" will be removed from your imported list.',
+        style: const TextStyle(
+            fontSize: 14.5, height: 1.55, color: AppColors.ink2),
+      );
+
+  Widget _buildRemoveButton(BuildContext context) => _DestructiveButton(
+        label: 'Remove',
+        onTap: () => Navigator.of(context).pop(true),
+      );
+}
+
 // ── Shared sheet primitives ───────────────────────────────────────────────────
 
 Future<T?> _showSheet<T>(BuildContext context, {required Widget child}) {
@@ -312,6 +417,44 @@ class _SheetTertiaryButton extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppColors.muted,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DestructiveButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _DestructiveButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: AppShapes.buttonRadius,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.error.withValues(alpha: 0.30),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: -0.1,
           ),
         ),
       ),

@@ -207,61 +207,45 @@ class _KebabMenu extends StatelessWidget {
     }
   }
 
-  void _confirmDelete(BuildContext context) {
+  void _confirmDelete(BuildContext context) async {
+    final confirmed = await showDeleteConfirmSheet(context);
+    if (confirmed != true || !context.mounted) return;
     final cubit = context.read<DashboardCubit>();
-    ErrorModal.show(
-      context,
-      title: 'Delete this form?',
-      body: 'It will be moved to trash in your Google Drive.',
-      secondaryLabel: 'Cancel',
-      onSecondary: () {},
-      primaryLabel: 'Delete',
-      onPrimary: () async {
-        try {
-          await cubit.deleteForm(form.id);
-        } catch (_) {
-          if (context.mounted) {
-            ErrorModal.show(
-              context,
-              title: "Couldn't delete this form.",
-              body: "It's still in your list.",
-              secondaryLabel: 'Cancel',
-              onSecondary: () {},
-              primaryLabel: 'Retry',
-              onPrimary: () => cubit.deleteForm(form.id),
-            );
-          }
-        }
-      },
-    );
+    try {
+      await cubit.deleteForm(form.id);
+    } catch (_) {
+      if (context.mounted) {
+        ErrorModal.show(
+          context,
+          title: "Couldn't delete this form.",
+          body: "It's still in your list.",
+          secondaryLabel: 'Cancel',
+          onSecondary: () {},
+          primaryLabel: 'Retry',
+          onPrimary: () => cubit.deleteForm(form.id),
+        );
+      }
+    }
   }
 
-  void _removeImport(BuildContext context) {
-    ErrorModal.show(
-      context,
-      title: 'Remove from list?',
-      body:
-          'This will remove "${form.name}" from your imported list. The original form won\'t be affected.',
-      secondaryLabel: 'Cancel',
-      onSecondary: () {},
-      primaryLabel: 'Remove',
-      onPrimary: () async {
-        try {
-          await context.read<DashboardCubit>().removeImportedForm(form.id);
-        } catch (_) {
-          if (context.mounted) {
-            ErrorModal.show(
-              context,
-              title: "Couldn't remove form.",
-              body: 'Check your connection and try again.',
-              secondaryLabel: 'Cancel',
-              onSecondary: () {},
-              primaryLabel: 'Retry',
-              onPrimary: () => _removeImport(context),
-            );
-          }
-        }
-      },
-    );
+  void _removeImport(BuildContext context) async {
+    final confirmed =
+        await showRemoveImportSheet(context, formName: form.name);
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await context.read<DashboardCubit>().removeImportedForm(form.id);
+    } catch (_) {
+      if (context.mounted) {
+        ErrorModal.show(
+          context,
+          title: "Couldn't remove form.",
+          body: 'Check your connection and try again.',
+          secondaryLabel: 'Cancel',
+          onSecondary: () {},
+          primaryLabel: 'Retry',
+          onPrimary: () => _removeImport(context),
+        );
+      }
+    }
   }
 }
