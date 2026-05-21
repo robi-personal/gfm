@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../../core/design.dart';
 import '../../domain/entities/user_status.dart';
@@ -86,12 +87,12 @@ class AiQuotaCounter extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.workspace_premium, color: AppColors.purple600, size: 13),
-                        SizedBox(width: 4),
-                        Text(
+                        SvgPicture.asset('assets/dashboard_premium.svg', width: 14, height: 14),
+                        const SizedBox(width: 4),
+                        const Text(
                           'Upgrade',
                           style: TextStyle(
                             color: AppColors.purple600,
