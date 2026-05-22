@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 
-import '../../../../../../../../core/models/form_settings.dart';
-import '../../../../../../domain/usecases/update_editor_settings.dart';
+import '../../../../../../../core/models/form_settings.dart';
+import '../../../../../domain/usecases/update_editor_settings.dart';
 import 'settings_state.dart';
 
 export 'settings_state.dart';
