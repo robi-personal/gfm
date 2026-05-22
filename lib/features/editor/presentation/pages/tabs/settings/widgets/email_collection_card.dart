@@ -57,6 +57,7 @@ class _EmailCollectionCardState extends State<EmailCollectionCard> {
         EmailCollectionType.doNotCollect => "Don't Collect Emails",
         EmailCollectionType.verified => 'Verified Emails Only',
         EmailCollectionType.responderInput => 'Ask for Email Address',
+        _ => 'Change Email Setting',
       };
 
   String _sheetBody(EmailCollectionType type) => switch (type) {
@@ -66,6 +67,7 @@ class _EmailCollectionCardState extends State<EmailCollectionCard> {
           'Only Workspace account holders can respond, and their email will be collected automatically.',
         EmailCollectionType.responderInput =>
           'Respondents will be prompted to enter their email address before submitting.',
+        _ => 'This will update the email collection setting for your form.',
       };
 
   @override
