@@ -10,6 +10,7 @@ Future<bool?> showToggleConfirmSheet(
   required String subtitle,
   required String body,
   required String continueLabel,
+  String cancelLabel = 'Later',
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -22,6 +23,7 @@ Future<bool?> showToggleConfirmSheet(
       subtitle: subtitle,
       body: body,
       continueLabel: continueLabel,
+      cancelLabel: cancelLabel,
     ),
   );
 }
@@ -32,6 +34,7 @@ class _ToggleConfirmSheet extends StatelessWidget {
   final String subtitle;
   final String body;
   final String continueLabel;
+  final String cancelLabel;
 
   const _ToggleConfirmSheet({
     required this.icon,
@@ -39,6 +42,7 @@ class _ToggleConfirmSheet extends StatelessWidget {
     required this.subtitle,
     required this.body,
     required this.continueLabel,
+    required this.cancelLabel,
   });
 
   @override
@@ -129,10 +133,10 @@ class _ToggleConfirmSheet extends StatelessWidget {
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(false),
               behavior: HitTestBehavior.opaque,
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'Later',
-                  style: TextStyle(
+                  cancelLabel,
+                  style: const TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.muted,

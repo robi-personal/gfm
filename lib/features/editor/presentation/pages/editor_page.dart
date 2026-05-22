@@ -15,6 +15,7 @@ import 'tabs/questions/cubit/questions_cubit.dart';
 import '../widgets/editor_error_view.dart';
 import '../widgets/editor_nav_rail.dart';
 import '../widgets/editor_options_sheet.dart';
+import 'tabs/settings/widgets/toggle_confirm_sheet.dart';
 import 'tabs/settings/pages/editor_settings_tab.dart';
 import '../widgets/editor_skeleton.dart';
 import '../widgets/editor_tab_bar.dart';
@@ -98,17 +99,16 @@ class _EditorViewState extends State<_EditorView>
       Navigator.of(context).pop();
       return;
     }
-    bool discard = false;
-    await ErrorModal.show(
+    final keepEditing = await showToggleConfirmSheet(
       context,
-      title: 'Discard changes?',
+      icon: CupertinoIcons.arrow_uturn_left,
+      title: 'Discard Changes?',
+      subtitle: 'Unsaved Changes',
       body: 'You have unsaved changes. They will be lost if you go back.',
-      primaryLabel: 'Keep editing',
-      onPrimary: () {},
-      secondaryLabel: 'Discard',
-      onSecondary: () => discard = true,
+      continueLabel: 'Keep Editing',
+      cancelLabel: 'Discard',
     );
-    if (discard && mounted) Navigator.of(context).pop();
+    if (keepEditing != true && mounted) Navigator.of(context).pop();
   }
 
   @override
