@@ -30,7 +30,7 @@ import '../../features/editor/domain/usecases/execute_batch.dart';
 import '../../features/editor/domain/usecases/load_form.dart';
 import '../../features/editor/domain/usecases/refresh_revision.dart';
 import '../../features/editor/domain/usecases/update_editor_settings.dart';
-import '../../features/editor/presentation/cubit/editor_cubit.dart';
+import '../../features/editor/presentation/pages/tabs/questions/cubit/questions_cubit.dart';
 import '../../features/editor/presentation/pages/tabs/settings/cubit/settings_cubit.dart';
 import '../../features/editor/data/repositories/responses_repository_impl.dart';
 import '../../features/editor/domain/repositories/responses_repository.dart';
@@ -182,7 +182,7 @@ void configureDependencies() {
   );
 
   getIt.registerFactory(
-    () => EditorCubit(
+    () => QuestionsCubit(
       loadForm: getIt(),
       executeBatch: getIt(),
       refreshRevision: getIt(),

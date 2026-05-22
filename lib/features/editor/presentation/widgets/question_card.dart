@@ -9,7 +9,7 @@ import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question.dart';
 import '../../../../core/models/question_kind.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 import 'question_card_preview.dart';
 import 'question_edit_sheet.dart';
 import 'type_chip.dart';
@@ -150,7 +150,7 @@ class QuestionCard extends StatelessWidget {
                           icon: CupertinoIcons.trash,
                           tooltip: 'Delete',
                           onPressed: () =>
-                              context.read<EditorCubit>().deleteItem(item.itemId),
+                              context.read<QuestionsCubit>().deleteItem(item.itemId),
                         ),
                         // Edit — file-upload questions route through the
                         // Google Forms web editor (API doesn't support them).
@@ -160,7 +160,7 @@ class QuestionCard extends StatelessWidget {
                           onPressed: () {
                             if (kind is FileUploadQuestion) {
                               context
-                                  .read<EditorCubit>()
+                                  .read<QuestionsCubit>()
                                   .requestEditFileUploadViaWeb();
                             } else {
                               QuestionEditSheet.show(
@@ -186,7 +186,7 @@ class QuestionCard extends StatelessWidget {
                               onChanged: (value) {
                                 final content =
                                     item.content as QuestionItemContent;
-                                context.read<EditorCubit>().updateItemFull(
+                                context.read<QuestionsCubit>().updateItemFull(
                                       item.copyWith(
                                         content: content.copyWith(
                                           question: question.copyWith(
@@ -277,7 +277,7 @@ class QuestionCard extends StatelessWidget {
                               icon: CupertinoIcons.trash,
                               tooltip: 'Delete',
                               onPressed: () =>
-                                  context.read<EditorCubit>().deleteItem(item.itemId),
+                                  context.read<QuestionsCubit>().deleteItem(item.itemId),
                             ),
                           ],
                         ),

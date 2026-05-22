@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 
 class SectionEditSheet extends StatefulWidget {
   final Item item;
@@ -21,7 +21,7 @@ class SectionEditSheet extends StatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => BlocProvider.value(
-        value: context.read<EditorCubit>(),
+        value: context.read<QuestionsCubit>(),
         child: SectionEditSheet(item: item),
       ),
     );
@@ -54,7 +54,7 @@ class _SectionEditSheetState extends State<SectionEditSheet> {
       title: _titleCtrl.text.isEmpty ? 'Section' : _titleCtrl.text,
       description: _descCtrl.text.isEmpty ? null : _descCtrl.text,
     );
-    context.read<EditorCubit>().updateItemFull(updatedItem);
+    context.read<QuestionsCubit>().updateItemFull(updatedItem);
     Navigator.of(context).pop();
   }
 

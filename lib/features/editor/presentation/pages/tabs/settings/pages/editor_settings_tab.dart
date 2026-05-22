@@ -8,7 +8,7 @@ import '../../../../../../../core/models/enums.dart';
 import '../../../../../../../core/models/form_settings.dart';
 import '../../../../../../../core/theme/app_colors.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
-import '../../../../cubit/editor_cubit.dart';
+import '../../questions/cubit/questions_cubit.dart';
 import '../cubit/settings_cubit.dart';
 import '../widgets/notification_toggle.dart';
 import '../widgets/settings_tiles.dart';
@@ -32,8 +32,8 @@ class _EditorSettingsTabState extends State<EditorSettingsTab> {
   void initState() {
     super.initState();
     _settingsCubit = getIt<SettingsCubit>();
-    final editorState = context.read<EditorCubit>().state;
-    if (editorState is EditorLoaded) {
+    final editorState = context.read<QuestionsCubit>().state;
+    if (editorState is QuestionsLoaded) {
       _settingsCubit.init(editorState.form.settings);
     }
   }
@@ -52,7 +52,7 @@ class _EditorSettingsTabState extends State<EditorSettingsTab> {
         listenWhen: (_, curr) => curr is SettingsLoaded,
         listener: (context, state) {
           if (state is SettingsLoaded) {
-            context.read<EditorCubit>().syncSettings(state.settings);
+            context.read<QuestionsCubit>().syncSettings(state.settings);
           }
         },
         child: BlocBuilder<SettingsCubit, SettingsState>(
@@ -60,8 +60,8 @@ class _EditorSettingsTabState extends State<EditorSettingsTab> {
             if (settingsState is SettingsLoading) {
               return const Center(child: CupertinoActivityIndicator());
             }
-            return BlocSelector<EditorCubit, EditorState, String?>(
-              selector: (s) => s is EditorLoaded ? s.form.linkedSheetId : null,
+            return BlocSelector<QuestionsCubit, QuestionsState, String?>(
+              selector: (s) => s is QuestionsLoaded ? s.form.linkedSheetId : null,
               builder: (context, linkedSheetId) => _SettingsContent(
                 formId: widget.formId,
                 linkedSheetId: linkedSheetId,
@@ -222,8 +222,8 @@ class _SettingsContentState extends State<_SettingsContent> {
                 SettingsCard(children: [
                   NotificationToggle(
                     formId: widget.formId,
-                    formTitle: context.read<EditorCubit>().state is EditorLoaded
-                        ? (context.read<EditorCubit>().state as EditorLoaded).form.info.title
+                    formTitle: context.read<QuestionsCubit>().state is QuestionsLoaded
+                        ? (context.read<QuestionsCubit>().state as QuestionsLoaded).form.info.title
                         : '',
                   ),
                 ]),

@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../../../../core/models/item.dart';
 import '../../../../../../../core/models/item_content.dart';
-import '../../../../cubit/editor_cubit.dart';
+import '../cubit/questions_cubit.dart';
 import '../../../../widgets/editor_media_cards.dart';
 import '../../../../widgets/question_card.dart';
 import '../../../../widgets/section_card.dart';
@@ -35,9 +35,9 @@ class QuestionsItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState, _ItemData>(
+    return BlocSelector<QuestionsCubit, QuestionsState, _ItemData>(
       selector: (state) {
-        if (state is! EditorLoaded) return const _ItemData(item: null, sections: []);
+        if (state is! QuestionsLoaded) return const _ItemData(item: null, sections: []);
         final items = state.form.items;
         final idx = items.indexWhere((i) => i.itemId == itemId);
         final item = idx == -1 ? null : items[idx];

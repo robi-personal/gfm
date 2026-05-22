@@ -8,7 +8,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 import 'image_url_dialog.dart';
 
 class EditorImageCard extends StatelessWidget {
@@ -80,7 +80,7 @@ class EditorImageCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () =>
-                      context.read<EditorCubit>().deleteItem(item.itemId),
+                      context.read<QuestionsCubit>().deleteItem(item.itemId),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.black54,
@@ -100,7 +100,7 @@ class EditorImageCard extends StatelessWidget {
   }
 
   Future<void> _editImage(BuildContext context) async {
-    final cubit = context.read<EditorCubit>();
+    final cubit = context.read<QuestionsCubit>();
     final driveClient = getIt<DriveClient>();
     final url = await showImageUrlDialog(
       context,
@@ -189,7 +189,7 @@ class EditorVideoCard extends StatelessWidget {
                 right: 6,
                 child: GestureDetector(
                   onTap: () =>
-                      context.read<EditorCubit>().deleteItem(item.itemId),
+                      context.read<QuestionsCubit>().deleteItem(item.itemId),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.black54,

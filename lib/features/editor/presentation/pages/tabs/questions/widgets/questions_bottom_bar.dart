@@ -11,7 +11,7 @@ import '../../../../../../../core/models/item_content.dart';
 import '../../../../../../../core/models/question.dart';
 import '../../../../../../../core/models/question_kind.dart';
 import '../../../../../../../core/theme/app_colors.dart';
-import '../../../../cubit/editor_cubit.dart';
+import '../cubit/questions_cubit.dart';
 import '../../../../widgets/image_url_dialog.dart';
 import '../../../../widgets/question_edit_sheet.dart';
 import '../../../../widgets/video_search_dialog.dart';
@@ -24,7 +24,7 @@ class QuestionsBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<EditorCubit>();
+    final cubit = context.read<QuestionsCubit>();
     return SafeArea(
       top: false,
       child: Align(
@@ -112,8 +112,8 @@ class QuestionsBottomBar extends StatelessWidget {
 }
 
 void _openNewQuestionDraft(BuildContext context) {
-  final state = context.read<EditorCubit>().state;
-  if (state is! EditorLoaded) return;
+  final state = context.read<QuestionsCubit>().state;
+  if (state is! QuestionsLoaded) return;
   final draftItem = Item(
     itemId: '_draft',
     title: '',

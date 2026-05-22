@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 import 'question_card.dart' show DragHandleHint;
 import 'text_block_edit_sheet.dart';
 
@@ -103,7 +103,7 @@ class TextBlockCard extends StatelessWidget {
                               icon: CupertinoIcons.trash,
                               tooltip: 'Delete text block',
                               onPressed: () =>
-                                  context.read<EditorCubit>().deleteItem(item.itemId),
+                                  context.read<QuestionsCubit>().deleteItem(item.itemId),
                             ),
                             _ActionButton(
                               icon: CupertinoIcons.pencil,

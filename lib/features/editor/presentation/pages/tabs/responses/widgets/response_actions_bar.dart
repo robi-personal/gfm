@@ -16,7 +16,7 @@ import '../../../../../../../core/theme/app_colors.dart';
 import '../../../../../../../core/usecases/usecase.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
 import '../../../../../../ai_form_builder/domain/usecases/get_user_status.dart';
-import '../../../../cubit/editor_cubit.dart';
+import '../../questions/cubit/questions_cubit.dart';
 import '../../../../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../../../data/pdf_builders.dart';
 import '../cubit/responses_cubit.dart';
@@ -88,8 +88,8 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
       return;
     }
 
-    final editorState = context.read<EditorCubit>().state;
-    if (editorState is! EditorLoaded) return;
+    final editorState = context.read<QuestionsCubit>().state;
+    if (editorState is! QuestionsLoaded) return;
     final form = editorState.form;
 
     setState(() => _isExporting = true);
@@ -132,8 +132,8 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
       return;
     }
 
-    final editorState = context.read<EditorCubit>().state;
-    if (editorState is! EditorLoaded) return;
+    final editorState = context.read<QuestionsCubit>().state;
+    if (editorState is! QuestionsLoaded) return;
     final form = editorState.form;
 
     // ── 1. Fetch all responses (loader visible on Print button) ─────────────

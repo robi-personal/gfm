@@ -3,59 +3,59 @@ import 'dart:developer' as dev;
 import 'package:bloc/bloc.dart';
 import 'package:googleapis/forms/v1.dart' as forms_api;
 
-import '../../../../core/error/failure.dart';
-import '../../../../core/services/analytics_service.dart';
-import '../../../../core/models/form_doc.dart';
-import '../../../../core/models/form_settings.dart';
-import '../../../../core/models/item.dart';
-import '../../../../core/models/form_image.dart';
-import '../../../../core/models/item_content.dart';
-import '../../domain/repositories/editor_repository.dart';
-import '../../domain/usecases/execute_batch.dart';
-import '../../domain/usecases/load_form.dart';
-import '../../domain/usecases/refresh_revision.dart';
-part 'editor_state.dart';
+import '../../../../../../../core/error/failure.dart';
+import '../../../../../../../core/services/analytics_service.dart';
+import '../../../../../../../core/models/form_doc.dart';
+import '../../../../../../../core/models/form_settings.dart';
+import '../../../../../../../core/models/item.dart';
+import '../../../../../../../core/models/form_image.dart';
+import '../../../../../../../core/models/item_content.dart';
+import '../../../../../domain/repositories/editor_repository.dart';
+import '../../../../../domain/usecases/execute_batch.dart';
+import '../../../../../domain/usecases/load_form.dart';
+import '../../../../../domain/usecases/refresh_revision.dart';
+part 'questions_state.dart';
 
-class EditorCubit extends Cubit<EditorState> {
+class QuestionsCubit extends Cubit<QuestionsState> {
   final LoadForm _loadForm;
   final ExecuteBatch _executeBatch;
   final RefreshRevision _refreshRevision;
 
-  EditorCubit({
+  QuestionsCubit({
     required LoadForm loadForm,
     required ExecuteBatch executeBatch,
     required RefreshRevision refreshRevision,
   })  : _loadForm = loadForm,
         _executeBatch = executeBatch,
         _refreshRevision = refreshRevision,
-        super(const EditorLoading());
+        super(const QuestionsLoading());
 
   String _revisionId = '';
 
   // ── Load ───────────────────────────────────────────────────────────────────
 
   Future<void> loadForm(String formId) async {
-    emit(const EditorLoading());
+    emit(const QuestionsLoading());
     final result = await _loadForm(formId);
     if (isClosed) return;
     result.fold(
       (failure) => emit(switch (failure) {
-        NotFoundFailure() => const EditorError(
+        NotFoundFailure() => const QuestionsError(
             'This form was deleted.',
-            kind: EditorErrorKind.notFound,
+            kind: QuestionsErrorKind.notFound,
           ),
-        PermissionFailure() => const EditorError(
+        PermissionFailure() => const QuestionsError(
             "You don't have access to this form.",
-            kind: EditorErrorKind.permissionDenied,
+            kind: QuestionsErrorKind.permissionDenied,
           ),
-        _ => const EditorError(
+        _ => const QuestionsError(
             "Couldn't load this form.",
-            kind: EditorErrorKind.network,
+            kind: QuestionsErrorKind.network,
           ),
       }),
       (doc) {
         _revisionId = doc.revisionId;
-        emit(EditorLoaded(doc));
+        emit(QuestionsLoaded(doc));
         AnalyticsService.logFormOpened();
       },
     );
@@ -64,8 +64,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Form info ──────────────────────────────────────────────────────────────
 
   void updateTitle(String title) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     emit(l.copyWith(
       form: l.form.copyWith(info: l.form.info.copyWith(title: title)),
       pending: l.pending.copyWith(
@@ -75,8 +75,8 @@ class EditorCubit extends Cubit<EditorState> {
   }
 
   void updateDescription(String description) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     emit(l.copyWith(
       form: l.form.copyWith(
           info: l.form.info.copyWith(description: description)),
@@ -94,8 +94,8 @@ class EditorCubit extends Cubit<EditorState> {
   /// Adds a fully-edited question from the QuestionEditSheet's draft mode.
   /// Replaces any draft IDs with fresh temp IDs and inserts the item.
   void addQuestionFromDraft(Item draft, {int? afterIndex}) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final insertAt =
         afterIndex != null ? afterIndex + 1 : l.form.items.length;
     final ts = DateTime.now().millisecondsSinceEpoch;
@@ -124,8 +124,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Add text block ─────────────────────────────────────────────────────────
 
   void addTextBlock() {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
     final placeholder = Item(
       itemId: tempId,
@@ -145,8 +145,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Add image ──────────────────────────────────────────────────────────────
 
   void addImageItem(String sourceUri) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
     final placeholder = Item(
       itemId: tempId,
@@ -167,8 +167,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Add video ──────────────────────────────────────────────────────────────
 
   void addVideoItem(String videoId, String title) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
     final placeholder = Item(
       itemId: tempId,
@@ -191,8 +191,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Add section ────────────────────────────────────────────────────────────
 
   void addSection() {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final tempId = '_pending_${DateTime.now().millisecondsSinceEpoch}';
     final placeholder = Item(
       itemId: tempId,
@@ -211,8 +211,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Delete item ────────────────────────────────────────────────────────────
 
   void deleteItem(String itemId) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final newItems = l.form.items.where((i) => i.itemId != itemId).toList();
     final newEdits = {...l.pending.edits}..remove(itemId);
 
@@ -239,8 +239,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Move item ──────────────────────────────────────────────────────────────
 
   void moveItem(int fromIndex, int toIndex) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     if (l.isSaving || fromIndex == toIndex) return;
     final items = [...l.form.items];
     final item = items.removeAt(fromIndex);
@@ -252,8 +252,8 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Edit item (full replace, called from edit sheet on Done) ─────────────────
 
   void updateItemFull(Item updatedItem) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     final itemId = updatedItem.itemId;
     final idx = l.form.items.indexWhere((i) => i.itemId == itemId);
     if (idx == -1) return;
@@ -270,11 +270,11 @@ class EditorCubit extends Cubit<EditorState> {
     ));
   }
 
-  /// Clears the one-shot [EditorLoaded.pendingEditItemId] signal after the
+  /// Clears the one-shot [QuestionsLoaded.pendingEditItemId] signal after the
   /// edit sheet has been opened.
   void clearPendingEdit() {
-    if (state is! EditorLoaded) return;
-    emit((state as EditorLoaded).copyWith(pendingEditItemId: null));
+    if (state is! QuestionsLoaded) return;
+    emit((state as QuestionsLoaded).copyWith(pendingEditItemId: null));
   }
 
   // ── Settings ───────────────────────────────────────────────────────────────
@@ -282,16 +282,16 @@ class EditorCubit extends Cubit<EditorState> {
   /// Syncs settings into the local form state so quiz mode stays up-to-date
   /// on the questions tab. Called by SettingsCubit after a successful API save.
   void syncSettings(FormSettings settings) {
-    if (state is! EditorLoaded) return;
-    final l = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final l = state as QuestionsLoaded;
     emit(l.copyWith(form: l.form.copyWith(settings: settings)));
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
 
   Future<void> save() async {
-    if (state is! EditorLoaded) return;
-    final loaded = state as EditorLoaded;
+    if (state is! QuestionsLoaded) return;
+    final loaded = state as QuestionsLoaded;
     if (!loaded.isDirty || loaded.isSaving) return;
 
     final formId = loaded.form.formId;
@@ -339,7 +339,7 @@ class EditorCubit extends Cubit<EditorState> {
       // 3. Refresh revision + serverItemOrder (preserves local FormDoc & pending)
       await _refreshRevisionAndOrder(formId);
       final simulatedOrder = List<String>.from(
-        (state as EditorLoaded).serverItemOrder,
+        (state as QuestionsLoaded).serverItemOrder,
       );
 
       // 4. Deletes — batch in descending index order (avoids index shift)
@@ -413,7 +413,7 @@ class EditorCubit extends Cubit<EditorState> {
       await _silentRefresh(formId);
       AnalyticsService.logFormSaved();
     } catch (e, st) {
-      dev.log('[EditorCubit] save() failed: $e',
+      dev.log('[QuestionsCubit] save() failed: $e',
           name: 'API', error: e, stackTrace: st);
       if (isClosed) return;
       if (e is RevisionMismatchFailure) {
@@ -427,42 +427,42 @@ class EditorCubit extends Cubit<EditorState> {
   // ── Conflict resolution ────────────────────────────────────────────────────
 
   void clearConflict() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded).copyWith(conflictPending: false));
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded).copyWith(conflictPending: false));
     }
   }
 
   void clearSaveFailed() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded).copyWith(saveFailed: false));
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded).copyWith(saveFailed: false));
     }
   }
 
   /// Signals that the user picked "File upload" in the type picker.
   /// editor_page's BlocListener consumes this to launch the web flow.
   void requestFileUploadViaWeb() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded).copyWith(fileUploadViaWebRequested: true));
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded).copyWith(fileUploadViaWebRequested: true));
     }
   }
 
   void clearFileUploadRequest() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded).copyWith(fileUploadViaWebRequested: false));
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded).copyWith(fileUploadViaWebRequested: false));
     }
   }
 
   /// Signals that the user tapped Edit on an existing file-upload card.
   void requestEditFileUploadViaWeb() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded)
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded)
           .copyWith(fileUploadEditViaWebRequested: true));
     }
   }
 
   void clearEditFileUploadRequest() {
-    if (state is EditorLoaded) {
-      emit((state as EditorLoaded)
+    if (state is QuestionsLoaded) {
+      emit((state as QuestionsLoaded)
           .copyWith(fileUploadEditViaWebRequested: false));
     }
   }
@@ -471,24 +471,24 @@ class EditorCubit extends Cubit<EditorState> {
   /// from the Google Forms web editor so the new file-upload question (which
   /// was created on the web side) appears locally.
   Future<void> refreshFromServer() async {
-    if (state is! EditorLoaded) return;
-    await _silentRefresh((state as EditorLoaded).form.formId);
+    if (state is! QuestionsLoaded) return;
+    await _silentRefresh((state as QuestionsLoaded).form.formId);
   }
 
   Future<void> resolveConflictKeepMine() async {
-    if (state is! EditorLoaded) return;
+    if (state is! QuestionsLoaded) return;
     clearConflict();
     try {
       // Refresh revision so next Save attempt uses the latest server revision.
-      await _refreshRevisionId((state as EditorLoaded).form.formId);
+      await _refreshRevisionId((state as QuestionsLoaded).form.formId);
     } catch (_) {
       // If this fails, the next Save will get a mismatch and retry.
     }
   }
 
   Future<void> resolveConflictLoadLatest() async {
-    if (state is! EditorLoaded) return;
-    final formId = (state as EditorLoaded).form.formId;
+    if (state is! QuestionsLoaded) return;
+    final formId = (state as QuestionsLoaded).form.formId;
     clearConflict();
     await loadForm(formId);
   }
@@ -503,7 +503,7 @@ class EditorCubit extends Cubit<EditorState> {
     List<forms_api.Request> requests,
   ) async {
     dev.log(
-      '[EditorCubit] _sendBatch → ${requests.length} request(s): '
+      '[QuestionsCubit] _sendBatch → ${requests.length} request(s): '
       '${requests.map((r) => r.toJson().keys.join('+')).join(', ')}',
       name: 'API',
     );
@@ -542,8 +542,8 @@ class EditorCubit extends Cubit<EditorState> {
         },
         (doc) {
           _revisionId = doc.revisionId;
-          if (state is EditorLoaded) {
-            emit((state as EditorLoaded).copyWith(
+          if (state is QuestionsLoaded) {
+            emit((state as QuestionsLoaded).copyWith(
               serverItemOrder: doc.items.map((i) => i.itemId).toList(),
             ));
           }
@@ -562,23 +562,23 @@ class EditorCubit extends Cubit<EditorState> {
       result.fold(
         (_) {
           // Silent — optimistic state remains; clear saving flag.
-          if (state is EditorLoaded) {
-            emit((state as EditorLoaded)
+          if (state is QuestionsLoaded) {
+            emit((state as QuestionsLoaded)
                 .copyWith(pending: PendingChanges.empty, isSaving: false));
           }
         },
         (doc) {
           _revisionId = doc.revisionId;
-          if (state is EditorLoaded) {
+          if (state is QuestionsLoaded) {
             // pending defaults to empty, isSaving defaults to false
-            emit(EditorLoaded(doc, lastKnownGood: doc));
+            emit(QuestionsLoaded(doc, lastKnownGood: doc));
           }
         },
       );
     } catch (_) {
       // Silent — optimistic state remains; clear saving flag.
-      if (state is EditorLoaded) {
-        emit((state as EditorLoaded)
+      if (state is QuestionsLoaded) {
+        emit((state as QuestionsLoaded)
             .copyWith(pending: PendingChanges.empty, isSaving: false));
       }
     }

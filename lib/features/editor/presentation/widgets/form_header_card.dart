@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 
 /// Editable form title and description at the top of the editor.
 /// Pushes to the cubit only on focus-lost (not on every keystroke).
@@ -36,14 +36,14 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
     _titleFocus = FocusNode()
       ..addListener(() {
         if (!_titleFocus.hasFocus) {
-          context.read<EditorCubit>().updateTitle(_titleCtrl.text);
+          context.read<QuestionsCubit>().updateTitle(_titleCtrl.text);
         }
       });
 
     _descFocus = FocusNode()
       ..addListener(() {
         if (!_descFocus.hasFocus) {
-          context.read<EditorCubit>().updateDescription(_descCtrl.text);
+          context.read<QuestionsCubit>().updateDescription(_descCtrl.text);
         }
       });
   }

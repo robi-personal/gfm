@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../../../core/models/item_content.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
-import '../../../../cubit/editor_cubit.dart';
+import '../cubit/questions_cubit.dart';
 import '../../../../widgets/editor_body.dart';
 import '../../../../widgets/question_edit_sheet.dart';
 import '../../../../widgets/text_block_edit_sheet.dart';
@@ -18,10 +18,10 @@ class QuestionsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EditorCubit, EditorState>(
+    return BlocListener<QuestionsCubit, QuestionsState>(
       listenWhen: (prev, curr) {
-        if (curr is! EditorLoaded) return false;
-        final p = prev is EditorLoaded ? prev : null;
+        if (curr is! QuestionsLoaded) return false;
+        final p = prev is QuestionsLoaded ? prev : null;
         if (curr.pendingEditItemId != null &&
             curr.pendingEditItemId != p?.pendingEditItemId) return true;
         if (curr.fileUploadViaWebRequested && !(p?.fileUploadViaWebRequested ?? false)) {
@@ -39,8 +39,8 @@ class QuestionsTab extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            child: BlocSelector<EditorCubit, EditorState, bool>(
-              selector: (s) => s is EditorLoaded && !s.isSaving,
+            child: BlocSelector<QuestionsCubit, QuestionsState, bool>(
+              selector: (s) => s is QuestionsLoaded && !s.isSaving,
               builder: (context, enabled) =>
                   QuestionsBottomBar(enabled: enabled, formId: formId),
             ),
@@ -50,9 +50,9 @@ class QuestionsTab extends StatelessWidget {
     );
   }
 
-  void _onStateChange(BuildContext context, EditorState state) {
-    if (state case EditorLoaded(:final pendingEditItemId?)) {
-      final cubit = context.read<EditorCubit>();
+  void _onStateChange(BuildContext context, QuestionsState state) {
+    if (state case QuestionsLoaded(:final pendingEditItemId?)) {
+      final cubit = context.read<QuestionsCubit>();
       cubit.clearPendingEdit();
       final item = state.form.items
           .where((i) => i.itemId == pendingEditItemId)
@@ -75,13 +75,13 @@ class QuestionsTab extends StatelessWidget {
       return;
     }
 
-    if (state case EditorLoaded(fileUploadViaWebRequested: true)) {
-      context.read<EditorCubit>().clearFileUploadRequest();
+    if (state case QuestionsLoaded(fileUploadViaWebRequested: true)) {
+      context.read<QuestionsCubit>().clearFileUploadRequest();
       _runFileUploadWebFlow(context, isEditing: false);
     }
 
-    if (state case EditorLoaded(fileUploadEditViaWebRequested: true)) {
-      context.read<EditorCubit>().clearEditFileUploadRequest();
+    if (state case QuestionsLoaded(fileUploadEditViaWebRequested: true)) {
+      context.read<QuestionsCubit>().clearEditFileUploadRequest();
       _runFileUploadWebFlow(context, isEditing: true);
     }
   }
@@ -95,9 +95,9 @@ class QuestionsTab extends StatelessWidget {
       if (proceed != true || !context.mounted) return;
     }
 
-    final cubit = context.read<EditorCubit>();
+    final cubit = context.read<QuestionsCubit>();
     final state = cubit.state;
-    if (state is! EditorLoaded) return;
+    if (state is! QuestionsLoaded) return;
 
     if (state.isDirty) {
       bool saveAndContinue = false;
@@ -115,7 +115,7 @@ class QuestionsTab extends StatelessWidget {
       await cubit.save();
       if (!context.mounted) return;
       final after = cubit.state;
-      if (after is EditorLoaded && (after.isDirty || after.saveFailed)) return;
+      if (after is QuestionsLoaded && (after.isDirty || after.saveFailed)) return;
     }
 
     if (!context.mounted) return;
@@ -128,6 +128,6 @@ class QuestionsTab extends StatelessWidget {
       ),
     );
     if (!context.mounted) return;
-    await context.read<EditorCubit>().refreshFromServer();
+    await context.read<QuestionsCubit>().refreshFromServer();
   }
 }

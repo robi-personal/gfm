@@ -11,7 +11,7 @@ import '../../../../core/widgets/error_modal.dart';
 import 'tabs/questions/pages/questions_tab.dart';
 import 'tabs/responses/cubit/responses_cubit.dart';
 import 'tabs/responses/pages/responses_page.dart';
-import '../cubit/editor_cubit.dart';
+import 'tabs/questions/cubit/questions_cubit.dart';
 import '../widgets/editor_error_view.dart';
 import '../widgets/editor_nav_rail.dart';
 import '../widgets/editor_options_sheet.dart';
@@ -35,7 +35,7 @@ class EditorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<EditorCubit>()..loadForm(formId)),
+        BlocProvider(create: (_) => getIt<QuestionsCubit>()..loadForm(formId)),
         BlocProvider(create: (_) => getIt<ResponsesCubit>()..loadResponses(formId)),
       ],
       child: _EditorView(
@@ -92,8 +92,8 @@ class _EditorViewState extends State<_EditorView>
   }
 
   Future<void> _handleBackPress() async {
-    final state = context.read<EditorCubit>().state;
-    final isDirty = state is EditorLoaded && state.isDirty;
+    final state = context.read<QuestionsCubit>().state;
+    final isDirty = state is QuestionsLoaded && state.isDirty;
     if (!isDirty) {
       Navigator.of(context).pop();
       return;
@@ -119,16 +119,16 @@ class _EditorViewState extends State<_EditorView>
         if (didPop) return;
         _handleBackPress();
       },
-      child: BlocListener<EditorCubit, EditorState>(
+      child: BlocListener<QuestionsCubit, QuestionsState>(
       listener: _onStateChange,
       listenWhen: (prev, curr) {
         if (prev.runtimeType != curr.runtimeType) return true;
-        if (curr is EditorLoaded) {
-          final p = prev is EditorLoaded ? prev : null;
+        if (curr is QuestionsLoaded) {
+          final p = prev is QuestionsLoaded ? prev : null;
           if (curr.conflictPending && !(p?.conflictPending ?? false)) return true;
           if (curr.saveFailed && !(p?.saveFailed ?? false)) return true;
         }
-        return curr is EditorError;
+        return curr is QuestionsError;
       },
       child: Scaffold(
         backgroundColor: AppColors.groupedBackground,
@@ -182,9 +182,9 @@ class _EditorViewState extends State<_EditorView>
       ),
       actions: [
         // Save button
-        BlocSelector<EditorCubit, EditorState,
+        BlocSelector<QuestionsCubit, QuestionsState,
             ({bool isLoaded, bool isDirty, bool isSaving})>(
-          selector: (state) => state is EditorLoaded
+          selector: (state) => state is QuestionsLoaded
               ? (
                   isLoaded: true,
                   isDirty: state.isDirty,
@@ -195,7 +195,7 @@ class _EditorViewState extends State<_EditorView>
             final active = data.isLoaded && data.isDirty;
             return GestureDetector(
               onTap: active && !data.isSaving
-                  ? () => context.read<EditorCubit>().save()
+                  ? () => context.read<QuestionsCubit>().save()
                   : null,
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
@@ -239,9 +239,9 @@ class _EditorViewState extends State<_EditorView>
           },
         ),
         // Options button
-        BlocSelector<EditorCubit, EditorState,
+        BlocSelector<QuestionsCubit, QuestionsState,
             ({bool isLoaded, String responderUri, String title})>(
-          selector: (state) => state is EditorLoaded
+          selector: (state) => state is QuestionsLoaded
               ? (
                   isLoaded: true,
                   responderUri: state.form.responderUri,
@@ -269,26 +269,26 @@ class _EditorViewState extends State<_EditorView>
     return RepaintBoundary(
       child: ColoredBox(
         color: AppColors.groupedBackground,
-        child: BlocBuilder<EditorCubit, EditorState>(
+        child: BlocBuilder<QuestionsCubit, QuestionsState>(
           buildWhen: (prev, curr) {
             if (prev.runtimeType != curr.runtimeType) return true;
-            if (prev is EditorLoaded && curr is EditorLoaded) {
+            if (prev is QuestionsLoaded && curr is QuestionsLoaded) {
               return prev.isSaving != curr.isSaving;
             }
             return false;
           },
           builder: (context, state) => switch (state) {
-            EditorLoading() => const EditorSkeleton(),
-            EditorLoaded(:final isSaving) when isSaving => const EditorSkeleton(),
-            EditorError(:final kind, :final message)
-                when kind == EditorErrorKind.network =>
+            QuestionsLoading() => const EditorSkeleton(),
+            QuestionsLoaded(:final isSaving) when isSaving => const EditorSkeleton(),
+            QuestionsError(:final kind, :final message)
+                when kind == QuestionsErrorKind.network =>
               EditorErrorView(
                 message: message,
                 onRetry: () =>
-                    context.read<EditorCubit>().loadForm(widget.formId),
+                    context.read<QuestionsCubit>().loadForm(widget.formId),
               ),
-            EditorError() => const SizedBox.shrink(),
-            EditorLoaded(:final form) => TabBarView(
+            QuestionsError() => const SizedBox.shrink(),
+            QuestionsLoaded(:final form) => TabBarView(
                 controller: _tabController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
@@ -322,24 +322,24 @@ class _EditorViewState extends State<_EditorView>
     );
   }
 
-  void _onStateChange(BuildContext context, EditorState state) {
-    if (state case EditorLoaded(conflictPending: true)) {
-      context.read<EditorCubit>().clearConflict();
+  void _onStateChange(BuildContext context, QuestionsState state) {
+    if (state case QuestionsLoaded(conflictPending: true)) {
+      context.read<QuestionsCubit>().clearConflict();
       ErrorModal.show(
         context,
         title: 'This form was edited somewhere else.',
         body: 'Keep your version or load the latest?',
         primaryLabel: 'Keep mine',
         onPrimary: () =>
-            context.read<EditorCubit>().resolveConflictKeepMine(),
+            context.read<QuestionsCubit>().resolveConflictKeepMine(),
         secondaryLabel: 'Load latest',
         onSecondary: () =>
-            context.read<EditorCubit>().resolveConflictLoadLatest(),
+            context.read<QuestionsCubit>().resolveConflictLoadLatest(),
       );
     }
 
-    if (state case EditorLoaded(saveFailed: true)) {
-      context.read<EditorCubit>().clearSaveFailed();
+    if (state case QuestionsLoaded(saveFailed: true)) {
+      context.read<QuestionsCubit>().clearSaveFailed();
       ErrorModal.show(
         context,
         title: "Couldn't save your changes.",
@@ -349,9 +349,9 @@ class _EditorViewState extends State<_EditorView>
       );
     }
 
-    if (state case EditorError(:final kind)) {
+    if (state case QuestionsError(:final kind)) {
       switch (kind) {
-        case EditorErrorKind.notFound:
+        case QuestionsErrorKind.notFound:
           ErrorModal.show(
             context,
             title: 'This form was deleted.',
@@ -359,7 +359,7 @@ class _EditorViewState extends State<_EditorView>
             primaryLabel: 'OK',
             onPrimary: () => Navigator.of(context).pop(),
           );
-        case EditorErrorKind.permissionDenied:
+        case QuestionsErrorKind.permissionDenied:
           ErrorModal.show(
             context,
             title: "You don't have access to this form.",
@@ -367,7 +367,7 @@ class _EditorViewState extends State<_EditorView>
             primaryLabel: 'OK',
             onPrimary: () => Navigator.of(context).pop(),
           );
-        case EditorErrorKind.network:
+        case QuestionsErrorKind.network:
           break;
       }
     }

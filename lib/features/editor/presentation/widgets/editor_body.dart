@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/widgets.dart';
 
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 import '../pages/tabs/questions/widgets/questions_empty_state.dart';
 import '../pages/tabs/questions/widgets/questions_item_row.dart';
 import 'form_header_card.dart';
@@ -63,22 +63,22 @@ class _EditorBodyState extends State<EditorBody> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EditorCubit, EditorState>(
+    return BlocListener<QuestionsCubit, QuestionsState>(
       listenWhen: (prev, curr) {
-        if (curr is! EditorLoaded) return false;
+        if (curr is! QuestionsLoaded) return false;
         final prevCount =
-            prev is EditorLoaded ? prev.form.items.length : _prevItemCount;
+            prev is QuestionsLoaded ? prev.form.items.length : _prevItemCount;
         return curr.form.items.length > prevCount;
       },
       listener: (context, state) {
-        if (state is EditorLoaded) {
+        if (state is QuestionsLoaded) {
           _prevItemCount = state.form.items.length;
           _scrollToBottom();
         }
       },
-      child: BlocSelector<EditorCubit, EditorState, _BodyData>(
+      child: BlocSelector<QuestionsCubit, QuestionsState, _BodyData>(
         selector: (state) {
-          if (state is! EditorLoaded) return _BodyData.empty;
+          if (state is! QuestionsLoaded) return _BodyData.empty;
           final form = state.form;
           return _BodyData(
             itemIds: form.items.map((i) => i.itemId).toList(),
@@ -123,14 +123,14 @@ class _EditorBodyState extends State<EditorBody> {
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
                     if (oldIndex == newIndex) return;
-                    context.read<EditorCubit>().moveItem(oldIndex, newIndex);
+                    context.read<QuestionsCubit>().moveItem(oldIndex, newIndex);
                   },
                   itemBuilder: (context, i) {
                     return ReorderableDelayedDragStartListener(
                       key: ValueKey(data.itemIds[i]),
                       index: i,
                       child: BlocProvider.value(
-                        value: context.read<EditorCubit>(),
+                        value: context.read<QuestionsCubit>(),
                         child: QuestionsItemRow(itemId: data.itemIds[i]),
                       ),
                     );

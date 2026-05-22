@@ -7,7 +7,7 @@ import '../../../../core/models/grading.dart' as grading_model;
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/models/question_kind.dart';
-import '../cubit/editor_cubit.dart';
+import '../pages/tabs/questions/cubit/questions_cubit.dart';
 import 'question_edit_rows.dart';
 import 'question_file_upload_prompt.dart';
 import 'type_picker_sheet.dart';
@@ -52,7 +52,7 @@ class QuestionEditSheet extends StatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => BlocProvider.value(
-        value: context.read<EditorCubit>(),
+        value: context.read<QuestionsCubit>(),
         child: QuestionEditSheet(
           item: item,
           sections: sections,
@@ -362,9 +362,9 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
       ),
     );
     if (widget.isDraft) {
-      context.read<EditorCubit>().addQuestionFromDraft(updatedItem);
+      context.read<QuestionsCubit>().addQuestionFromDraft(updatedItem);
     } else {
-      context.read<EditorCubit>().updateItemFull(updatedItem);
+      context.read<QuestionsCubit>().updateItemFull(updatedItem);
     }
     Navigator.of(context).pop();
   }
@@ -458,7 +458,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     return QuestionFileUploadPrompt(
       onCancel: () => setState(() => _showFileUploadPrompt = false),
       onContinue: () {
-        context.read<EditorCubit>().requestFileUploadViaWeb();
+        context.read<QuestionsCubit>().requestFileUploadViaWeb();
         Navigator.of(context).pop();
       },
     );

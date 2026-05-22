@@ -1,4 +1,4 @@
-part of 'editor_cubit.dart';
+part of 'questions_cubit.dart';
 
 // ── Pending change tracking ────────────────────────────────────────────────────
 
@@ -42,17 +42,17 @@ class PendingChanges {
       );
 }
 
-// ── Editor states ──────────────────────────────────────────────────────────────
+// ── Questions states ───────────────────────────────────────────────────────────
 
-sealed class EditorState {
-  const EditorState();
+sealed class QuestionsState {
+  const QuestionsState();
 }
 
-class EditorLoading extends EditorState {
-  const EditorLoading();
+class QuestionsLoading extends QuestionsState {
+  const QuestionsLoading();
 }
 
-class EditorLoaded extends EditorState {
+class QuestionsLoaded extends QuestionsState {
   final FormDoc form;
   final FormDoc lastKnownGood;
 
@@ -81,7 +81,7 @@ class EditorLoaded extends EditorState {
   /// (with edit-specific dialog copy).
   final bool fileUploadEditViaWebRequested;
 
-  EditorLoaded(
+  QuestionsLoaded(
     this.form, {
     FormDoc? lastKnownGood,
     List<String>? serverItemOrder,
@@ -109,7 +109,7 @@ class EditorLoaded extends EditorState {
   // Sentinel that distinguishes "not passed" from "explicitly set to null".
   static const _unset = Object();
 
-  EditorLoaded copyWith({
+  QuestionsLoaded copyWith({
     FormDoc? form,
     FormDoc? lastKnownGood,
     List<String>? serverItemOrder,
@@ -121,7 +121,7 @@ class EditorLoaded extends EditorState {
     bool? fileUploadViaWebRequested,
     bool? fileUploadEditViaWebRequested,
   }) =>
-      EditorLoaded(
+      QuestionsLoaded(
         form ?? this.form,
         lastKnownGood: lastKnownGood ?? this.lastKnownGood,
         serverItemOrder: serverItemOrder ?? this.serverItemOrder,
@@ -139,11 +139,11 @@ class EditorLoaded extends EditorState {
       );
 }
 
-class EditorError extends EditorState {
+class QuestionsError extends QuestionsState {
   final String message;
-  final EditorErrorKind kind;
+  final QuestionsErrorKind kind;
 
-  const EditorError(this.message, {this.kind = EditorErrorKind.network});
+  const QuestionsError(this.message, {this.kind = QuestionsErrorKind.network});
 }
 
-enum EditorErrorKind { notFound, permissionDenied, network }
+enum QuestionsErrorKind { notFound, permissionDenied, network }
