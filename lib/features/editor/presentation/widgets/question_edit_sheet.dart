@@ -199,9 +199,13 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
         ? old.options
         : [ChoiceOption(value: 'Option 1')];
     // CHECKBOX doesn't support branching — strip goTo data from options.
-    final opts = next.type == ChoiceType.checkbox
-        ? oldOpts.map((o) => ChoiceOption(value: o.value)).toList()
+    // DROPDOWN doesn't support Other — strip isOther options.
+    final stripped = next.type == ChoiceType.dropDown
+        ? oldOpts.where((o) => !o.isOther).toList()
         : oldOpts;
+    final opts = next.type == ChoiceType.checkbox
+        ? stripped.map((o) => ChoiceOption(value: o.value)).toList()
+        : stripped;
     return next.copyWith(options: opts);
   }
 
