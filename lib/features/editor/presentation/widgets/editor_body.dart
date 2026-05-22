@@ -9,7 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
 import '../widgets/form_header_card.dart';
 import '../widgets/question_card.dart';
-import '../widgets/section_card.dart' show SectionCard, TextBlockCard;
+import '../widgets/section_card.dart';
+import '../widgets/text_block_card.dart';
 import 'editor_media_cards.dart';
 
 // ── Value objects for BlocSelectors ──────────────────────────────────────────

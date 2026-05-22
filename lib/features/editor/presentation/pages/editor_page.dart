@@ -21,7 +21,7 @@ import '../widgets/editor_settings_tab.dart';
 import '../widgets/editor_skeleton.dart';
 import '../widgets/editor_tab_bar.dart';
 import '../widgets/question_edit_sheet.dart';
-import '../widgets/section_card.dart' show TextBlockEditSheet;
+import '../widgets/text_block_edit_sheet.dart';
 import 'edit_form_webview_page.dart';
 
 class EditorPage extends StatelessWidget {
