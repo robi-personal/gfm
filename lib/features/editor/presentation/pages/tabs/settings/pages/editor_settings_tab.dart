@@ -13,7 +13,7 @@ import '../cubit/settings_cubit.dart';
 import '../widgets/email_collection_card.dart';
 import '../widgets/notification_toggle.dart';
 import '../widgets/settings_tiles.dart';
-import '../widgets/toggle_confirm_sheet.dart';
+import '../../../../widgets/toggle_confirm_sheet.dart';
 
 // ── Settings tab page ─────────────────────────────────────────────────────────
 

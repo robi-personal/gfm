@@ -15,7 +15,7 @@ import 'tabs/questions/cubit/questions_cubit.dart';
 import '../widgets/editor_error_view.dart';
 import '../widgets/editor_nav_rail.dart';
 import '../widgets/editor_options_sheet.dart';
-import 'tabs/settings/widgets/toggle_confirm_sheet.dart';
+import '../widgets/toggle_confirm_sheet.dart';
 import 'tabs/settings/pages/editor_settings_tab.dart';
 import '../widgets/editor_skeleton.dart';
 import '../widgets/editor_tab_bar.dart';

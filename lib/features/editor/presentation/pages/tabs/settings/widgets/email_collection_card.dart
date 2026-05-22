@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../../core/models/enums.dart';
 import 'settings_tiles.dart';
-import 'toggle_confirm_sheet.dart';
+import '../../../../widgets/toggle_confirm_sheet.dart';
 
 class EmailCollectionCard extends StatefulWidget {
   final EmailCollectionType emailType;
