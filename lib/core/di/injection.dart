@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import '../api/apps_script_client.dart';
 import '../api/drive_client.dart';
 import '../api/forms_client.dart';
 import '../auth/google_auth_datasource.dart';
@@ -32,6 +33,7 @@ import '../../features/editor/domain/usecases/load_form.dart';
 import '../../features/editor/domain/usecases/refresh_revision.dart';
 import '../../features/editor/domain/usecases/update_editor_settings.dart';
 import '../../features/editor/presentation/pages/tabs/questions/cubit/questions_cubit.dart';
+import '../../features/editor/presentation/pages/tabs/settings/cubit/extended_settings_cubit.dart';
 import '../../features/editor/presentation/pages/tabs/settings/cubit/settings_cubit.dart';
 import '../../features/editor/data/repositories/responses_repository_impl.dart';
 import '../../features/editor/domain/repositories/responses_repository.dart';
@@ -62,6 +64,10 @@ void configureDependencies() {
 
   getIt.registerLazySingleton<DriveClient>(
     () => DriveClient(getIt<GoogleAuthDataSource>()),
+  );
+
+  getIt.registerLazySingleton<AppsScriptClient>(
+    () => AppsScriptClient(getIt<GoogleAuthDataSource>()),
   );
 
   getIt.registerLazySingleton<WebViewSessionManager>(
@@ -192,6 +198,10 @@ void configureDependencies() {
 
   getIt.registerFactory(
     () => SettingsCubit(getIt<UpdateEditorSettings>()),
+  );
+
+  getIt.registerFactory(
+    () => ExtendedSettingsCubit(getIt<AppsScriptClient>()),
   );
 
   // ── AI Form Builder feature ───────────────────────────────────────────────

@@ -5,12 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../../../core/di/injection.dart';
 import '../../../../../../../core/models/enums.dart';
+import '../../../../../../../core/models/extended_form_settings.dart';
 import '../../../../../../../core/models/form_settings.dart';
 import '../../../../../../../core/theme/app_colors.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
 import '../../questions/cubit/questions_cubit.dart';
+import '../cubit/extended_settings_cubit.dart';
 import '../cubit/settings_cubit.dart';
-import '../widgets/email_collection_card.dart';
 import '../widgets/notification_toggle.dart';
 import '../widgets/settings_tiles.dart';
 import '../../../../widgets/toggle_confirm_sheet.dart';
@@ -28,11 +29,13 @@ class EditorSettingsTab extends StatefulWidget {
 
 class _EditorSettingsTabState extends State<EditorSettingsTab> {
   late final SettingsCubit _settingsCubit;
+  late final ExtendedSettingsCubit _extendedCubit;
 
   @override
   void initState() {
     super.initState();
     _settingsCubit = getIt<SettingsCubit>();
+    _extendedCubit = getIt<ExtendedSettingsCubit>()..load(widget.formId);
     final editorState = context.read<QuestionsCubit>().state;
     if (editorState is QuestionsLoaded) {
       _settingsCubit.init(editorState.form.settings);
@@ -42,13 +45,17 @@ class _EditorSettingsTabState extends State<EditorSettingsTab> {
   @override
   void dispose() {
     _settingsCubit.close();
+    _extendedCubit.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _settingsCubit,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _settingsCubit),
+        BlocProvider.value(value: _extendedCubit),
+      ],
       child: BlocListener<SettingsCubit, SettingsState>(
         listenWhen: (_, curr) => curr is SettingsLoaded,
         listener: (context, state) {
@@ -137,6 +144,7 @@ class _SettingsContentState extends State<_SettingsContent> {
     await _save(emailType: value, isQuiz: settings.quizSettings.isQuiz);
   }
 
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SettingsCubit, SettingsState>(
@@ -169,25 +177,11 @@ class _SettingsContentState extends State<_SettingsContent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Email collection ─────────────────────────────────────────
-                SettingsGroupLabel(
-                  label: 'COLLECT EMAIL ADDRESSES',
-                  trailing: isSaving
-                      ? const CupertinoActivityIndicator(radius: 7)
-                      : null,
-                ),
-                EmailCollectionCard(
-                  emailType: (settingsState as SettingsLoaded).settings.emailCollectionType,
-                  isSaving: isSaving,
-                  onChanged: _onEmailTypeChange,
-                ),
-                const SizedBox(height: 28),
-
-                // ── Quiz mode ────────────────────────────────────────────────
+                // ── Quiz ────────────────────────────────────────────────────
                 const SettingsGroupLabel(label: 'QUIZ'),
                 SettingsCard(children: [
                   SettingsSwitchTile(
-                    label: 'Quiz mode',
+                    label: 'Make this a quiz',
                     subtitle: 'Assign point values and set correct answers',
                     value: _isQuiz,
                     isLast: true,
@@ -197,7 +191,26 @@ class _SettingsContentState extends State<_SettingsContent> {
                 ]),
                 const SizedBox(height: 28),
 
-                // ── Notifications ────────────────────────────────────────────
+                // ── Responses ───────────────────────────────────────────────
+                SettingsGroupLabel(
+                  label: 'RESPONSES',
+                  trailing: isSaving
+                      ? const CupertinoActivityIndicator(radius: 7)
+                      : null,
+                ),
+                _ResponsesCard(
+                  formId: widget.formId,
+                  emailType: (settingsState as SettingsLoaded).settings.emailCollectionType,
+                  isSavingBase: isSaving,
+                  onEmailTypeChange: _onEmailTypeChange,
+                ),
+                const SizedBox(height: 28),
+
+                // ── Presentation ────────────────────────────────────────────
+                _PresentationGroup(formId: widget.formId),
+                const SizedBox(height: 28),
+
+                // ── Notifications ───────────────────────────────────────────
                 const SettingsGroupLabel(label: 'NOTIFICATIONS'),
                 SettingsCard(children: [
                   NotificationToggle(
@@ -209,7 +222,7 @@ class _SettingsContentState extends State<_SettingsContent> {
                 ]),
                 const SizedBox(height: 28),
 
-                // ── Data ─────────────────────────────────────────────────────
+                // ── Data ────────────────────────────────────────────────────
                 if (widget.linkedSheetId != null) ...[
                   const SettingsGroupLabel(label: 'DATA'),
                   SettingsCard(children: [
@@ -236,6 +249,345 @@ class _SettingsContentState extends State<_SettingsContent> {
           );
         },
       ),
+    );
+  }
+}
+
+// ── Extended-settings cards (via Apps Script) ─────────────────────────────────
+
+void _applyExtended(BuildContext context, String formId, ExtendedFormSettings patch) {
+  context.read<ExtendedSettingsCubit>().apply(formId, patch);
+}
+
+/// Listener at the top of either advanced card — wired once so a save-failed
+/// modal isn't shown twice if both cards rebuild.
+class _ExtendedSaveFailedListener extends StatelessWidget {
+  final Widget child;
+  const _ExtendedSaveFailedListener({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<ExtendedSettingsCubit, ExtendedSettingsState>(
+      listenWhen: (prev, curr) =>
+          curr is ExtendedSettingsLoaded &&
+          curr.saveFailed &&
+          (prev is! ExtendedSettingsLoaded || !prev.saveFailed),
+      listener: (context, state) {
+        context.read<ExtendedSettingsCubit>().clearSaveFailed();
+        ErrorModal.show(
+          context,
+          title: "Couldn't save",
+          body: 'That setting could not be applied. Please try again.',
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+/// Error card with a tap-to-retry tile.
+Widget _errorCard(BuildContext context, String formId, String message) =>
+    SettingsCard(children: [
+      SettingsActionTile(
+        icon: CupertinoIcons.exclamationmark_triangle,
+        label: message,
+        isLast: true,
+        onTap: () => context.read<ExtendedSettingsCubit>().load(formId),
+      ),
+    ]);
+
+/// Merged RESPONSES card: email-collection dropdown + allow-editing toggle +
+/// REQUIRES SIGN IN sub-header + limit-one-response toggle. Mirrors Google
+/// Forms web settings layout.
+class _ResponsesCard extends StatelessWidget {
+  final String formId;
+  final EmailCollectionType emailType;
+  final bool isSavingBase;
+  final ValueChanged<EmailCollectionType> onEmailTypeChange;
+
+  const _ResponsesCard({
+    required this.formId,
+    required this.emailType,
+    required this.isSavingBase,
+    required this.onEmailTypeChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _ExtendedSaveFailedListener(
+      child: BlocBuilder<ExtendedSettingsCubit, ExtendedSettingsState>(
+        builder: (context, state) {
+          final emailRow = _emailRow(context);
+          return switch (state) {
+            ExtendedSettingsLoading() => SettingsCard(children: [
+                emailRow,
+                const SettingsSwitchTile(
+                  label: 'Allow response editing',
+                  subtitle: 'Responses can be changed after being submitted',
+                  value: false,
+                  isLoading: true,
+                  onChanged: null,
+                ),
+                const SettingsSubHeader(label: 'REQUIRES SIGN IN'),
+                const SettingsSwitchTile(
+                  label: 'Limit to 1 response',
+                  subtitle: 'Respondents will be required to sign in to Google',
+                  value: false,
+                  isLast: true,
+                  isLoading: true,
+                  onChanged: null,
+                ),
+              ]),
+            ExtendedSettingsError(:final message) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsCard(children: [
+                    SettingsDropdownTile<EmailCollectionType>(
+                      label: 'Collect email addresses',
+                      value: emailType,
+                      valueLabel: _shortEmailLabel(emailType),
+                      options: _emailOptions,
+                      onChanged: isSavingBase ? null : onEmailTypeChange,
+                      isLast: true,
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  _errorCard(context, formId, message),
+                ],
+              ),
+            ExtendedSettingsLoaded() => _buildLoaded(context, state, emailRow),
+          };
+        },
+      ),
+    );
+  }
+
+  Widget _emailRow(BuildContext context) {
+    return SettingsDropdownTile<EmailCollectionType>(
+      label: 'Collect email addresses',
+      value: emailType,
+      valueLabel: _shortEmailLabel(emailType),
+      options: _emailOptions,
+      onChanged: isSavingBase ? null : onEmailTypeChange,
+    );
+  }
+
+  Widget _buildLoaded(
+    BuildContext context,
+    ExtendedSettingsLoaded state,
+    Widget emailRow,
+  ) {
+    final s = state.settings;
+    final saving = state.isSaving;
+    return SettingsCard(children: [
+      emailRow,
+      SettingsSwitchTile(
+        label: 'Allow response editing',
+        subtitle: 'Responses can be changed after being submitted',
+        value: s.allowResponseEdits ?? false,
+        onChanged: saving
+            ? null
+            : (v) => _applyExtended(
+                context, formId, ExtendedFormSettings(allowResponseEdits: v)),
+      ),
+      const SettingsSubHeader(label: 'REQUIRES SIGN IN'),
+      SettingsSwitchTile(
+        label: 'Limit to 1 response',
+        subtitle: 'Respondents will be required to sign in to Google',
+        value: s.limitOneResponsePerUser ?? false,
+        isLast: true,
+        onChanged: saving
+            ? null
+            : (v) => _applyExtended(context, formId,
+                ExtendedFormSettings(limitOneResponsePerUser: v)),
+      ),
+    ]);
+  }
+}
+
+const _emailOptions = <SettingsOption<EmailCollectionType>>[
+  SettingsOption(
+    value: EmailCollectionType.doNotCollect,
+    label: "Don't collect",
+    subtitle: "Respondents won't be asked for their email",
+  ),
+  SettingsOption(
+    value: EmailCollectionType.verified,
+    label: 'Verified',
+    subtitle: 'Workspace accounts only; email collected automatically',
+  ),
+  SettingsOption(
+    value: EmailCollectionType.responderInput,
+    label: 'Ask respondents',
+    subtitle: 'Respondents type in their email before submitting',
+  ),
+];
+
+String _shortEmailLabel(EmailCollectionType t) => switch (t) {
+      EmailCollectionType.doNotCollect => "Don't collect",
+      EmailCollectionType.verified => 'Verified',
+      EmailCollectionType.responderInput => 'Ask respondents',
+      _ => 'Not set',
+    };
+
+
+/// PRESENTATION group: a label plus one card with FORM PRESENTATION and
+/// AFTER SUBMISSION sub-headers.
+class _PresentationGroup extends StatelessWidget {
+  final String formId;
+  const _PresentationGroup({required this.formId});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ExtendedSettingsCubit, ExtendedSettingsState>(
+      builder: (context, state) {
+        final trailing = state is ExtendedSettingsLoaded && state.isSaving
+            ? const CupertinoActivityIndicator(radius: 7)
+            : null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsGroupLabel(label: 'PRESENTATION', trailing: trailing),
+            switch (state) {
+              ExtendedSettingsLoading() => SettingsCard(children: [
+                  const SettingsSubHeader(label: 'FORM PRESENTATION'),
+                  const SettingsSwitchTile(
+                    label: 'Show progress bar',
+                    value: false,
+                    isLoading: true,
+                    onChanged: null,
+                  ),
+                  const SettingsSwitchTile(
+                    label: 'Shuffle question order',
+                    value: false,
+                    isLoading: true,
+                    onChanged: null,
+                  ),
+                  const SettingsSubHeader(label: 'AFTER SUBMISSION'),
+                  SettingsActionTile(
+                    label: 'Confirmation message',
+                    trailing: const Text(
+                      'Edit',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.muted2,
+                      ),
+                    ),
+                    onTap: null,
+                  ),
+                  const SettingsSwitchTile(
+                    label: 'Show link to submit another response',
+                    value: false,
+                    isLoading: true,
+                    onChanged: null,
+                  ),
+                  const SettingsSwitchTile(
+                    label: 'View results summary',
+                    subtitle: 'Share results summary with respondents',
+                    value: false,
+                    isLast: true,
+                    isLoading: true,
+                    onChanged: null,
+                  ),
+                ]),
+              ExtendedSettingsError(:final message) =>
+                _errorCard(context, formId, message),
+              ExtendedSettingsLoaded() => _buildLoaded(context, state),
+            },
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLoaded(BuildContext context, ExtendedSettingsLoaded state) {
+    final s = state.settings;
+    final saving = state.isSaving;
+    final limitOne = s.limitOneResponsePerUser ?? false;
+    final confirmation = s.confirmationMessage ?? 'Your response has been recorded.';
+    return SettingsCard(children: [
+      const SettingsSubHeader(label: 'FORM PRESENTATION'),
+      SettingsSwitchTile(
+        label: 'Show progress bar',
+        value: s.progressBar ?? false,
+        onChanged: saving
+            ? null
+            : (v) => _applyExtended(
+                context, formId, ExtendedFormSettings(progressBar: v)),
+      ),
+      SettingsSwitchTile(
+        label: 'Shuffle question order',
+        value: s.shuffleQuestions ?? false,
+        onChanged: saving
+            ? null
+            : (v) => _applyExtended(
+                context, formId, ExtendedFormSettings(shuffleQuestions: v)),
+      ),
+      const SettingsSubHeader(label: 'AFTER SUBMISSION'),
+      SettingsActionTile(
+        label: 'Confirmation message',
+        subtitle: confirmation,
+        subtitleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          fontStyle: FontStyle.italic,
+          color: AppColors.muted,
+        ),
+        trailing: Text(
+          'Edit',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: saving ? AppColors.muted2 : AppColors.purple,
+          ),
+        ),
+        onTap: saving
+            ? null
+            : () => _editConfirmationMessage(context, formId, confirmation),
+      ),
+      SettingsSwitchTile(
+        label: 'Show link to submit another response',
+        subtitle:
+            limitOne ? 'Disabled by Limit to 1 response' : null,
+        value: limitOne ? false : (s.showLinkToRespondAgain ?? false),
+        onChanged: (saving || limitOne)
+            ? null
+            : (v) => _applyExtended(context, formId,
+                ExtendedFormSettings(showLinkToRespondAgain: v)),
+      ),
+      SettingsSwitchTile(
+        label: 'View results summary',
+        subtitle: 'Share results summary with respondents',
+        value: s.publishingSummary ?? false,
+        isLast: true,
+        onChanged: saving
+            ? null
+            : (v) => _applyExtended(
+                context, formId, ExtendedFormSettings(publishingSummary: v)),
+      ),
+    ]);
+  }
+
+  Future<void> _editConfirmationMessage(
+    BuildContext context,
+    String formId,
+    String current,
+  ) async {
+    final next = await showSettingsTextEdit(
+      context,
+      title: 'Confirmation message',
+      initial: current,
+      hint: 'Your response has been recorded.',
+      maxLength: 1000,
+    );
+    if (next == null || !context.mounted) return;
+    _applyExtended(
+      context,
+      formId,
+      ExtendedFormSettings(confirmationMessage: next),
     );
   }
 }

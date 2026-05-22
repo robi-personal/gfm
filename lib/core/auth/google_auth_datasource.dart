@@ -12,8 +12,10 @@ import '../error/failure.dart';
 class GoogleAuthDataSource {
   static const _scopes = [
     'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/forms.body',
-    'https://www.googleapis.com/auth/forms.responses.readonly',
+    // Broad Forms scope — required because Apps Script's FormApp.openById
+    // doesn't honor the narrower forms.body / forms.responses.readonly
+    // (verified via the AppsScriptTest harness). Supersedes those scopes.
+    'https://www.googleapis.com/auth/forms',
   ];
 
   final _googleSignIn = GoogleSignIn(
