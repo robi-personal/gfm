@@ -104,9 +104,9 @@ class _DrawerContent extends StatelessWidget {
                     title: 'Share on the App Store',
                     onTap: () {
                       Navigator.of(context).pop();
-                      Share.share(
-                        'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
-                      );
+                      SharePlus.instance.share(ShareParams(
+                        text: 'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
+                      ));
                     },
                   ),
                   _DrawerItem(

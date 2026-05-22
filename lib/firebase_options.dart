@@ -24,12 +24,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCo90oTe9M7epgLatpmXocug9KetttKErc',
-    appId: '1:751857864758:ios:9d303acdaadb578615c897',
-    messagingSenderId: '751857864758',
-    projectId: 'gfmapp',
-    storageBucket: 'gfmapp.firebasestorage.app',
-    iosClientId: '751857864758-cp1hfid31ngifhtq9lk38utpjlmr22s3.apps.googleusercontent.com',
-    iosBundleId: 'com.app.gfm',
+    apiKey: 'AIzaSyDIVSTBskUGHhVChugZ85aHPU3qJLbDPtc',
+    appId: '1:410943078794:ios:850268cd3d90f1409fc873',
+    messagingSenderId: '410943078794',
+    projectId: 'form-manager-493310',
+    storageBucket: 'form-manager-493310.firebasestorage.app',
+    iosClientId: '410943078794-scuv9kbopmun1deub4j88tiehgk2hq99.apps.googleusercontent.com',
+    iosBundleId: 'com.rashed.gfm',
   );
 }

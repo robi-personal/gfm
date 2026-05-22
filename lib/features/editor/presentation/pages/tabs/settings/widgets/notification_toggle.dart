@@ -28,6 +28,7 @@ class _NotificationToggleState extends State<NotificationToggle> {
   bool _loading = true;
   bool _isEnabled = false;
   bool _isWorking = false;
+  bool _pushUnavailable = false;
   String? _watchId;
 
   static const String _topicResource = 'projects/form-manager-493310/topics/forms-responses';
@@ -53,6 +54,16 @@ class _NotificationToggleState extends State<NotificationToggle> {
   /// Derives toggle state from forms.watches.list — Google is the source of
   /// truth, so this stays accurate even across reinstalls.
   Future<void> _loadInitial() async {
+    final pushAvailable = await getIt<NotificationService>().isPushAvailable();
+    if (!mounted) return;
+    if (!pushAvailable) {
+      setState(() {
+        _pushUnavailable = true;
+        _loading = false;
+      });
+      return;
+    }
+
     try {
       final client = getIt<FormsClient>();
       final res = await client.api.forms.watches.list(widget.formId);
@@ -177,38 +188,41 @@ class _NotificationToggleState extends State<NotificationToggle> {
 
   @override
   Widget build(BuildContext context) {
-    final disabled = _loading || _isWorking;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('New responses', style: AppTextStyles.body.copyWith(fontSize: 15)),
-                const SizedBox(height: 2),
-                Text(
-                  'Get a push notification when this form receives a new response',
-                  style: AppTextStyles.meta,
-                ),
-              ],
-            ),
-          ),
-          if (disabled)
-            const SizedBox(
-              width: 51, // matches CupertinoSwitch width to prevent layout shift
-              child: Center(
-                child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
+    final busy = _loading || _isWorking;
+    final subtitle = _pushUnavailable
+        ? 'Push notifications are not available on this device'
+        : 'Get a push notification when this form receives a new response';
+    return Opacity(
+      opacity: _pushUnavailable ? 0.4 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New responses', style: AppTextStyles.body.copyWith(fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: AppTextStyles.meta),
+                ],
               ),
-            )
-          else
-            CupertinoSwitch(
-              value: _isEnabled,
-              activeTrackColor: AppColors.purple,
-              onChanged: _onToggle,
             ),
-        ],
+            if (busy)
+              const SizedBox(
+                width: 51, // matches CupertinoSwitch width to prevent layout shift
+                child: Center(
+                  child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
+                ),
+              )
+            else
+              CupertinoSwitch(
+                value: _isEnabled,
+                activeTrackColor: AppColors.purple,
+                onChanged: _pushUnavailable ? null : _onToggle,
+              ),
+          ],
+        ),
       ),
     );
   }

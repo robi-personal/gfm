@@ -23,6 +23,7 @@ class NotificationService {
   StreamSubscription<String>? _tokenSub;
   StreamSubscription<RemoteMessage>? _msgSub;
   StreamSubscription<RemoteMessage>? _openedSub;
+  bool _registering = false;
 
   /// Fires when the user taps a notification and the app opens.
   /// The data map contains formId/watchId/eventType.
@@ -113,6 +114,17 @@ class NotificationService {
     }
   }
 
+  /// Returns true if the device can receive push notifications.
+  /// On iOS this requires the APNs token to be available; on Android always true.
+  Future<bool> isPushAvailable() async {
+    if (!Platform.isIOS) return true;
+    try {
+      return await FirebaseMessaging.instance.getAPNSToken() != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Returns true if the platform permission state is "notDetermined" — i.e.,
   /// the user has never been asked. UI should show a soft-ask rationale before
   /// calling [registerForUser]. iOS HIG and Android 13+ both recommend this.
@@ -125,59 +137,46 @@ class NotificationService {
     }
   }
 
-  /// Call after sign-in. Requests permission (if not already granted),
-  /// fetches the FCM token, and registers it with our backend. Idempotent.
+  /// Call after sign-in. Requests permission, then registers the device
+  /// with our backend once the FCM token is available. If the token is not
+  /// ready yet (iOS APNs handshake still in progress), [onTokenRefresh]
+  /// will fire when it arrives and register at that point.
   Future<void> registerForUser() async {
-    debugPrint('[notifications] registerForUser START');
+    if (_lastRegisteredToken != null) return;
+    if (_registering) return;
+    _registering = true;
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
-      debugPrint('[notifications] permission = ${settings.authorizationStatus}');
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         return;
       }
 
-      // On iOS, FCM token requires APNs registration first. APNs token arrives
-      // asynchronously after launch — poll briefly until it shows up.
-      if (Platform.isIOS) {
-        final apns = await _waitForApnsToken();
-        if (apns == null) {
-          debugPrint('[notifications] APNs token unavailable — skipping device registration');
-          return;
-        }
-        debugPrint('[notifications] APNs token ready');
-      }
+      // Subscribe BEFORE getToken so we never miss a token that arrives later.
+      _tokenSub?.cancel();
+      _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen(_registerToken);
 
       final token = await FirebaseMessaging.instance.getToken();
-      debugPrint('[notifications] FCM token = ${token == null ? "null" : "(${token.length} chars)"}');
-      if (token == null) {
-        return;
-      }
+      if (token != null) await _registerToken(token);
+    } catch (e) {
+      debugPrint('[notifications] registerForUser failed: $e');
+    } finally {
+      _registering = false;
+    }
+  }
+
+  Future<void> _registerToken(String token) async {
+    try {
       await _api.registerDevice(
         fcmToken: token,
         platform: Platform.isIOS ? 'ios' : 'android',
       );
-      debugPrint('[notifications] registered with backend');
       _lastRegisteredToken = token;
-
-      // Re-register on token refresh (FCM occasionally rotates).
-      _tokenSub?.cancel();
-      _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        try {
-          await _api.registerDevice(
-            fcmToken: newToken,
-            platform: Platform.isIOS ? 'ios' : 'android',
-          );
-          _lastRegisteredToken = newToken;
-        } catch (e) {
-          debugPrint('[notifications] token refresh register failed: $e');
-        }
-      });
     } catch (e) {
-      debugPrint('[notifications] registerForUser failed: $e');
+      debugPrint('[notifications] backend register failed: $e');
     }
   }
 
@@ -197,23 +196,6 @@ class NotificationService {
       await _tokenSub?.cancel();
       _tokenSub = null;
     }
-  }
-
-  /// Poll FirebaseMessaging.getAPNSToken() until it returns a token or we
-  /// time out. APNs registration is asynchronous on iOS — the token usually
-  /// arrives within a couple seconds of permission grant. On simulators
-  /// without APNs support it never arrives, so we cap at 10 seconds.
-  Future<String?> _waitForApnsToken({
-    Duration timeout = const Duration(seconds: 10),
-    Duration interval = const Duration(milliseconds: 500),
-  }) async {
-    final deadline = DateTime.now().add(timeout);
-    while (DateTime.now().isBefore(deadline)) {
-      final token = await FirebaseMessaging.instance.getAPNSToken();
-      if (token != null) return token;
-      await Future.delayed(interval);
-    }
-    return null;
   }
 
   Future<void> _showLocalForForeground(RemoteMessage msg) async {

@@ -38,6 +38,7 @@ class ResponseActionsBar extends StatefulWidget {
 class _ResponseActionsBarState extends State<ResponseActionsBar> {
   bool _isExporting = false;
   bool _isPrinting = false;
+  final _csvButtonKey = GlobalKey();
 
   /// Shortcut: returns true if the Responses tab has loaded at least one
   /// response. Quick local check using the cubit so we can short-circuit
@@ -103,10 +104,15 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
       await file.writeAsString(csv);
 
       if (!mounted) return;
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'text/csv')],
+      final box = _csvButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin = box == null
+          ? null
+          : box.localToGlobal(Offset.zero) & box.size;
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path, mimeType: 'text/csv')],
         subject: '${form.info.title} — Responses',
-      );
+        sharePositionOrigin: origin,
+      ));
       AnalyticsService.logCsvExported();
     } catch (_) {
       if (!mounted) return;
@@ -208,6 +214,7 @@ class _ResponseActionsBarState extends State<ResponseActionsBar> {
         children: [
           Expanded(
             child: _ActionTile(
+              key: _csvButtonKey,
               icon: CupertinoIcons.arrow_down_doc,
               label: 'Export CSV',
               isLoading: _isExporting,
@@ -236,6 +243,7 @@ class _ActionTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _ActionTile({
+    super.key,
     required this.icon,
     required this.label,
     this.isLoading = false,

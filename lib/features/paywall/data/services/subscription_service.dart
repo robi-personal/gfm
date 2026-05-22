@@ -6,6 +6,7 @@ class SubscriptionService {
   static const String _offeringId = 'default';
 
   static Future<void> configure() async {
+    await Purchases.setLogLevel(LogLevel.error);
     await Purchases.configure(PurchasesConfiguration(_appId));
   }
 

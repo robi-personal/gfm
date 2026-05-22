@@ -49,7 +49,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
 
   # Sharing
-  share_plus: ^10.1.3
+  share_plus: ^11.1.0
 
   # URL launching
   url_launcher: ^6.3.1

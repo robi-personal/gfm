@@ -58,8 +58,16 @@ class EditorOptionsSheet extends StatelessWidget {
                   color: AppColors.purple,
                   onTap: () {
                     Navigator.of(context).pop();
+                    final box = context.findRenderObject() as RenderBox?;
+                    final origin = box == null
+                        ? null
+                        : box.localToGlobal(Offset.zero) & box.size;
                     Future.delayed(const Duration(milliseconds: 300), () {
-                      Share.share(responderUri, subject: title);
+                      SharePlus.instance.share(ShareParams(
+                        uri: Uri.parse(responderUri),
+                        subject: title,
+                        sharePositionOrigin: origin,
+                      ));
                     });
                   },
                 ),
