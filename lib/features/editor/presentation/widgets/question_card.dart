@@ -117,7 +117,9 @@ class QuestionCard extends StatelessWidget {
                           isQuiz: isQuiz,
                         ),
                         child: Text(
-                          'Add Option  ·  Add "Other"',
+                          kind.type == ChoiceType.dropDown
+                              ? 'Add Option'
+                              : 'Add Option  ·  Add "Other"',
                           style: AppTextStyles.meta.copyWith(
                             color: AppColors.purple,
                           ),
