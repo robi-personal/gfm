@@ -554,7 +554,8 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                   label: 'Add option',
                   onTap: _addOption,
                 ),
-                if (!_hasOtherOption) ...[
+                if (!_hasOtherOption &&
+                    (_kind as ChoiceQuestion).type != ChoiceType.dropDown) ...[
                   const _CardDivider(),
                   QesAddRow(
                     icon: Icons.add_box_outlined,
