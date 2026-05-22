@@ -8,6 +8,7 @@ import '../../../../core/design.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
+import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../domain/entities/user_status.dart';
@@ -39,6 +40,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
   late final StreamSubscription<AiFormBuilderEvent> _eventSub;
   final _promptController = TextEditingController();
   bool _promptDirty = false;
+  late final PurchaseActivationService _activation;
 
   @override
   void initState() {
@@ -49,13 +51,25 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       if (!_promptDirty) return;
       cubit.notifyRequestBodyChanged();
     });
+    _activation = getIt<PurchaseActivationService>();
+    _activation.isActivating.addListener(_onActivationChanged);
   }
 
   @override
   void dispose() {
+    _activation.isActivating.removeListener(_onActivationChanged);
     _eventSub.cancel();
     _promptController.dispose();
     super.dispose();
+  }
+
+  /// Refresh status when the background reconcile finishes so the quota
+  /// counter, upgrade banner, and locked input types drop the moment the
+  /// backend catches up — even if pollUntilPremium gave up earlier.
+  void _onActivationChanged() {
+    if (!mounted) return;
+    if (_activation.isActivating.value) return;
+    context.read<AiFormBuilderCubit>().loadStatus();
   }
 
   void _handleEvent(AiFormBuilderEvent event) {

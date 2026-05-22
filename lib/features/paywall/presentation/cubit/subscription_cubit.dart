@@ -2,16 +2,16 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-import '../../../../features/notifications/data/datasources/notifications_api.dart';
+import '../../data/services/purchase_activation_service.dart';
 import '../../data/services/subscription_service.dart';
 
 part 'subscription_state.dart';
 
 class SubscriptionCubit extends Cubit<SubscriptionState> {
   final SubscriptionService _service;
-  final NotificationsApi _api;
+  final PurchaseActivationService _activation;
 
-  SubscriptionCubit(this._service, this._api) : super(const SubscriptionInitial());
+  SubscriptionCubit(this._service, this._activation) : super(const SubscriptionInitial());
 
   Future<void> load() async {
     emit(const SubscriptionLoading());
@@ -39,7 +39,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
       final info = await _service.purchase(package);
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
-      if (isPremium) _syncWithRetry();
+      if (isPremium) await _reconcileWithBackend();
       if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
@@ -67,9 +67,10 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     emit(SubscriptionPurchasing(isPremium: current.isPremium, offering: current.offering));
     try {
       final info = await _service.restore();
-      if (isClosed) return;
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
+      if (isPremium) await _reconcileWithBackend();
+      if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
         offering: current.offering,
@@ -82,16 +83,12 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     }
   }
 
-  void _syncWithRetry() async {
-    const delays = [Duration(seconds: 2), Duration(seconds: 5), Duration(seconds: 10)];
-    for (final delay in delays) {
-      try {
-        await _api.syncPurchase();
-        return;
-      } catch (_) {
-        await Future.delayed(delay);
-      }
-    }
+  /// Block on one sync attempt so the happy path dismisses the paywall with
+  /// a fully provisioned account. If it fails, kick off background retries —
+  /// the dashboard renders an activation banner while they run.
+  Future<void> _reconcileWithBackend() async {
+    final ok = await _activation.syncOnce();
+    if (!ok) _activation.startBackgroundRetries();
   }
 
   String _errorMessage(PurchasesErrorCode code) => switch (code) {

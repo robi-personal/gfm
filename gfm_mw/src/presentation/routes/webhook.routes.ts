@@ -8,7 +8,6 @@ import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
-import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { PgFormWatchRepository } from "../../infrastructure/db/repositories/pg-form-watch.repository";
 import { PgDeviceTokenRepository } from "../../infrastructure/db/repositories/pg-device-token.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
@@ -60,12 +59,10 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
         logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
         break;
       }
-      const user = await userRepo.findById(userId);
-      // Skip quota credit if the sync endpoint already granted it (user is already premium).
-      if (!user?.isPremium) {
-        await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
-      }
-      await userRepo.setSubscriptionProduct(userId, product.productId);
+      // Atomic — second caller (sync) sees is_premium=true and short-circuits.
+      await userRepo.claimPremiumAndCredit(
+        userId, product.quotaAmount, product.productId, "subscription", event.id,
+      );
       break;
     }
     case "RENEWAL": {

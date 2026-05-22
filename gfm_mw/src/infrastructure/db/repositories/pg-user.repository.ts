@@ -122,6 +122,38 @@ export class PgUserRepository implements UserRepository {
     );
   }
 
+  async claimPremiumAndCredit(
+    userId: number,
+    amount: number,
+    productId: string,
+    source: string,
+    refId: string,
+  ): Promise<boolean> {
+    // The `WHERE is_premium = false` guard makes this a single atomic claim:
+    // only one of two concurrent callers (webhook INITIAL_PURCHASE + sync) will
+    // see rows returned from the UPDATE, so the quota_transactions INSERT also
+    // runs at most once.
+    const { rows } = await this.db.query(
+      `WITH claimed AS (
+         UPDATE users
+         SET
+           quota_balance           = quota_balance + $2,
+           subscription_product_id = $3,
+           is_premium              = TRUE
+         WHERE id = $1 AND is_premium = FALSE
+         RETURNING quota_balance
+       ), tx AS (
+         INSERT INTO quota_transactions
+           (user_id, delta, balance_after, source, product_id, ref_id)
+         SELECT $1, $2, quota_balance, $4, $3, $5 FROM claimed
+         RETURNING 1
+       )
+       SELECT EXISTS (SELECT 1 FROM claimed) AS claimed`,
+      [userId, amount, productId, source, refId],
+    );
+    return rows[0]?.["claimed"] === true;
+  }
+
   // ── YouTube minute cap ────────────────────────────────────────────────────────
 
   async incrementYoutubeMinutes(userId: number, minutes: number): Promise<void> {

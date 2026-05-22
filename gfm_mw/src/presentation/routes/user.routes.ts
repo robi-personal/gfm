@@ -112,16 +112,19 @@ userRouter.post(
         return;
       }
 
-      if (!user.isPremium) {
-        const product = await productRepo.getById(productId);
-        if (product) {
-          await userRepo.creditQuota(user.id, product.quotaAmount, "subscription", product.productId, `sync:${req.user!.googleSub}`);
-        }
-        await userRepo.setSubscriptionProduct(user.id, productId);
-        req.log.info({ user_id: user.id, product_id: productId }, "rc_sync_premium_granted");
-      } else {
-        req.log.info({ user_id: user.id }, "rc_sync_already_premium");
+      const product = await productRepo.getById(productId);
+      if (!product) {
+        req.log.warn({ user_id: user.id, product_id: productId }, "rc_sync_unknown_product");
+        res.json({ synced: false });
+        return;
       }
+      const claimed = await userRepo.claimPremiumAndCredit(
+        user.id, product.quotaAmount, product.productId, "subscription", `sync:${req.user!.googleSub}`,
+      );
+      req.log.info(
+        { user_id: user.id, product_id: productId, claimed },
+        claimed ? "rc_sync_premium_granted" : "rc_sync_already_premium",
+      );
 
       res.json({ synced: true });
     } catch (err) {

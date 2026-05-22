@@ -18,6 +18,20 @@ export interface UserRepository {
   applyFreeGrantIfDue(userId: number, freeProduct: QuotaProduct): Promise<void>;
   getQuotaBalance(userId: number): Promise<number>;
   setSubscriptionProduct(userId: number, productId: string | null): Promise<void>;
+  /**
+   * Atomically flip is_premium → true, set subscription product, and credit
+   * quota. Returns true if this caller claimed (rows affected > 0), false if
+   * the user was already premium (another path — webhook or sync — won the
+   * race). Used to dedupe concurrent INITIAL_PURCHASE webhook and
+   * /user/purchase/sync paths.
+   */
+  claimPremiumAndCredit(
+    userId: number,
+    amount: number,
+    productId: string,
+    source: string,
+    refId: string,
+  ): Promise<boolean>;
 
   // YouTube minute cap
   incrementYoutubeMinutes(userId: number, minutes: number): Promise<void>;

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../domain/entities/generated_form.dart';
 import '../../domain/entities/quota_snapshot.dart';
 import '../../domain/entities/user_status.dart';
@@ -26,6 +27,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
   final GetUserStatus _getUserStatus;
   final GenerateForm _generateForm;
   final CreateFormFromAi _createFormFromAi;
+  final PurchaseActivationService _activation;
 
   final StreamController<AiFormBuilderEvent> _eventsController =
       StreamController<AiFormBuilderEvent>.broadcast();
@@ -53,9 +55,11 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
     required GetUserStatus getUserStatus,
     required GenerateForm generateForm,
     required CreateFormFromAi createFormFromAi,
+    required PurchaseActivationService activation,
   })  : _getUserStatus = getUserStatus,
         _generateForm = generateForm,
         _createFormFromAi = createFormFromAi,
+        _activation = activation,
         _idempotencyKey = _generateIdempotencyKey(),
         super(const AiFormBuilderStatusLoading()) {
     loadStatus();
@@ -66,12 +70,27 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
   /// Fetches `/user/status`. Called on construction and after a paywall
   /// dismissal. On failure, emits an error event but stays in
   /// [AiFormBuilderStatusLoading] — the UI's modal-dismissal pops the screen.
+  ///
+  /// Pre-flight: if the first fetch returns `isPremium=false` but the RC SDK
+  /// on this device thinks the user is premium, a missed/lagging webhook is
+  /// the likely cause. Trigger one reconcile and refetch once.
   Future<void> loadStatus() async {
     if (state is! AiFormBuilderStatusLoading) {
       emit(const AiFormBuilderStatusLoading());
     }
-    final result = await _getUserStatus(const NoParams());
+    var result = await _getUserStatus(const NoParams());
     if (isClosed) return;
+
+    final firstStatus = result.fold((_) => null, (s) => s);
+    if (firstStatus != null && !firstStatus.isPremium) {
+      final reconciled = await _activation.reconcileIfClientPremium();
+      if (isClosed) return;
+      if (reconciled) {
+        result = await _getUserStatus(const NoParams());
+        if (isClosed) return;
+      }
+    }
+
     result.fold(
       (failure) => _eventsController.add(
         ShowErrorModalEvent(

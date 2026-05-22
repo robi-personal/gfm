@@ -4,6 +4,7 @@ import '../api/drive_client.dart';
 import '../api/forms_client.dart';
 import '../auth/google_auth_datasource.dart';
 import '../services/webview_session_manager.dart';
+import '../../features/paywall/data/services/purchase_activation_service.dart';
 import '../../features/paywall/data/services/subscription_service.dart';
 import '../../features/paywall/presentation/cubit/subscription_cubit.dart';
 import '../../features/dashboard/data/datasources/drive_datasource.dart';
@@ -220,14 +221,25 @@ void configureDependencies() {
       getUserStatus: getIt<GetUserStatus>(),
       generateForm: getIt<GenerateForm>(),
       createFormFromAi: getIt<CreateFormFromAi>(),
+      activation: getIt<PurchaseActivationService>(),
     ),
   );
 
   // ── Paywall / subscription feature ────────────────────────────────────────
   getIt.registerLazySingleton(() => SubscriptionService());
 
+  getIt.registerLazySingleton(
+    () => PurchaseActivationService(
+      getIt<NotificationsApi>(),
+      getIt<SubscriptionService>(),
+    ),
+  );
+
   getIt.registerFactory(
-    () => SubscriptionCubit(getIt<SubscriptionService>(), getIt<NotificationsApi>()),
+    () => SubscriptionCubit(
+      getIt<SubscriptionService>(),
+      getIt<PurchaseActivationService>(),
+    ),
   );
 
   // ── Push notifications ────────────────────────────────────────────────────

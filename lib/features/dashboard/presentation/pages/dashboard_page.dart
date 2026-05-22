@@ -14,6 +14,7 @@ import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../notifications/data/services/notification_service.dart';
+import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../../paywall/data/services/subscription_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
@@ -51,11 +52,14 @@ class _DashboardViewState extends State<_DashboardView> {
   late Future<bool> _isPremiumFuture;
   StreamSubscription<Map<String, String>>? _notificationTapSub;
   final _fabKey = GlobalKey<ExpandableFabState>();
+  late final PurchaseActivationService _activation;
 
   @override
   void initState() {
     super.initState();
     _isPremiumFuture = _fetchIsPremium();
+    _activation = getIt<PurchaseActivationService>();
+    _activation.isActivating.addListener(_onActivationChanged);
     _notificationTapSub = getIt<NotificationService>()
         .onNotificationTap
         .listen(_handleNotificationTap);
@@ -65,8 +69,18 @@ class _DashboardViewState extends State<_DashboardView> {
 
   @override
   void dispose() {
+    _activation.isActivating.removeListener(_onActivationChanged);
     _notificationTapSub?.cancel();
     super.dispose();
+  }
+
+  /// When background retries finish (isActivating goes false), refresh the
+  /// premium future so the appbar crown drops without waiting for the user
+  /// to navigate away and back. Covers the case where syncOnce failed and a
+  /// later retry — or the webhook — landed past pollUntilPremium's 24 s cap.
+  void _onActivationChanged() {
+    if (!mounted) return;
+    if (!_activation.isActivating.value) _refreshPremium();
   }
 
   Future<bool> _fetchIsPremium() => getIt<GetUserStatus>()
@@ -104,6 +118,8 @@ class _DashboardViewState extends State<_DashboardView> {
 
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       if (isPremium) {
+        final ok = await getIt<PurchaseActivationService>().syncOnce();
+        if (!ok) getIt<PurchaseActivationService>().startBackgroundRetries();
         _refreshPremium();
         await ErrorModal.show(
           context,
@@ -271,6 +287,12 @@ class _DashboardViewState extends State<_DashboardView> {
         if (isImporting) {
           body = Stack(children: [body, const DashboardImportingOverlay()]);
         }
+        body = Column(
+          children: [
+            _ActivationBanner(service: getIt<PurchaseActivationService>()),
+            Expanded(child: body),
+          ],
+        );
 
         final drawer = DashboardDrawer(
           onAiBuilder: () => _openAiBuilder(context),
@@ -377,6 +399,49 @@ class _DashboardViewState extends State<_DashboardView> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// Thin banner shown while a post-purchase backend sync is being retried in
+/// the background. Disappears as soon as the sync (or webhook) lands.
+class _ActivationBanner extends StatelessWidget {
+  const _ActivationBanner({required this.service});
+
+  final PurchaseActivationService service;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: service.isActivating,
+      builder: (context, isActivating, _) {
+        if (!isActivating) return const SizedBox.shrink();
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: AppColors.purpleTint,
+          child: Row(
+            children: const [
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CupertinoActivityIndicator(radius: 7, color: AppColors.purple),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Activating your premium… this can take up to a minute.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.purple,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
