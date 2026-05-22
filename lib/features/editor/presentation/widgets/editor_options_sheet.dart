@@ -4,7 +4,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../preview/preview_screen.dart';
+import '../pages/preview_screen.dart';
 
 class EditorOptionsSheet extends StatelessWidget {
   final String responderUri;
