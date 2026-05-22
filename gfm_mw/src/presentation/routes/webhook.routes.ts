@@ -60,7 +60,11 @@ async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise
         logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
         break;
       }
-      await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
+      const user = await userRepo.findById(userId);
+      // Skip quota credit if the sync endpoint already granted it (user is already premium).
+      if (!user?.isPremium) {
+        await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
+      }
       await userRepo.setSubscriptionProduct(userId, product.productId);
       break;
     }

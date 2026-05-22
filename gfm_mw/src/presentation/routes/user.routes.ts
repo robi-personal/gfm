@@ -49,6 +49,7 @@ userRouter.get(
         quotaBalance:            user.quotaBalance,
         unlimited,
         gracePeriodUntil:        user.gracePeriodUntil?.toISOString() ?? null,
+        subscriptionProductId:   user.subscriptionProductId ?? null,
         youtubeMinutesUsed:      user.youtubeMinutesUsed,
         youtubeMinutesLimit:     ytLimit,
         youtubeMinutesResetsAt:  user.youtubeMinutesResetAt?.toISOString() ?? null,
