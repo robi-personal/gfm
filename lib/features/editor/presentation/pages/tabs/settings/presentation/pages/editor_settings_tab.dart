@@ -17,43 +17,73 @@ import '../../../../../../../notifications/data/datasources/notifications_api.da
 import '../../../../../../../notifications/data/services/notification_service.dart';
 import '../../../../../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../../../cubit/editor_cubit.dart';
+import '../cubit/settings_cubit.dart';
 
 // ── Settings tab page ─────────────────────────────────────────────────────────
 
-class EditorSettingsTab extends StatelessWidget {
+class EditorSettingsTab extends StatefulWidget {
   final String formId;
 
   const EditorSettingsTab({super.key, required this.formId});
 
   @override
+  State<EditorSettingsTab> createState() => _EditorSettingsTabState();
+}
+
+class _EditorSettingsTabState extends State<EditorSettingsTab> {
+  late final SettingsCubit _settingsCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsCubit = getIt<SettingsCubit>();
+    final editorState = context.read<EditorCubit>().state;
+    if (editorState is EditorLoaded) {
+      _settingsCubit.init(editorState.form.settings);
+    }
+  }
+
+  @override
+  void dispose() {
+    _settingsCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState,
-        ({FormSettings? settings, String? linkedSheetId})>(
-      selector: (state) => (
-        settings: state is EditorLoaded ? state.form.settings : null,
-        linkedSheetId: state is EditorLoaded ? state.form.linkedSheetId : null,
+    return BlocProvider.value(
+      value: _settingsCubit,
+      child: BlocListener<SettingsCubit, SettingsState>(
+        listenWhen: (_, curr) => curr is SettingsLoaded,
+        listener: (context, state) {
+          if (state is SettingsLoaded) {
+            context.read<EditorCubit>().syncSettings(state.settings);
+          }
+        },
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, settingsState) {
+            if (settingsState is SettingsLoading) {
+              return const Center(child: CupertinoActivityIndicator());
+            }
+            return BlocSelector<EditorCubit, EditorState, String?>(
+              selector: (s) => s is EditorLoaded ? s.form.linkedSheetId : null,
+              builder: (context, linkedSheetId) => _SettingsContent(
+                formId: widget.formId,
+                linkedSheetId: linkedSheetId,
+              ),
+            );
+          },
+        ),
       ),
-      builder: (context, data) {
-        if (data.settings == null) {
-          return const Center(child: CupertinoActivityIndicator());
-        }
-        return _SettingsContent(
-          initialSettings: data.settings!,
-          formId: formId,
-          linkedSheetId: data.linkedSheetId,
-        );
-      },
     );
   }
 }
 
 class _SettingsContent extends StatefulWidget {
-  final FormSettings initialSettings;
   final String formId;
   final String? linkedSheetId;
 
   const _SettingsContent({
-    required this.initialSettings,
     required this.formId,
     this.linkedSheetId,
   });
@@ -65,25 +95,25 @@ class _SettingsContent extends StatefulWidget {
 class _SettingsContentState extends State<_SettingsContent> {
   late EmailCollectionType _emailType;
   late bool _isQuiz;
-  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _emailType = widget.initialSettings.emailCollectionType;
-    _isQuiz = widget.initialSettings.quizSettings.isQuiz;
+    final settings = (context.read<SettingsCubit>().state as SettingsLoaded).settings;
+    _emailType = settings.emailCollectionType;
+    _isQuiz = settings.quizSettings.isQuiz;
   }
 
   Future<void> _save({required EmailCollectionType emailType, required bool isQuiz}) async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
-    await context.read<EditorCubit>().updateSettings(
+    final cubitState = context.read<SettingsCubit>().state;
+    if (cubitState is SettingsLoaded && cubitState.isSaving) return;
+    await context.read<SettingsCubit>().updateSettings(
+          widget.formId,
           FormSettings(
             quizSettings: QuizSettings(isQuiz: isQuiz),
             emailCollectionType: emailType,
           ),
         );
-    if (mounted) setState(() => _isSaving = false);
   }
 
   Future<void> _onQuizToggle(bool value) async {
@@ -111,98 +141,124 @@ class _SettingsContentState extends State<_SettingsContent> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        16, 20, 16, MediaQuery.viewPaddingOf(context).bottom + 20,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Email collection ───────────────────────────────────────────────
-          _IosGroupLabel(
-            label: 'COLLECT EMAIL ADDRESSES',
-            trailing: _isSaving
-                ? const CupertinoActivityIndicator(radius: 7)
-                : null,
-          ),
-          _IosCard(children: [
-            _IosRadioTile(
-              label: "Don't collect",
-              selected: _emailType == EmailCollectionType.doNotCollect,
-              onTap: _isSaving
-                  ? null
-                  : () => _onEmailTypeChange(EmailCollectionType.doNotCollect),
+    return BlocListener<SettingsCubit, SettingsState>(
+      listenWhen: (prev, curr) =>
+          curr is SettingsLoaded &&
+          curr.saveFailed &&
+          prev is SettingsLoaded &&
+          !prev.saveFailed,
+      listener: (context, state) {
+        if (state is! SettingsLoaded) return;
+        setState(() {
+          _emailType = state.settings.emailCollectionType;
+          _isQuiz = state.settings.quizSettings.isQuiz;
+        });
+        context.read<SettingsCubit>().clearSaveFailed();
+        ErrorModal.show(
+          context,
+          title: 'Could not save settings',
+          body: 'Please try again.',
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+      },
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, settingsState) {
+          final isSaving = settingsState is SettingsLoaded && settingsState.isSaving;
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              16, 20, 16, MediaQuery.viewPaddingOf(context).bottom + 20,
             ),
-            _IosRadioTile(
-              label: 'Verified (Workspace accounts only)',
-              selected: _emailType == EmailCollectionType.verified,
-              onTap: _isSaving
-                  ? null
-                  : () => _onEmailTypeChange(EmailCollectionType.verified),
-            ),
-            _IosRadioTile(
-              label: 'Ask respondents',
-              selected: _emailType == EmailCollectionType.responderInput,
-              isLast: true,
-              onTap: _isSaving
-                  ? null
-                  : () =>
-                      _onEmailTypeChange(EmailCollectionType.responderInput),
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Quiz mode ──────────────────────────────────────────────────────
-          const _IosGroupLabel(label: 'QUIZ'),
-          _IosCard(children: [
-            _IosSwitchTile(
-              label: 'Quiz mode',
-              subtitle: 'Assign point values and set correct answers',
-              value: _isQuiz,
-              isLast: true,
-              onChanged: _isSaving ? null : _onQuizToggle,
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Notifications ──────────────────────────────────────────────────
-          const _IosGroupLabel(label: 'NOTIFICATIONS'),
-          _IosCard(children: [
-            _NotificationToggle(
-              formId: widget.formId,
-              formTitle: context.read<EditorCubit>().state is EditorLoaded
-                  ? (context.read<EditorCubit>().state as EditorLoaded).form.info.title
-                  : '',
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Data ───────────────────────────────────────────────────────────
-          // CSV export was moved to the action bar above the tabs. The DATA
-          // section now only appears when there's something else to put in it
-          // (currently: linked Google Sheet shortcut).
-          if (widget.linkedSheetId != null) ...[
-            const _IosGroupLabel(label: 'DATA'),
-            _IosCard(children: [
-              _IosActionTile(
-                icon: CupertinoIcons.table,
-                label: 'Open linked Google Sheet',
-                trailing: const Icon(
-                  CupertinoIcons.arrow_up_right_square,
-                  size: 16,
-                  color: AppColors.textSecondary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Email collection ─────────────────────────────────────────
+                _IosGroupLabel(
+                  label: 'COLLECT EMAIL ADDRESSES',
+                  trailing: isSaving
+                      ? const CupertinoActivityIndicator(radius: 7)
+                      : null,
                 ),
-                isLast: true,
-                onTap: () => launchUrl(
-                  Uri.parse(
-                    'https://docs.google.com/spreadsheets/d/${widget.linkedSheetId}',
+                _IosCard(children: [
+                  _IosRadioTile(
+                    label: "Don't collect",
+                    selected: _emailType == EmailCollectionType.doNotCollect,
+                    onTap: isSaving
+                        ? null
+                        : () => _onEmailTypeChange(EmailCollectionType.doNotCollect),
                   ),
-                  mode: LaunchMode.externalApplication,
-                ),
-              ),
-            ]),
-          ],
-        ],
+                  _IosRadioTile(
+                    label: 'Verified (Workspace accounts only)',
+                    selected: _emailType == EmailCollectionType.verified,
+                    onTap: isSaving
+                        ? null
+                        : () => _onEmailTypeChange(EmailCollectionType.verified),
+                  ),
+                  _IosRadioTile(
+                    label: 'Ask respondents',
+                    selected: _emailType == EmailCollectionType.responderInput,
+                    isLast: true,
+                    onTap: isSaving
+                        ? null
+                        : () => _onEmailTypeChange(EmailCollectionType.responderInput),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                // ── Quiz mode ────────────────────────────────────────────────
+                const _IosGroupLabel(label: 'QUIZ'),
+                _IosCard(children: [
+                  _IosSwitchTile(
+                    label: 'Quiz mode',
+                    subtitle: 'Assign point values and set correct answers',
+                    value: _isQuiz,
+                    isLast: true,
+                    onChanged: isSaving ? null : _onQuizToggle,
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                // ── Notifications ────────────────────────────────────────────
+                const _IosGroupLabel(label: 'NOTIFICATIONS'),
+                _IosCard(children: [
+                  _NotificationToggle(
+                    formId: widget.formId,
+                    formTitle: context.read<EditorCubit>().state is EditorLoaded
+                        ? (context.read<EditorCubit>().state as EditorLoaded).form.info.title
+                        : '',
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                // ── Data ─────────────────────────────────────────────────────
+                // CSV export was moved to the action bar above the tabs. The DATA
+                // section now only appears when there's something else to put in it
+                // (currently: linked Google Sheet shortcut).
+                if (widget.linkedSheetId != null) ...[
+                  const _IosGroupLabel(label: 'DATA'),
+                  _IosCard(children: [
+                    _IosActionTile(
+                      icon: CupertinoIcons.table,
+                      label: 'Open linked Google Sheet',
+                      trailing: const Icon(
+                        CupertinoIcons.arrow_up_right_square,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      isLast: true,
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                          'https://docs.google.com/spreadsheets/d/${widget.linkedSheetId}',
+                        ),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                  ]),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }

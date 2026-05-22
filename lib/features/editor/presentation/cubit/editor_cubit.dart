@@ -14,25 +14,20 @@ import '../../domain/repositories/editor_repository.dart';
 import '../../domain/usecases/execute_batch.dart';
 import '../../domain/usecases/load_form.dart';
 import '../../domain/usecases/refresh_revision.dart';
-import '../../domain/usecases/update_editor_settings.dart';
-
 part 'editor_state.dart';
 
 class EditorCubit extends Cubit<EditorState> {
   final LoadForm _loadForm;
   final ExecuteBatch _executeBatch;
   final RefreshRevision _refreshRevision;
-  final UpdateEditorSettings _updateSettings;
 
   EditorCubit({
     required LoadForm loadForm,
     required ExecuteBatch executeBatch,
     required RefreshRevision refreshRevision,
-    required UpdateEditorSettings updateSettings,
   })  : _loadForm = loadForm,
         _executeBatch = executeBatch,
         _refreshRevision = refreshRevision,
-        _updateSettings = updateSettings,
         super(const EditorLoading());
 
   String _revisionId = '';
@@ -284,29 +279,12 @@ class EditorCubit extends Cubit<EditorState> {
 
   // ── Settings ───────────────────────────────────────────────────────────────
 
-  Future<void> updateSettings(FormSettings settings) async {
+  /// Syncs settings into the local form state so quiz mode stays up-to-date
+  /// on the questions tab. Called by SettingsCubit after a successful API save.
+  void syncSettings(FormSettings settings) {
     if (state is! EditorLoaded) return;
     final l = state as EditorLoaded;
-    final formId = l.form.formId;
-    final snapshot = l;
-
-    // Optimistic update
     emit(l.copyWith(form: l.form.copyWith(settings: settings)));
-
-    final result = await _updateSettings(
-      UpdateSettingsParams(formId: formId, settings: settings),
-    );
-    if (isClosed) return;
-    result.fold(
-      (failure) {
-        dev.log(
-          '[EditorCubit] updateSettings error: $failure',
-          name: 'API',
-        );
-        emit(snapshot.copyWith(saveFailed: true));
-      },
-      (_) {},
-    );
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────

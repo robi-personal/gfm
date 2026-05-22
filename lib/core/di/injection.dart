@@ -31,6 +31,7 @@ import '../../features/editor/domain/usecases/load_form.dart';
 import '../../features/editor/domain/usecases/refresh_revision.dart';
 import '../../features/editor/domain/usecases/update_editor_settings.dart';
 import '../../features/editor/presentation/cubit/editor_cubit.dart';
+import '../../features/editor/presentation/pages/tabs/settings/presentation/cubit/settings_cubit.dart';
 import '../../features/editor/data/repositories/responses_repository_impl.dart';
 import '../../features/editor/domain/repositories/responses_repository.dart';
 import '../../features/editor/domain/usecases/get_responses.dart';
@@ -185,8 +186,11 @@ void configureDependencies() {
       loadForm: getIt(),
       executeBatch: getIt(),
       refreshRevision: getIt(),
-      updateSettings: getIt(),
     ),
+  );
+
+  getIt.registerFactory(
+    () => SettingsCubit(getIt<UpdateEditorSettings>()),
   );
 
   // ── AI Form Builder feature ───────────────────────────────────────────────
