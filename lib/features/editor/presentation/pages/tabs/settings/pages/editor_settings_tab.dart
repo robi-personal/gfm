@@ -1,24 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:googleapis/forms/v1.dart' show CloudPubsubTopic, CreateWatchRequest, Watch, WatchTarget;
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../../../../core/api/forms_client.dart';
 import '../../../../../../../core/di/injection.dart';
 import '../../../../../../../core/models/enums.dart';
 import '../../../../../../../core/models/form_settings.dart';
 import '../../../../../../../core/theme/app_colors.dart';
-import '../../../../../../../core/theme/app_text_styles.dart';
-import '../../../../../../../core/usecases/usecase.dart';
-import '../../../../../../../core/widgets/ds_buttons.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
-import '../../../../../../ai_form_builder/domain/usecases/get_user_status.dart';
-import '../../../../../../notifications/data/datasources/notifications_api.dart';
-import '../../../../../../notifications/data/services/notification_service.dart';
-import '../../../../../../paywall/presentation/pages/paywall_page.dart';
 import '../../../../cubit/editor_cubit.dart';
 import '../cubit/settings_cubit.dart';
+import '../widgets/notification_toggle.dart';
+import '../widgets/settings_tiles.dart';
+import '../widgets/toggle_confirm_sheet.dart';
 
 // ── Settings tab page ─────────────────────────────────────────────────────────
 
@@ -80,14 +74,13 @@ class _EditorSettingsTabState extends State<EditorSettingsTab> {
   }
 }
 
+// ── Settings content ──────────────────────────────────────────────────────────
+
 class _SettingsContent extends StatefulWidget {
   final String formId;
   final String? linkedSheetId;
 
-  const _SettingsContent({
-    required this.formId,
-    this.linkedSheetId,
-  });
+  const _SettingsContent({required this.formId, this.linkedSheetId});
 
   @override
   State<_SettingsContent> createState() => _SettingsContentState();
@@ -120,7 +113,7 @@ class _SettingsContentState extends State<_SettingsContent> {
 
   Future<void> _onQuizToggle(bool value) async {
     if (_isQuizWorking) return;
-    final confirmed = await _showToggleConfirmSheet(
+    final confirmed = await showToggleConfirmSheet(
       context,
       icon: CupertinoIcons.star,
       title: value ? 'Enable Quiz Mode' : 'Turn Off Quiz Mode',
@@ -178,28 +171,28 @@ class _SettingsContentState extends State<_SettingsContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Email collection ─────────────────────────────────────────
-                _IosGroupLabel(
+                SettingsGroupLabel(
                   label: 'COLLECT EMAIL ADDRESSES',
                   trailing: isSaving
                       ? const CupertinoActivityIndicator(radius: 7)
                       : null,
                 ),
-                _IosCard(children: [
-                  _IosRadioTile(
+                SettingsCard(children: [
+                  SettingsRadioTile(
                     label: "Don't collect",
                     selected: _emailType == EmailCollectionType.doNotCollect,
                     onTap: isSaving
                         ? null
                         : () => _onEmailTypeChange(EmailCollectionType.doNotCollect),
                   ),
-                  _IosRadioTile(
+                  SettingsRadioTile(
                     label: 'Verified (Workspace accounts only)',
                     selected: _emailType == EmailCollectionType.verified,
                     onTap: isSaving
                         ? null
                         : () => _onEmailTypeChange(EmailCollectionType.verified),
                   ),
-                  _IosRadioTile(
+                  SettingsRadioTile(
                     label: 'Ask respondents',
                     selected: _emailType == EmailCollectionType.responderInput,
                     isLast: true,
@@ -211,9 +204,9 @@ class _SettingsContentState extends State<_SettingsContent> {
                 const SizedBox(height: 28),
 
                 // ── Quiz mode ────────────────────────────────────────────────
-                const _IosGroupLabel(label: 'QUIZ'),
-                _IosCard(children: [
-                  _IosSwitchTile(
+                const SettingsGroupLabel(label: 'QUIZ'),
+                SettingsCard(children: [
+                  SettingsSwitchTile(
                     label: 'Quiz mode',
                     subtitle: 'Assign point values and set correct answers',
                     value: _isQuiz,
@@ -225,9 +218,9 @@ class _SettingsContentState extends State<_SettingsContent> {
                 const SizedBox(height: 28),
 
                 // ── Notifications ────────────────────────────────────────────
-                const _IosGroupLabel(label: 'NOTIFICATIONS'),
-                _IosCard(children: [
-                  _NotificationToggle(
+                const SettingsGroupLabel(label: 'NOTIFICATIONS'),
+                SettingsCard(children: [
+                  NotificationToggle(
                     formId: widget.formId,
                     formTitle: context.read<EditorCubit>().state is EditorLoaded
                         ? (context.read<EditorCubit>().state as EditorLoaded).form.info.title
@@ -237,13 +230,10 @@ class _SettingsContentState extends State<_SettingsContent> {
                 const SizedBox(height: 28),
 
                 // ── Data ─────────────────────────────────────────────────────
-                // CSV export was moved to the action bar above the tabs. The DATA
-                // section now only appears when there's something else to put in it
-                // (currently: linked Google Sheet shortcut).
                 if (widget.linkedSheetId != null) ...[
-                  const _IosGroupLabel(label: 'DATA'),
-                  _IosCard(children: [
-                    _IosActionTile(
+                  const SettingsGroupLabel(label: 'DATA'),
+                  SettingsCard(children: [
+                    SettingsActionTile(
                       icon: CupertinoIcons.table,
                       label: 'Open linked Google Sheet',
                       trailing: const Icon(
@@ -265,578 +255,6 @@ class _SettingsContentState extends State<_SettingsContent> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-// ── Notification toggle (per-form push opt-in) ───────────────────────────────
-
-class _NotificationToggle extends StatefulWidget {
-  final String formId;
-  final String formTitle;
-
-  const _NotificationToggle({required this.formId, required this.formTitle});
-
-  @override
-  State<_NotificationToggle> createState() => _NotificationToggleState();
-}
-
-class _NotificationToggleState extends State<_NotificationToggle> {
-  bool _loading = true;
-  bool _isEnabled = false;
-  bool _isWorking = false;
-  String? _watchId;
-
-  static const String _topicResource = 'projects/form-manager-493310/topics/forms-responses';
-
-  /// Process-wide cache keyed by formId. The parent EditorCubit emits an
-  /// `isSaving` state that swaps the TabBarView for a skeleton on every
-  /// settings change, which tears down this widget. Without a cache,
-  /// forms.watches.list would re-fire on every save. The cache is updated
-  /// after enable/disable so it stays accurate.
-  static final Map<String, ({bool isEnabled, String? watchId})> _cache = {};
-
-  @override
-  void initState() {
-    super.initState();
-    final cached = _cache[widget.formId];
-    if (cached != null) {
-      _loading = false;
-      _isEnabled = cached.isEnabled;
-      _watchId = cached.watchId;
-    } else {
-      _loadInitial();
-    }
-  }
-
-  /// Derive the toggle state from forms.watches.list — Google is the source
-  /// of truth, so this stays accurate even across reinstalls.
-  Future<void> _loadInitial() async {
-    try {
-      final client = getIt<FormsClient>();
-      final res = await client.api.forms.watches.list(widget.formId);
-      final watch = res.watches?.firstWhere(
-        (w) => w.eventType == 'RESPONSES' && (w.state == 'ACTIVE' || w.state == null),
-        orElse: () => Watch(),
-      );
-      final isEnabled = watch?.id != null;
-      final watchId = watch?.id;
-      _cache[widget.formId] = (isEnabled: isEnabled, watchId: watchId);
-      if (!mounted) return;
-      setState(() {
-        _isEnabled = isEnabled;
-        _watchId = watchId;
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _onToggle(bool value) async {
-    if (_isWorking) return;
-
-    final confirmed = await _showToggleConfirmSheet(
-      context,
-      icon: value ? CupertinoIcons.bell : CupertinoIcons.bell_slash,
-      title: value ? 'Enable Notifications' : 'Turn Off Notifications',
-      subtitle: 'New responses',
-      body: value
-          ? 'Get a push notification whenever this form receives a new response.'
-          : 'You\'ll stop receiving push notifications for this form.',
-      continueLabel: value ? 'Enable' : 'Turn off',
-    );
-    if (confirmed != true || !mounted) return;
-
-    // Premium gate (uses server as source of truth).
-    final statusResult = await getIt<GetUserStatus>().call(const NoParams());
-    if (!mounted) return;
-    final isPremium = statusResult.fold((_) => false, (s) => s.isPremium);
-    if (!isPremium) {
-      await PaywallPage.show(context);
-      return;
-    }
-
-    setState(() => _isWorking = true);
-    try {
-      if (value) {
-        await _enable();
-      } else {
-        await _disable();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ErrorModal.show(
-        context,
-        title: value ? 'Could not enable notifications' : 'Could not disable notifications',
-        body: e.toString(),
-        primaryLabel: 'OK',
-        onPrimary: () {},
-      );
-    } finally {
-      if (mounted) setState(() => _isWorking = false);
-    }
-  }
-
-  Future<void> _enable() async {
-    // Make sure this device is registered with FCM before creating the watch —
-    // in case the user dismissed the dashboard rationale earlier and never
-    // granted permission. Idempotent if already registered.
-    await getIt<NotificationService>().registerForUser();
-
-    final client = getIt<FormsClient>();
-    final req = CreateWatchRequest(
-      watch: Watch(
-        target: WatchTarget(topic: CloudPubsubTopic(topicName: _topicResource)),
-        eventType: 'RESPONSES',
-      ),
-    );
-    final created = await client.api.forms.watches.create(req, widget.formId);
-    final watchId = created.id;
-    final expire = created.expireTime;
-    if (watchId == null || expire == null) {
-      throw Exception('Forms API returned an incomplete watch object.');
-    }
-
-    await getIt<NotificationsApi>().registerWatch(
-      formId: widget.formId,
-      watchId: watchId,
-      formTitle: widget.formTitle,
-      expiresAt: DateTime.parse(expire),
-    );
-
-    _cache[widget.formId] = (isEnabled: true, watchId: watchId);
-    if (!mounted) return;
-    setState(() {
-      _isEnabled = true;
-      _watchId = watchId;
-    });
-  }
-
-  Future<void> _disable() async {
-    final id = _watchId;
-    if (id == null) {
-      _cache[widget.formId] = (isEnabled: false, watchId: null);
-      if (mounted) setState(() => _isEnabled = false);
-      return;
-    }
-    final client = getIt<FormsClient>();
-    try {
-      await client.api.forms.watches.delete(widget.formId, id);
-    } catch (_) {
-      // 404 means it was already deleted on Google's side — ignore.
-    }
-    await getIt<NotificationsApi>().unregisterWatch(id);
-    _cache[widget.formId] = (isEnabled: false, watchId: null);
-    if (!mounted) return;
-    setState(() {
-      _isEnabled = false;
-      _watchId = null;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = _loading || _isWorking;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'New responses',
-                  style: AppTextStyles.body.copyWith(fontSize: 15),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Get a push notification when this form receives a new response',
-                  style: AppTextStyles.meta,
-                ),
-              ],
-            ),
-          ),
-          if (disabled)
-            const SizedBox(
-              width: 51, // matches default CupertinoSwitch width so layout doesn't shift
-              child: Center(
-                child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
-              ),
-            )
-          else
-            CupertinoSwitch(
-              value: _isEnabled,
-              activeTrackColor: AppColors.purple,
-              onChanged: _onToggle,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── iOS settings helpers ──────────────────────────────────────────────────────
-
-class _IosGroupLabel extends StatelessWidget {
-  final String label;
-  final Widget? trailing;
-
-  const _IosGroupLabel({required this.label, this.trailing});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.meta.copyWith(letterSpacing: 0.4),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing!,
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _IosCard extends StatelessWidget {
-  final List<Widget> children;
-
-  const _IosCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _IosRadioTile extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final bool isLast;
-  final VoidCallback? onTap;
-
-  const _IosRadioTile({
-    required this.label,
-    required this.selected,
-    this.isLast = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: isLast
-              ? const BorderRadius.vertical(bottom: Radius.circular(12))
-              : BorderRadius.zero,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTextStyles.body.copyWith(fontSize: 15),
-                  ),
-                ),
-                if (selected)
-                  const Icon(CupertinoIcons.checkmark, size: 18, color: AppColors.purple),
-              ],
-            ),
-          ),
-        ),
-        if (!isLast)
-          const Padding(
-            padding: EdgeInsets.only(left: 16),
-            child: Divider(height: 1, color: AppColors.separator),
-          ),
-      ],
-    );
-  }
-}
-
-class _IosSwitchTile extends StatelessWidget {
-  final String label;
-  final String? subtitle;
-  final bool value;
-  final bool isLast;
-  final bool isLoading;
-  final ValueChanged<bool>? onChanged;
-
-  const _IosSwitchTile({
-    required this.label,
-    required this.value,
-    this.subtitle,
-    this.isLast = false,
-    this.isLoading = false,
-    this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: AppTextStyles.body.copyWith(fontSize: 15),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: AppTextStyles.meta,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (isLoading)
-                const SizedBox(
-                  width: 51,
-                  child: Center(
-                    child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
-                  ),
-                )
-              else
-                CupertinoSwitch(
-                  value: value,
-                  activeTrackColor: AppColors.purple,
-                  onChanged: onChanged,
-                ),
-            ],
-          ),
-        ),
-        if (!isLast)
-          const Padding(
-            padding: EdgeInsets.only(left: 16),
-            child: Divider(height: 1, color: AppColors.separator),
-          ),
-      ],
-    );
-  }
-}
-
-class _IosActionTile extends StatelessWidget {
-  final IconData? icon;
-  final String label;
-  final Widget? trailing;
-  final bool isLast;
-  final VoidCallback? onTap;
-
-  const _IosActionTile({
-    this.icon,
-    required this.label,
-    this.trailing,
-    this.isLast = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final leading = icon != null
-        ? Icon(icon, size: 20, color: AppColors.purple)
-        : const SizedBox(width: 20);
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: isLast
-              ? const BorderRadius.vertical(bottom: Radius.circular(12))
-              : BorderRadius.zero,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                leading,
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTextStyles.body.copyWith(fontSize: 15),
-                  ),
-                ),
-                ?trailing,
-              ],
-            ),
-          ),
-        ),
-        if (!isLast)
-          const Padding(
-            padding: EdgeInsets.only(left: 48),
-            child: Divider(height: 1, color: AppColors.separator),
-          ),
-      ],
-    );
-  }
-}
-
-// ── Toggle confirm sheet ──────────────────────────────────────────────────────
-
-Future<bool?> _showToggleConfirmSheet(
-  BuildContext context, {
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required String body,
-  required String continueLabel,
-}) {
-  return showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xFF141028).withValues(alpha: 0.45),
-    builder: (_) => _ToggleConfirmSheet(
-      icon: icon,
-      title: title,
-      subtitle: subtitle,
-      body: body,
-      continueLabel: continueLabel,
-    ),
-  );
-}
-
-class _ToggleConfirmSheet extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String body;
-  final String continueLabel;
-
-  const _ToggleConfirmSheet({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.body,
-    required this.continueLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 28;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x29141028),
-            blurRadius: 30,
-            offset: Offset(0, -10),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              margin: const EdgeInsets.only(bottom: 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE4E1EB),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          Row(
-            spacing: 14,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.purple50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.purple600, size: 20),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            body,
-            style: const TextStyle(
-              fontSize: 14.5,
-              height: 1.55,
-              color: AppColors.ink2,
-            ),
-          ),
-          const SizedBox(height: 20),
-          PrimaryButton(
-            label: continueLabel,
-            onTap: () => Navigator.of(context).pop(true),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(false),
-              behavior: HitTestBehavior.opaque,
-              child: const Center(
-                child: Text(
-                  'Later',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
