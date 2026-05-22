@@ -12,9 +12,9 @@ import '../../../../../../../core/models/question.dart';
 import '../../../../../../../core/models/question_kind.dart';
 import '../../../../../../../core/theme/app_colors.dart';
 import '../cubit/questions_cubit.dart';
-import '../../../../widgets/image_url_dialog.dart';
-import '../../../../widgets/question_edit_sheet.dart';
-import '../../../../widgets/video_search_dialog.dart';
+import 'image_url_dialog.dart';
+import 'question_edit_sheet.dart';
+import 'video_search_dialog.dart';
 
 class QuestionsBottomBar extends StatelessWidget {
   final bool enabled;

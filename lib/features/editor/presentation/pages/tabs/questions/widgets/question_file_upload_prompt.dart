@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../../../../core/theme/app_colors.dart';
+import '../../../../../../../core/theme/app_text_styles.dart';
 
 /// In-sheet confirmation panel shown when the user picks "File upload" in the
 /// type picker. Lets them confirm or back out without losing their question state.

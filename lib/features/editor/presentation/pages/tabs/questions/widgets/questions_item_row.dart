@@ -5,10 +5,10 @@ import 'package:flutter/widgets.dart';
 import '../../../../../../../core/models/item.dart';
 import '../../../../../../../core/models/item_content.dart';
 import '../cubit/questions_cubit.dart';
-import '../../../../widgets/editor_media_cards.dart';
-import '../../../../widgets/question_card.dart';
-import '../../../../widgets/section_card.dart';
-import '../../../../widgets/text_block_card.dart';
+import 'editor_media_cards.dart';
+import 'question_card.dart';
+import 'section_card.dart';
+import 'text_block_card.dart';
 
 class _ItemData {
   final Item? item;

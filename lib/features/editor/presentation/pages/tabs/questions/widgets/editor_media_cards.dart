@@ -2,13 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/api/drive_client.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/di/injection.dart';
-import '../../../../core/models/item.dart';
-import '../../../../core/models/item_content.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../pages/tabs/questions/cubit/questions_cubit.dart';
+import '../../../../../../../core/api/drive_client.dart';
+import '../../../../../../../core/theme/app_text_styles.dart';
+import '../../../../../../../core/di/injection.dart';
+import '../../../../../../../core/models/item.dart';
+import '../../../../../../../core/models/item_content.dart';
+import '../../../../../../../core/theme/app_colors.dart';
+import '../cubit/questions_cubit.dart';
 import 'image_url_dialog.dart';
 
 class EditorImageCard extends StatelessWidget {

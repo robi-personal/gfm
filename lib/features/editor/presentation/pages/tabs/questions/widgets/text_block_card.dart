@@ -2,18 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/models/item.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../pages/tabs/questions/cubit/questions_cubit.dart';
+import '../../../../../../../core/models/item.dart';
+import '../../../../../../../core/theme/app_colors.dart';
+import '../../../../../../../core/theme/app_text_styles.dart';
+import '../cubit/questions_cubit.dart';
 import 'question_card.dart' show DragHandleHint;
-import 'section_edit_sheet.dart';
+import 'text_block_edit_sheet.dart';
 
-/// Section break card — same card design as question cards.
-class SectionCard extends StatelessWidget {
+class TextBlockCard extends StatelessWidget {
   final Item item;
 
-  const SectionCard({super.key, required this.item});
+  const TextBlockCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +61,10 @@ class SectionCard extends StatelessWidget {
                               child: Text(
                                 item.title?.isNotEmpty == true
                                     ? item.title!
-                                    : 'Section',
+                                    : 'Text block',
                                 style: AppTextStyles.body.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.purple,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -78,7 +77,7 @@ class SectionCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                'Section',
+                                'Text',
                                 style: AppTextStyles.sectionLabel.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.purple,
@@ -100,17 +99,17 @@ class SectionCard extends StatelessWidget {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            _CardActionButton(
+                            _ActionButton(
                               icon: CupertinoIcons.trash,
-                              tooltip: 'Delete section',
+                              tooltip: 'Delete text block',
                               onPressed: () =>
                                   context.read<QuestionsCubit>().deleteItem(item.itemId),
                             ),
-                            _CardActionButton(
+                            _ActionButton(
                               icon: CupertinoIcons.pencil,
-                              tooltip: 'Edit section',
+                              tooltip: 'Edit text block',
                               onPressed: () =>
-                                  SectionEditSheet.show(context, item),
+                                  TextBlockEditSheet.show(context, item),
                             ),
                           ],
                         ),
@@ -127,12 +126,12 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-class _CardActionButton extends StatelessWidget {
+class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
 
-  const _CardActionButton({
+  const _ActionButton({
     required this.icon,
     required this.tooltip,
     required this.onPressed,

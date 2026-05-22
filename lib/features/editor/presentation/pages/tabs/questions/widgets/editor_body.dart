@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/widgets.dart';
 
-import '../pages/tabs/questions/cubit/questions_cubit.dart';
-import '../pages/tabs/questions/widgets/questions_empty_state.dart';
-import '../pages/tabs/questions/widgets/questions_item_row.dart';
+import '../cubit/questions_cubit.dart';
+import 'questions_empty_state.dart';
+import 'questions_item_row.dart';
 import 'form_header_card.dart';
 
 class _BodyData {
@@ -144,4 +144,3 @@ class _EditorBodyState extends State<EditorBody> {
     );
   }
 }
-

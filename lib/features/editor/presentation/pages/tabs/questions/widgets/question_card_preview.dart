@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/choice_option.dart';
-import '../../../../core/models/enums.dart';
-import '../../../../core/models/question_kind.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../../../../core/models/choice_option.dart';
+import '../../../../../../../core/models/enums.dart';
+import '../../../../../../../core/models/question_kind.dart';
+import '../../../../../../../core/theme/app_colors.dart';
+import '../../../../../../../core/theme/app_text_styles.dart';
 
 /// Read-only preview of a question's answer area, shown inside [QuestionCard].
 class QuestionCardPreview extends StatelessWidget {
