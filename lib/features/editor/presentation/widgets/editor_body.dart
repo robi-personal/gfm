@@ -1,19 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/widgets.dart';
 
-import '../../../../core/models/item.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/models/item_content.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
-import '../widgets/form_header_card.dart';
-import '../widgets/question_card.dart';
-import '../widgets/section_card.dart';
-import '../widgets/text_block_card.dart';
-import 'editor_media_cards.dart';
-
-// ── Value objects for BlocSelectors ──────────────────────────────────────────
+import '../pages/tabs/questions/widgets/questions_empty_state.dart';
+import '../pages/tabs/questions/widgets/questions_item_row.dart';
+import 'form_header_card.dart';
 
 class _BodyData {
   final List<String> itemIds;
@@ -39,26 +31,6 @@ class _BodyData {
   int get hashCode =>
       Object.hash(title, description, Object.hashAll(itemIds));
 }
-
-class _ItemData {
-  final Item? item;
-  final List<Item> sections;
-  final bool isQuiz;
-
-  const _ItemData({required this.item, required this.sections, this.isQuiz = false});
-
-  @override
-  bool operator ==(Object other) =>
-      other is _ItemData &&
-      other.item == item &&
-      other.isQuiz == isQuiz &&
-      listEquals(other.sections, sections);
-
-  @override
-  int get hashCode => Object.hash(item, isQuiz, Object.hashAll(sections));
-}
-
-// ── Editor body (Questions tab) ───────────────────────────────────────────────
 
 class EditorBody extends StatefulWidget {
   const EditorBody({super.key});
@@ -133,35 +105,7 @@ class _EditorBodyState extends State<EditorBody> {
               physics: physics,
               slivers: [
                 SliverToBoxAdapter(child: header),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            CupertinoIcons.question_circle,
-                            size: 56,
-                            color: AppColors.iconInactive,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No questions yet.',
-                            style: AppTextStyles.cardTitle.copyWith(color: AppColors.ink2),
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Tap + below to add your first question.',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.body.copyWith(color: AppColors.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                const QuestionsEmptyState(),
               ],
             );
           }
@@ -187,7 +131,7 @@ class _EditorBodyState extends State<EditorBody> {
                       index: i,
                       child: BlocProvider.value(
                         value: context.read<EditorCubit>(),
-                        child: _ItemRow(itemId: data.itemIds[i]),
+                        child: QuestionsItemRow(itemId: data.itemIds[i]),
                       ),
                     );
                   },
@@ -201,44 +145,3 @@ class _EditorBodyState extends State<EditorBody> {
   }
 }
 
-// ── Per-item row ──────────────────────────────────────────────────────────────
-
-class _ItemRow extends StatelessWidget {
-  final String itemId;
-
-  const _ItemRow({required this.itemId});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocSelector<EditorCubit, EditorState, _ItemData>(
-      selector: (state) {
-        if (state is! EditorLoaded) {
-          return const _ItemData(item: null, sections: []);
-        }
-        final items = state.form.items;
-        final idx = items.indexWhere((i) => i.itemId == itemId);
-        final item = idx == -1 ? null : items[idx];
-        final sections = items
-            .where((i) => i.content is PageBreakItemContent)
-            .toList(growable: false);
-        return _ItemData(
-          item: item,
-          sections: sections,
-          isQuiz: state.form.settings.quizSettings.isQuiz,
-        );
-      },
-      builder: (context, data) {
-        final item = data.item;
-        if (item == null) return const SizedBox.shrink();
-        return switch (item.content) {
-          QuestionItemContent() || QuestionGroupItemContent() =>
-            QuestionCard(item: item, sections: data.sections, isQuiz: data.isQuiz),
-          PageBreakItemContent() => SectionCard(item: item),
-          TextItemContent() => TextBlockCard(item: item),
-          ImageItemContent() => EditorImageCard(item: item),
-          VideoItemContent() => EditorVideoCard(item: item),
-        };
-      },
-    );
-  }
-}

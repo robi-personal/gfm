@@ -4,25 +4,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/models/item_content.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/layout.dart';
 import '../../../../core/widgets/error_modal.dart';
+import 'tabs/questions/pages/questions_tab.dart';
 import 'tabs/responses/cubit/responses_cubit.dart';
 import 'tabs/responses/pages/responses_page.dart';
 import '../cubit/editor_cubit.dart';
-import '../widgets/editor_body.dart';
-import '../widgets/editor_bottom_bar.dart';
 import '../widgets/editor_error_view.dart';
 import '../widgets/editor_nav_rail.dart';
 import '../widgets/editor_options_sheet.dart';
 import 'tabs/settings/pages/editor_settings_tab.dart';
 import '../widgets/editor_skeleton.dart';
 import '../widgets/editor_tab_bar.dart';
-import '../widgets/question_edit_sheet.dart';
-import '../widgets/text_block_edit_sheet.dart';
-import 'edit_form_webview_page.dart';
 
 class EditorPage extends StatelessWidget {
   final String formId;
@@ -116,66 +111,6 @@ class _EditorViewState extends State<_EditorView>
     if (discard && mounted) Navigator.of(context).pop();
   }
 
-  /// Triggered by the cubit signal when the user picks "File upload" in the
-  /// type picker. Shows an explainer dialog, optionally saves local pending
-  /// changes (so they aren't lost by the post-return reload), opens the
-  /// Google Forms web editor, and on return refreshes the form so the newly
-  /// created file-upload question shows up.
-  Future<void> _runFileUploadWebFlow(
-    BuildContext context, {
-    required bool isEditing,
-  }) async {
-    // Add path: the user has already confirmed via the in-sheet prompt
-    // (QuestionEditSheet's _FileUploadPromptPanel). Edit path: show the
-    // info dialog as the explicit confirmation.
-    if (isEditing) {
-      final proceed =
-          await _showFileUploadInfoDialog(context, isEditing: true);
-      if (proceed != true || !context.mounted) return;
-    }
-
-    final cubit = context.read<EditorCubit>();
-    final state = cubit.state;
-    if (state is! EditorLoaded) return;
-
-    // If the user has unsaved local changes, save them first so they aren't
-    // discarded by the post-return _silentRefresh.
-    if (state.isDirty) {
-      bool saveAndContinue = false;
-      await ErrorModal.show(
-        context,
-        title: 'Save your changes first?',
-        body: 'You have unsaved edits. We need to save them before opening '
-            'the web editor — otherwise they will be lost.',
-        primaryLabel: 'Save & continue',
-        onPrimary: () => saveAndContinue = true,
-        secondaryLabel: 'Cancel',
-        onSecondary: () {},
-      );
-      if (!saveAndContinue || !context.mounted) return;
-      await cubit.save();
-      if (!context.mounted) return;
-      final after = cubit.state;
-      if (after is EditorLoaded && (after.isDirty || after.saveFailed)) {
-        // Save didn't complete cleanly — don't open the web editor in a state
-        // where the user could lose work.
-        return;
-      }
-    }
-
-    if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EditFormWebViewPage(
-          formId: widget.formId,
-          title: isEditing ? 'Edit file upload' : 'Add file upload',
-        ),
-      ),
-    );
-    if (!context.mounted) return;
-    await context.read<EditorCubit>().refreshFromServer();
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -192,18 +127,6 @@ class _EditorViewState extends State<_EditorView>
           final p = prev is EditorLoaded ? prev : null;
           if (curr.conflictPending && !(p?.conflictPending ?? false)) return true;
           if (curr.saveFailed && !(p?.saveFailed ?? false)) return true;
-          if (curr.pendingEditItemId != null &&
-              curr.pendingEditItemId != (p?.pendingEditItemId)) {
-            return true;
-          }
-          if (curr.fileUploadViaWebRequested &&
-              !(p?.fileUploadViaWebRequested ?? false)) {
-            return true;
-          }
-          if (curr.fileUploadEditViaWebRequested &&
-              !(p?.fileUploadEditViaWebRequested ?? false)) {
-            return true;
-          }
         }
         return curr is EditorError;
       },
@@ -343,68 +266,46 @@ class _EditorViewState extends State<_EditorView>
   }
 
   Widget _buildContentStack(BuildContext context) {
-    return Stack(
-      children: [
-        RepaintBoundary(
-          child: ColoredBox(
-            color: AppColors.groupedBackground,
-            child: BlocBuilder<EditorCubit, EditorState>(
-              buildWhen: (prev, curr) {
-                if (prev.runtimeType != curr.runtimeType) return true;
-                if (prev is EditorLoaded && curr is EditorLoaded) {
-                  return prev.isSaving != curr.isSaving;
-                }
-                return false;
-              },
-              builder: (context, state) => switch (state) {
-                EditorLoading() => const EditorSkeleton(),
-                EditorLoaded(:final isSaving) when isSaving =>
-                  const EditorSkeleton(),
-                EditorError(:final kind, :final message)
-                    when kind == EditorErrorKind.network =>
-                  EditorErrorView(
-                    message: message,
-                    onRetry: () =>
-                        context.read<EditorCubit>().loadForm(widget.formId),
+    return RepaintBoundary(
+      child: ColoredBox(
+        color: AppColors.groupedBackground,
+        child: BlocBuilder<EditorCubit, EditorState>(
+          buildWhen: (prev, curr) {
+            if (prev.runtimeType != curr.runtimeType) return true;
+            if (prev is EditorLoaded && curr is EditorLoaded) {
+              return prev.isSaving != curr.isSaving;
+            }
+            return false;
+          },
+          builder: (context, state) => switch (state) {
+            EditorLoading() => const EditorSkeleton(),
+            EditorLoaded(:final isSaving) when isSaving => const EditorSkeleton(),
+            EditorError(:final kind, :final message)
+                when kind == EditorErrorKind.network =>
+              EditorErrorView(
+                message: message,
+                onRetry: () =>
+                    context.read<EditorCubit>().loadForm(widget.formId),
+              ),
+            EditorError() => const SizedBox.shrink(),
+            EditorLoaded(:final form) => TabBarView(
+                controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  QuestionsTab(formId: widget.formId),
+                  BlocProvider.value(
+                    value: context.read<ResponsesCubit>(),
+                    child: ResponsesScreen(
+                      formId: widget.formId,
+                      items: form.items,
+                    ),
                   ),
-                EditorError() => const SizedBox.shrink(),
-                EditorLoaded(:final form) => TabBarView(
-                    controller: _tabController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      const EditorBody(),
-                      BlocProvider.value(
-                        value: context.read<ResponsesCubit>(),
-                        child: ResponsesScreen(
-                          formId: widget.formId,
-                          items: form.items,
-                        ),
-                      ),
-                      EditorSettingsTab(formId: widget.formId),
-                    ],
-                  ),
-              },
-            ),
-          ),
+                  EditorSettingsTab(formId: widget.formId),
+                ],
+              ),
+          },
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: AnimatedBuilder(
-            animation: _tabController,
-            builder: (context, _) {
-              if (_tabController.index != 0) return const SizedBox.shrink();
-              return BlocSelector<EditorCubit, EditorState, bool>(
-                selector: (state) =>
-                    state is EditorLoaded && !state.isSaving,
-                builder: (context, enabled) =>
-                    EditorBottomBar(enabled: enabled, formId: widget.formId),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -422,30 +323,6 @@ class _EditorViewState extends State<_EditorView>
   }
 
   void _onStateChange(BuildContext context, EditorState state) {
-    // Auto-open edit sheet for newly added items
-    if (state case EditorLoaded(:final pendingEditItemId?)) {
-      final cubit = context.read<EditorCubit>();
-      cubit.clearPendingEdit();
-      final loaded = state;
-      final item = loaded.form.items
-          .where((i) => i.itemId == pendingEditItemId)
-          .firstOrNull;
-      if (item != null) {
-        if (item.content is TextItemContent) {
-          TextBlockEditSheet.show(context, item);
-        } else {
-          final sections = loaded.form.items
-              .where((i) => i.content is PageBreakItemContent)
-              .toList();
-          QuestionEditSheet.show(
-            context, item, sections,
-            isQuiz: loaded.form.settings.quizSettings.isQuiz,
-          );
-        }
-      }
-      return;
-    }
-
     if (state case EditorLoaded(conflictPending: true)) {
       context.read<EditorCubit>().clearConflict();
       ErrorModal.show(
@@ -472,16 +349,6 @@ class _EditorViewState extends State<_EditorView>
       );
     }
 
-    if (state case EditorLoaded(fileUploadViaWebRequested: true)) {
-      context.read<EditorCubit>().clearFileUploadRequest();
-      _runFileUploadWebFlow(context, isEditing: false);
-    }
-
-    if (state case EditorLoaded(fileUploadEditViaWebRequested: true)) {
-      context.read<EditorCubit>().clearEditFileUploadRequest();
-      _runFileUploadWebFlow(context, isEditing: true);
-    }
-
     if (state case EditorError(:final kind)) {
       switch (kind) {
         case EditorErrorKind.notFound:
@@ -505,112 +372,4 @@ class _EditorViewState extends State<_EditorView>
       }
     }
   }
-}
-
-
-Future<bool?> _showFileUploadInfoDialog(
-  BuildContext context, {
-  required bool isEditing,
-}) {
-  final title = isEditing ? 'Edit file upload' : 'Add file upload';
-  final body = isEditing
-      ? "For your privacy, this app uses minimal Google permissions — and "
-          "Google only allows file upload questions to be edited through "
-          "the Google Forms website. Tap below to open this form there. "
-          "When you come back, your changes will appear automatically."
-      : "For your privacy, this app uses minimal Google permissions — and "
-          "Google only allows file upload questions to be added through "
-          "the Google Forms website. Tap below to open this form there. "
-          "When you come back, your new question will appear automatically.";
-  return showDialog<bool>(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.purple.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.arrow_up_doc,
-                    color: AppColors.purple,
-                    size: 15,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: AppTextStyles.cardTitle.copyWith(fontSize: 15),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(
-                height: 1, thickness: 1, color: AppColors.groupedBackground),
-            const SizedBox(height: 12),
-            Text(
-              body,
-              style: AppTextStyles.meta.copyWith(height: 1.45, color: AppColors.muted),
-            ),
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: () => Navigator.of(ctx).pop(true),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: AppColors.purple,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.purple.withValues(alpha: 0.30),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    'Continue',
-                    style: AppTextStyles.cardTitle.copyWith(fontSize: 15, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => Navigator.of(ctx).pop(false),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: AppColors.groupedBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    'Cancel',
-                    style: AppTextStyles.cardTitle.copyWith(fontSize: 15, color: AppColors.muted),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

@@ -4,32 +4,27 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/api/drive_client.dart';
-import '../../../../core/di/injection.dart';
-import '../../../../core/models/item.dart';
-import '../../../../core/models/item_content.dart';
-import '../../../../core/models/question.dart';
-import '../../../../core/models/question_kind.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../cubit/editor_cubit.dart';
-import '../widgets/question_edit_sheet.dart';
-import '../widgets/image_url_dialog.dart';
-import '../widgets/video_search_dialog.dart';
+import '../../../../../../../core/api/drive_client.dart';
+import '../../../../../../../core/di/injection.dart';
+import '../../../../../../../core/models/item.dart';
+import '../../../../../../../core/models/item_content.dart';
+import '../../../../../../../core/models/question.dart';
+import '../../../../../../../core/models/question_kind.dart';
+import '../../../../../../../core/theme/app_colors.dart';
+import '../../../../cubit/editor_cubit.dart';
+import '../../../../widgets/image_url_dialog.dart';
+import '../../../../widgets/question_edit_sheet.dart';
+import '../../../../widgets/video_search_dialog.dart';
 
-class EditorBottomBar extends StatelessWidget {
+class QuestionsBottomBar extends StatelessWidget {
   final bool enabled;
   final String formId;
 
-  const EditorBottomBar({
-    super.key,
-    required this.enabled,
-    required this.formId,
-  });
+  const QuestionsBottomBar({super.key, required this.enabled, required this.formId});
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<EditorCubit>();
-
     return SafeArea(
       top: false,
       child: Align(
@@ -58,8 +53,7 @@ class EditorBottomBar extends StatelessWidget {
                       ),
                     ],
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -74,15 +68,12 @@ class EditorBottomBar extends StatelessWidget {
                         label: 'Image',
                         enabled: enabled,
                         onTap: () async {
-                          final driveClient = getIt<DriveClient>();
                           final url = await showImageUrlDialog(
                             context,
                             onGalleryUpload: (bytes, mimeType) =>
-                                driveClient.uploadImage(bytes, mimeType),
+                                getIt<DriveClient>().uploadImage(bytes, mimeType),
                           );
-                          if (url != null && context.mounted) {
-                            cubit.addImageItem(url);
-                          }
+                          if (url != null && context.mounted) cubit.addImageItem(url);
                         },
                       ),
                       _BarButton(
@@ -120,9 +111,6 @@ class EditorBottomBar extends StatelessWidget {
   }
 }
 
-/// Opens the QuestionEditSheet in draft mode (no placeholder added to the
-/// form). Committing via the sheet's Done button adds the question;
-/// dismissing the sheet discards it.
 void _openNewQuestionDraft(BuildContext context) {
   final state = context.read<EditorCubit>().state;
   if (state is! EditorLoaded) return;
@@ -130,10 +118,7 @@ void _openNewQuestionDraft(BuildContext context) {
     itemId: '_draft',
     title: '',
     content: QuestionItemContent(
-      question: Question(
-        questionId: '_draft_q',
-        kind: const TextQuestion(),
-      ),
+      question: Question(questionId: '_draft_q', kind: const TextQuestion()),
     ),
   );
   final sections = state.form.items
@@ -163,10 +148,7 @@ class _BarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = enabled
-        ? Colors.white
-        : Colors.white.withValues(alpha: 0.35);
-
+    final iconColor = enabled ? Colors.white : Colors.white.withValues(alpha: 0.35);
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
