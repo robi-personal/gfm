@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/choice_option.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
@@ -81,8 +82,7 @@ class QuestionCard extends StatelessWidget {
                             item.title?.isNotEmpty == true
                                 ? item.title!
                                 : 'Question name',
-                            style: TextStyle(
-                              fontSize: 15,
+                            style: AppTextStyles.body.copyWith(
                               fontWeight: FontWeight.w500,
                               color: item.title?.isNotEmpty == true
                                   ? AppColors.textPrimary
@@ -98,8 +98,8 @@ class QuestionCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         item.description!,
-                        style: const TextStyle(
-                            fontSize: 13, color: AppColors.textSecondary),
+                        style: AppTextStyles.meta.copyWith(
+                            fontWeight: FontWeight.normal),
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -116,11 +116,9 @@ class QuestionCard extends StatelessWidget {
                           context, item, sections,
                           isQuiz: isQuiz,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Add Option  ·  Add "Other"',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                          style: AppTextStyles.meta.copyWith(
                             color: AppColors.purple,
                           ),
                         ),
@@ -132,8 +130,7 @@ class QuestionCard extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         child: Text(
                           'Points: ${question.grading!.pointValue}',
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: AppTextStyles.meta.copyWith(
                             fontWeight: FontWeight.w600,
                             color: AppColors.purple,
                           ),
@@ -176,7 +173,7 @@ class QuestionCard extends StatelessWidget {
                         if (kind is! FileUploadQuestion) ...[
                           const Text(
                             'Required',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: AppTextStyles.meta,
                           ),
                           const SizedBox(width: 6),
                           Transform.scale(
@@ -251,8 +248,7 @@ class QuestionCard extends StatelessWidget {
                                 item.title?.isNotEmpty == true
                                     ? item.title!
                                     : 'Question group',
-                                style: const TextStyle(
-                                  fontSize: 15,
+                                style: AppTextStyles.body.copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textPrimary,
                                 ),
@@ -268,8 +264,8 @@ class QuestionCard extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             '${content.questions.length} rows · $colCount columns',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary),
+                            style: AppTextStyles.meta.copyWith(
+                                fontWeight: FontWeight.normal),
                           ),
                         ],
                         const Divider(height: 20, color: AppColors.separator),
@@ -426,14 +422,14 @@ class _ContentPreview extends StatelessWidget {
         _OptionsPreview(options: options, type: type, correctValues: correctValues),
       TextQuestion() when correctValues.isNotEmpty => Text(
           'Answer: ${correctValues.first}',
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: AppTextStyles.meta.copyWith(fontWeight: FontWeight.normal),
         ),
       TextQuestion(:final paragraph) => _PreviewLine(
           paragraph ? 'Long answer text' : 'Short answer text'),
       ScaleQuestion(:final low, :final high) => Text(
           'Scale $low – $high',
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+          style: AppTextStyles.meta.copyWith(
+              fontWeight: FontWeight.normal, fontStyle: FontStyle.italic),
         ),
       DateQuestion() =>
         _IconLine(CupertinoIcons.calendar, 'Date'),
@@ -461,10 +457,10 @@ class _OptionsPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (options.isEmpty) {
-      return const Text(
+      return Text(
         'No options — tap Edit to add some.',
-        style: TextStyle(
-            fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+        style: AppTextStyles.meta.copyWith(
+            fontWeight: FontWeight.normal, fontStyle: FontStyle.italic),
       );
     }
 
@@ -496,8 +492,7 @@ class _OptionsPreview extends StatelessWidget {
                       Flexible(
                         child: Text(
                           o.isOther ? 'Other...' : o.value,
-                          style: TextStyle(
-                            fontSize: 13,
+                          style: AppTextStyles.meta.copyWith(
                             color: isCorrect ? AppColors.success : AppColors.textPrimary,
                             fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
                             fontStyle: o.isOther ? FontStyle.italic : FontStyle.normal,
@@ -523,9 +518,8 @@ class _OptionsPreview extends StatelessWidget {
             padding: const EdgeInsets.only(left: 22, top: 2),
             child: Text(
               '+ $overflow more',
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              style: AppTextStyles.meta.copyWith(
+                  fontWeight: FontWeight.normal,
                   fontStyle: FontStyle.italic),
             ),
           ),
@@ -540,12 +534,12 @@ class _PreviewLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Text(
         'Answer',
-        style: TextStyle(
-            fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+        style: AppTextStyles.meta.copyWith(
+            fontWeight: FontWeight.normal, fontStyle: FontStyle.italic),
       ),
     );
   }
@@ -564,8 +558,8 @@ class _IconLine extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+          style: AppTextStyles.meta.copyWith(
+              fontWeight: FontWeight.normal, fontStyle: FontStyle.italic),
         ),
       ],
     );

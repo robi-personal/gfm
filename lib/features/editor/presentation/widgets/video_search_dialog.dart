@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/api/youtube_client.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_text_styles.dart';
 
 /// Shows a bottom sheet that lets the user search YouTube and pick a video.
 /// Returns the selected [YouTubeVideo], or null if cancelled.
@@ -88,13 +89,11 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Add Video',
-                    style: TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -102,9 +101,12 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                   padding: EdgeInsets.zero,
                   minSize: 0,
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.purple, fontSize: 16),
+                    style: AppTextStyles.cardTitle.copyWith(
+                      fontWeight: FontWeight.normal,
+                      color: AppColors.purple,
+                    ),
                   ),
                 ),
               ],
@@ -121,7 +123,7 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
                     controller: _controller,
                     autofocus: true,
                     textInputAction: TextInputAction.search,
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                    style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Search YouTube',
                       hintStyle: const TextStyle(
@@ -190,23 +192,23 @@ class _VideoSearchSheetState extends State<_VideoSearchSheet> {
           child: Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: AppColors.muted),
           ),
         ),
       );
     }
     if (_results.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(CupertinoIcons.play_rectangle,
+            const Icon(CupertinoIcons.play_rectangle,
                 size: 48, color: AppColors.iconInactive),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               'Search for a YouTube video above.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(color: AppColors.muted),
             ),
           ],
         ),
@@ -276,8 +278,7 @@ class _VideoTile extends StatelessWidget {
                 video.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.meta.copyWith(
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
                   height: 1.4,

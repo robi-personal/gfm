@@ -10,6 +10,7 @@ import '../../../../core/models/question_kind.dart';
 import '../cubit/editor_cubit.dart';
 import 'type_picker_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class QuestionEditSheet extends StatefulWidget {
   final Item item;
@@ -381,7 +382,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
     final safeArea = MediaQuery.of(context).padding.bottom;
     final bottom = viewInsets + safeArea;
 
-    const bodyStyle = TextStyle(fontSize: 15, color: Colors.black87);
+    final bodyStyle = AppTextStyles.body.copyWith(color: Colors.black87);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -408,8 +409,7 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                 Expanded(
                   child: Text(
                     _showFileUploadPrompt ? 'Add file upload' : 'Edit question',
-                    style: const TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -606,14 +606,13 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                                 ),
                               ),
                             ] else
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 14),
                                 child: Text(
                                   'Mark a correct option above to add feedback.',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textSecondary),
+                                  style: AppTextStyles.meta.copyWith(
+                                      fontWeight: FontWeight.normal),
                                 ),
                               ),
                           ],
@@ -667,18 +666,17 @@ class _QuestionEditSheetState extends State<QuestionEditSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _isOtherOption[i]
-                      ? const Text(
+                      ? Text(
                           'Other…',
-                          style: TextStyle(
-                            fontSize: 15,
+                          style: AppTextStyles.body.copyWith(
                             color: AppColors.textTertiary,
                             fontStyle: FontStyle.italic,
                           ),
                         )
                       : TextField(
                           controller: _optionCtrls[i],
-                          style: const TextStyle(
-                              fontSize: 15, color: AppColors.textPrimary),
+                          style: AppTextStyles.body.copyWith(
+                              color: AppColors.textPrimary),
                           decoration: InputDecoration(
                             hintText: 'Option ${i + 1}',
                             hintStyle: const TextStyle(
@@ -882,11 +880,8 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+        style: AppTextStyles.sectionLabel.copyWith(
           letterSpacing: 0.6,
-          color: AppColors.textSecondary,
         ),
       ),
     );
@@ -937,11 +932,9 @@ class _FieldBlock extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
+            style: AppTextStyles.sectionLabel.copyWith(
               fontWeight: FontWeight.w600,
               letterSpacing: 0.4,
-              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -987,22 +980,18 @@ class _FileUploadPromptPanel extends StatelessWidget {
           const Text(
             'Add file upload via Google Forms',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.screenHeader,
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'For your privacy, this app uses minimal Google permissions — '
             'and Google only allows file upload questions to be added '
             'through the Google Forms website. Continue to open this form '
             'there. When you come back, your new question will appear '
             'automatically.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
+            style: AppTextStyles.meta.copyWith(
+              fontWeight: FontWeight.normal,
               height: 1.45,
               color: Color(0xFF6E6E73),
             ),
@@ -1023,11 +1012,10 @@ class _FileUploadPromptPanel extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Continue',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -1045,11 +1033,10 @@ class _FileUploadPromptPanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.separator),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Cancel',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
@@ -1086,8 +1073,7 @@ class _AddRow extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
+              style: AppTextStyles.body.copyWith(
                 fontWeight: FontWeight.w500,
                 color: AppColors.purple,
               ),
@@ -1126,8 +1112,7 @@ class _TypeRow extends StatelessWidget {
             Expanded(
               child: Text(
                 _typeLabel(kind),
-                style: const TextStyle(
-                  fontSize: 15,
+                style: AppTextStyles.body.copyWith(
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
                 ),
@@ -1167,8 +1152,7 @@ class _ToggleRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.textPrimary,
                   ),
@@ -1176,9 +1160,8 @@ class _ToggleRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                  style: AppTextStyles.meta.copyWith(
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ],
@@ -1205,24 +1188,22 @@ class _PointsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Points',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Score awarded for a correct answer',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                  style: AppTextStyles.meta.copyWith(
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ],
@@ -1234,8 +1215,7 @@ class _PointsRow extends StatelessWidget {
               controller: controller,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
+              style: AppTextStyles.body.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),

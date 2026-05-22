@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Shows a bottom sheet where the user can paste a public image URL or pick
 /// from the device gallery.
@@ -126,13 +127,11 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Add Image',
-                    style: TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -143,9 +142,9 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                       uploading ? null : () => Navigator.of(context).pop(),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(
+                    style: AppTextStyles.cardTitle.copyWith(
+                      fontWeight: FontWeight.normal,
                       color: uploading ? AppColors.textSecondary : AppColors.purple,
-                      fontSize: 16,
                     ),
                   ),
                 ),
@@ -180,8 +179,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                           const SizedBox(width: 8),
                           Text(
                             uploading ? 'Uploading…' : 'Pick from Gallery',
-                            style: const TextStyle(
-                              fontSize: 15,
+                            style: AppTextStyles.body.copyWith(
                               fontWeight: FontWeight.w500,
                               color: AppColors.purple,
                             ),
@@ -194,8 +192,8 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                     const SizedBox(height: 6),
                     Text(
                       _uploadError!,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.error),
+                      style: AppTextStyles.meta.copyWith(
+                          fontWeight: FontWeight.normal, color: AppColors.error),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -208,8 +206,8 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
                           'or',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                          style: AppTextStyles.meta.copyWith(
+                              fontWeight: FontWeight.normal),
                         ),
                       ),
                       const Expanded(
@@ -221,11 +219,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                 // ── URL field ───────────────────────────────────────────────
                 const Text(
                   'Image URL',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.meta,
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -234,7 +228,7 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                   enabled: !uploading,
                   keyboardType: TextInputType.url,
                   textInputAction: TextInputAction.done,
-                  style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                  style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Paste public image URL',
                     hintStyle: const TextStyle(
@@ -291,11 +285,11 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                               color: AppColors.purpleTintDeep,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Text(
                                 "Couldn't load image — check the URL.",
-                                style: TextStyle(
-                                    fontSize: 13, color: AppColors.textSecondary),
+                                style: AppTextStyles.meta.copyWith(
+                                    fontWeight: FontWeight.normal),
                               ),
                             ),
                           ),
@@ -323,10 +317,9 @@ class _ImageUrlSheetState extends State<_ImageUrlSheet> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.center,
-                        child: const Text(
+                        child: Text(
                           'Add',
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: AppTextStyles.cardTitle.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),

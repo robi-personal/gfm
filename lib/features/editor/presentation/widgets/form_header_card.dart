@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../cubit/editor_cubit.dart';
 
 /// Editable form title and description at the top of the editor.
@@ -96,11 +97,7 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                     TextField(
                       controller: _titleCtrl,
                       focusNode: _titleFocus,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.screenHeader,
                       decoration: InputDecoration(
                         hintText: 'Form title',
                         hintStyle: const TextStyle(
@@ -120,9 +117,8 @@ class _FormHeaderCardState extends State<FormHeaderCard> {
                     TextField(
                       controller: _descCtrl,
                       focusNode: _descFocus,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.muted,
                       ),
                       decoration: const InputDecoration(
                         hintText: 'Form description (optional)',

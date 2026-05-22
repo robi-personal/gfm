@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class EditorErrorView extends StatelessWidget {
   final String message;
@@ -23,7 +24,7 @@ class EditorErrorView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              style: AppTextStyles.body.copyWith(fontSize: 15),
             ),
             const SizedBox(height: 24),
             FilledButton(

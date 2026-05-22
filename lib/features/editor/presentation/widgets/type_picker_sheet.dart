@@ -5,6 +5,7 @@ import '../../../../core/models/choice_option.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/question_kind.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Bottom sheet for picking a question type.
 /// Returns the selected [QuestionKind] via [Navigator.pop], or nothing on dismiss.
@@ -40,13 +41,11 @@ class TypePickerSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 4, 8, 12),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Question type',
-                    style: TextStyle(
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -183,11 +182,8 @@ class _Section extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+            style: AppTextStyles.sectionLabel.copyWith(
               letterSpacing: 0.6,
-              color: AppColors.textSecondary,
             ),
           ),
         ),
@@ -257,8 +253,7 @@ class _TypeTile extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
-                          fontSize: 15,
+                        style: AppTextStyles.body.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
@@ -266,9 +261,8 @@ class _TypeTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         description,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                        style: AppTextStyles.meta.copyWith(
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
                     ],

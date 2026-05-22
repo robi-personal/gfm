@@ -9,6 +9,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
@@ -369,21 +370,18 @@ class _NotificationToggleState extends State<_NotificationToggle> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'New responses',
-                  style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                  style: AppTextStyles.body.copyWith(fontSize: 15),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Get a push notification when this form receives a new response',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.meta,
                 ),
               ],
             ),
@@ -423,12 +421,7 @@ class _IosGroupLabel extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.4,
-            ),
+            style: AppTextStyles.meta.copyWith(letterSpacing: 0.4),
           ),
           if (trailing != null) ...[
             const SizedBox(width: 8),
@@ -486,7 +479,7 @@ class _IosRadioTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                    style: AppTextStyles.body.copyWith(fontSize: 15),
                   ),
                 ),
                 if (selected)
@@ -534,16 +527,13 @@ class _IosSwitchTile extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                      style: AppTextStyles.body.copyWith(fontSize: 15),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meta,
                       ),
                     ],
                   ],
@@ -604,7 +594,7 @@ class _IosActionTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                    style: AppTextStyles.body.copyWith(fontSize: 15),
                   ),
                 ),
                 ?trailing,

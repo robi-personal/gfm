@@ -6,6 +6,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/layout.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../responses/presentation/cubit/responses_cubit.dart';
@@ -253,11 +254,7 @@ class _EditorViewState extends State<_EditorView>
       ),
       title: Text(
         widget.initialName,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
+        style: AppTextStyles.screenHeader,
         overflow: TextOverflow.ellipsis,
       ),
       actions: [
@@ -307,10 +304,9 @@ class _EditorViewState extends State<_EditorView>
                     const SizedBox(width: 4),
                     Text(
                       'Save',
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.meta.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: active ? Colors.white : AppColors.textSecondary,
+                        color: active ? Colors.white : AppColors.muted,
                       ),
                     ),
                   ],
@@ -557,11 +553,7 @@ Future<bool?> _showFileUploadInfoDialog(
                 const SizedBox(width: 10),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.cardTitle.copyWith(fontSize: 15),
                 ),
               ],
             ),
@@ -571,11 +563,7 @@ Future<bool?> _showFileUploadInfoDialog(
             const SizedBox(height: 12),
             Text(
               body,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.45,
-                color: Color(0xFF6E6E73),
-              ),
+              style: AppTextStyles.meta.copyWith(height: 1.45, color: AppColors.muted),
             ),
             const SizedBox(height: 20),
             GestureDetector(
@@ -594,14 +582,10 @@ Future<bool?> _showFileUploadInfoDialog(
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'Continue',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                    style: AppTextStyles.cardTitle.copyWith(fontSize: 15, color: Colors.white),
                   ),
                 ),
               ),
@@ -616,14 +600,10 @@ Future<bool?> _showFileUploadInfoDialog(
                   color: AppColors.groupedBackground,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'Cancel',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.cardTitle.copyWith(fontSize: 15, color: AppColors.muted),
                   ),
                 ),
               ),

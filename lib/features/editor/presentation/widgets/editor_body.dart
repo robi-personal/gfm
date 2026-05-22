@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/item.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/models/item_content.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/editor_cubit.dart';
@@ -131,7 +132,7 @@ class _EditorBodyState extends State<EditorBody> {
               physics: physics,
               slivers: [
                 SliverToBoxAdapter(child: header),
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
                     child: Padding(
@@ -147,20 +148,13 @@ class _EditorBodyState extends State<EditorBody> {
                           SizedBox(height: 16),
                           Text(
                             'No questions yet.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDark,
-                            ),
+                            style: AppTextStyles.cardTitle.copyWith(color: AppColors.ink2),
                           ),
                           SizedBox(height: 6),
                           Text(
                             'Tap + below to add your first question.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
+                            style: AppTextStyles.body.copyWith(color: AppColors.muted),
                           ),
                         ],
                       ),

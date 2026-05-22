@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/models/question_kind.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Small pill showing the question type label.
 /// Set [showCaret] to true to add a dropdown arrow (tap to change type).
@@ -28,8 +29,7 @@ class TypeChip extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
+            style: AppTextStyles.sectionLabel.copyWith(
               fontWeight: FontWeight.w500,
               color: color,
             ),

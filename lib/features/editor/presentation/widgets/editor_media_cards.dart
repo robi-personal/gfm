@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/api/drive_client.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/models/item.dart';
 import '../../../../core/models/item_content.dart';
@@ -208,7 +209,7 @@ class EditorVideoCard extends StatelessWidget {
               item.title ?? content.caption ?? 'Video',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              style: AppTextStyles.body,
             ),
           ),
         ],

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/models/item.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../cubit/editor_cubit.dart';
 import 'question_card.dart' show DragHandleHint;
 
@@ -64,8 +65,7 @@ class SectionCard extends StatelessWidget {
                                 item.title?.isNotEmpty == true
                                     ? item.title!
                                     : 'Section',
-                                style: const TextStyle(
-                                  fontSize: 15,
+                                style: AppTextStyles.body.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.purple,
                                 ),
@@ -79,10 +79,9 @@ class SectionCard extends StatelessWidget {
                                 color: AppColors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Section',
-                                style: TextStyle(
-                                  fontSize: 11,
+                                style: AppTextStyles.sectionLabel.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.purple,
                                 ),
@@ -94,8 +93,8 @@ class SectionCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             item.description!,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
+                            style: AppTextStyles.meta.copyWith(
+                                fontWeight: FontWeight.normal),
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -267,11 +266,10 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Edit section',
-                    style: TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -299,8 +297,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
               children: [
                 TextField(
                   controller: _titleCtrl,
-                  style: const TextStyle(
-                      fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.black87),
                   decoration: _inputDec('Section title'),
@@ -309,8 +306,7 @@ class _SectionEditSheetState extends State<_SectionEditSheet> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _descCtrl,
-                  style: const TextStyle(
-                      fontSize: 15, color: Colors.black87),
+                  style: AppTextStyles.body.copyWith(color: Colors.black87),
                   decoration: _inputDec('Description (optional)'),
                   minLines: 1,
                   maxLines: 3,
@@ -381,8 +377,7 @@ class TextBlockCard extends StatelessWidget {
                                 item.title?.isNotEmpty == true
                                     ? item.title!
                                     : 'Text block',
-                                style: const TextStyle(
-                                  fontSize: 15,
+                                style: AppTextStyles.body.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
@@ -396,10 +391,9 @@ class TextBlockCard extends StatelessWidget {
                                 color: AppColors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Text',
-                                style: TextStyle(
-                                  fontSize: 11,
+                                style: AppTextStyles.sectionLabel.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.purple,
                                 ),
@@ -411,8 +405,8 @@ class TextBlockCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             item.description!,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
+                            style: AppTextStyles.meta.copyWith(
+                                fontWeight: FontWeight.normal),
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -548,11 +542,10 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Edit text block',
-                    style: TextStyle(
-                      fontSize: 17,
+                    style: AppTextStyles.screenHeader.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -579,8 +572,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
               children: [
                 TextField(
                   controller: _titleCtrl,
-                  style: const TextStyle(
-                      fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.black87),
                   decoration: _inputDec('Title'),
@@ -589,7 +581,7 @@ class _TextBlockEditSheetState extends State<TextBlockEditSheet> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _descCtrl,
-                  style: const TextStyle(fontSize: 15, color: Colors.black87),
+                  style: AppTextStyles.body.copyWith(color: Colors.black87),
                   decoration: _inputDec('Description (optional)'),
                   minLines: 1,
                   maxLines: 3,
