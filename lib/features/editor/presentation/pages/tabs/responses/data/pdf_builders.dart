@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../../../core/models/form_doc.dart';
-import '../../../core/models/form_response.dart';
-import '../../../core/models/item_content.dart';
-import '../../../core/models/question_kind.dart';
+import '../../../../../../../core/models/form_doc.dart';
+import '../../../../../../../core/models/form_response.dart';
+import '../../../../../../../core/models/item_content.dart';
+import '../../../../../../../core/models/question_kind.dart';
 
 const _purple = PdfColor.fromInt(0xFF772FC0);
 const _grey100 = PdfColors.grey100;

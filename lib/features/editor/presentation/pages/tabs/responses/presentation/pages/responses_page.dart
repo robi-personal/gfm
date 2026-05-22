@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../../../../core/theme/app_colors.dart';
 
-import '../../../../core/models/enums.dart';
-import '../../../../core/models/form_response.dart';
-import '../../../../core/models/item.dart';
-import '../../../../core/models/item_content.dart';
-import '../../../../core/models/question_kind.dart';
+import '../../../../../../../../core/models/enums.dart';
+import '../../../../../../../../core/models/form_response.dart';
+import '../../../../../../../../core/models/item.dart';
+import '../../../../../../../../core/models/item_content.dart';
+import '../../../../../../../../core/models/question_kind.dart';
 import '../cubit/responses_cubit.dart';
 import '../widgets/response_actions_bar.dart';
 
