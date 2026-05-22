@@ -216,29 +216,6 @@ webhookRouter.post(
       return;
     }
 
-    // Step 5: Sandbox gate — in production, skip user updates unless the
-    // resolved user is on the quota_whitelist. The whitelist lets App Store
-    // reviewers (and internal QA accounts) run the full sandbox purchase flow
-    // against prod without exposing free premium to anyone else. (§4.3)
-    if (isSandbox && env.NODE_ENV === "production") {
-      const whitelistRepo = new PgQuotaWhitelistRepository(pool);
-      const isWhitelisted = await whitelistRepo.contains(user.email);
-      if (!isWhitelisted) {
-        await webhookRepo.insertIfAbsent(event.id, event.type, user.id, payload);
-        req.log.info(
-          { event_id: event.id, type: event.type, user_id: user.id, is_sandbox: true },
-          "rc_webhook_sandbox_stored_noop",
-        );
-        recordWebhookMetric("sandbox_skipped");
-        res.json({ received: true });
-        return;
-      }
-      req.log.info(
-        { event_id: event.id, type: event.type, user_id: user.id, email: user.email },
-        "rc_webhook_sandbox_whitelisted_processing",
-      );
-    }
-
     // Step 6: Apply event in a transaction — webhook_events INSERT + users UPDATE atomically
     try {
       await withTransaction(async (tx) => {

@@ -29,6 +29,7 @@ const schema = z.object({
 
   // RevenueCat
   RC_WEBHOOK_SECRET: z.string().min(1),
+  RC_SECRET_API_KEY: z.string().optional(),
 
   // Sentry (optional — skipped if absent)
   SENTRY_DSN: z.string().optional(),
@@ -78,6 +79,7 @@ const schema = z.object({
   RL_AI_USER_HOURLY: z.coerce.number().default(10),
   RL_AI_USER_DAILY: z.coerce.number().default(50),
   RL_STATUS_USER_MIN: z.coerce.number().default(60),
+  RL_SYNC_USER_MIN:   z.coerce.number().default(5),
   RL_RC_IP_MIN: z.coerce.number().default(120),
   RL_DEFAULT_IP_MIN: z.coerce.number().default(120),
 

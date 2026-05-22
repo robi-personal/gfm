@@ -39,6 +39,7 @@ const ipAiLimiter          = makeLimiter("rl:ai:ip",     "RL_AI_IP_HOURLY",     
 const userAiHourlyLimiter  = makeLimiter("rl:ai:u:h",    "RL_AI_USER_HOURLY",    3_600);
 const userAiDailyLimiter   = makeLimiter("rl:ai:u:d",    "RL_AI_USER_DAILY",    86_400);
 const statusUserLimiter    = makeLimiter("rl:status:u",  "RL_STATUS_USER_MIN",       60);
+const syncUserLimiter      = makeLimiter("rl:sync:u",    "RL_SYNC_USER_MIN",         60);
 const rcIpLimiter          = makeLimiter("rl:rc:ip",     "RL_RC_IP_MIN",             60);
 const defaultIpLimiter     = makeLimiter("rl:def:ip",    "RL_DEFAULT_IP_MIN",        60);
 
@@ -162,6 +163,11 @@ export const aiUserDailyLimitMiddleware = makeUserMiddleware(
 // For GET /user/status — used inside route handler after auth
 export const statusUserLimitMiddleware = makeUserMiddleware(
   statusUserLimiter, "per-user-min",
+);
+
+// For POST /user/purchase/sync — 5 calls per minute per user
+export const syncUserLimitMiddleware = makeUserMiddleware(
+  syncUserLimiter, "per-user-sync",
 );
 
 // For POST /webhooks/revenuecat — mount before HMAC verification

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { denylistMiddleware } from "../middleware/kill-switch.middleware";
-import { statusUserLimitMiddleware } from "../middleware/rate-limit.middleware";
+import { statusUserLimitMiddleware, syncUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
@@ -53,6 +53,76 @@ userRouter.get(
         youtubeMinutesLimit:     ytLimit,
         youtubeMinutesResetsAt:  user.youtubeMinutesResetAt?.toISOString() ?? null,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /user/purchase/sync
+// Called by the app right after a RevenueCat purchase to ensure premium is
+// reflected even if the webhook was delayed or missed.
+userRouter.post(
+  "/purchase/sync",
+  authMiddleware,
+  denylistMiddleware,
+  syncUserLimitMiddleware,
+  async (req, res, next) => {
+    try {
+      if (!env.RC_SECRET_API_KEY) {
+        res.status(503).json({ code: "unavailable", message: "Purchase sync is not configured." });
+        return;
+      }
+
+      const rcRes = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(req.user!.googleSub)}`,
+        { headers: { Authorization: `Bearer ${env.RC_SECRET_API_KEY}`, "Content-Type": "application/json" } },
+      );
+
+      if (!rcRes.ok) {
+        req.log.warn({ status: rcRes.status, user_id: req.user!.id }, "rc_sync_fetch_failed");
+        res.status(502).json({ code: "rc_error", message: "Could not reach RevenueCat." });
+        return;
+      }
+
+      const body = await rcRes.json() as {
+        subscriber: {
+          entitlements: Record<string, { expires_date: string | null; product_identifier: string }>;
+        };
+      };
+
+      const entitlement = body.subscriber.entitlements["GFMPremium"];
+      const isActive = entitlement != null &&
+        (entitlement.expires_date == null || new Date(entitlement.expires_date) > new Date());
+
+      if (!isActive) {
+        req.log.info({ user_id: req.user!.id }, "rc_sync_no_active_entitlement");
+        res.json({ synced: false });
+        return;
+      }
+
+      const productId = entitlement.product_identifier;
+      const userRepo    = new PgUserRepository(pool);
+      const productRepo = new PgQuotaProductRepository(pool);
+      const user        = await userRepo.findById(req.user!.id);
+
+      if (!user) {
+        res.status(401).json({ code: "invalid_token", message: "User not found." });
+        return;
+      }
+
+      if (!user.isPremium) {
+        const product = await productRepo.getById(productId);
+        if (product) {
+          await userRepo.creditQuota(user.id, product.quotaAmount, "subscription", product.productId, `sync:${req.user!.googleSub}`);
+        }
+        await userRepo.setSubscriptionProduct(user.id, productId);
+        req.log.info({ user_id: user.id, product_id: productId }, "rc_sync_premium_granted");
+      } else {
+        req.log.info({ user_id: user.id }, "rc_sync_already_premium");
+      }
+
+      res.json({ synced: true });
     } catch (err) {
       next(err);
     }

@@ -15,6 +15,7 @@ const KEY_TYPES = {
   RL_AI_USER_HOURLY:            "number",
   RL_AI_USER_DAILY:             "number",
   RL_STATUS_USER_MIN:           "number",
+  RL_SYNC_USER_MIN:             "number",
   RL_RC_IP_MIN:                 "number",
   RL_DEFAULT_IP_MIN:            "number",
   // Kill switch
