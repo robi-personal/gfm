@@ -17,7 +17,7 @@ import '../widgets/editor_bottom_bar.dart';
 import '../widgets/editor_error_view.dart';
 import '../widgets/editor_nav_rail.dart';
 import '../widgets/editor_options_sheet.dart';
-import 'tabs/editor_settings_tab.dart';
+import 'tabs/settings/presentation/pages/editor_settings_tab.dart';
 import '../widgets/editor_skeleton.dart';
 import '../widgets/editor_tab_bar.dart';
 import '../widgets/question_edit_sheet.dart';
