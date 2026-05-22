@@ -239,6 +239,7 @@ void configureDependencies() {
     () => SubscriptionCubit(
       getIt<SubscriptionService>(),
       getIt<PurchaseActivationService>(),
+      getIt<GetUserStatus>(),
     ),
   );
 

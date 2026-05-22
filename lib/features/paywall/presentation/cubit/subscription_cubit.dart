@@ -2,6 +2,8 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../../../core/usecases/usecase.dart';
+import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../data/services/purchase_activation_service.dart';
 import '../../data/services/subscription_service.dart';
 
@@ -10,8 +12,10 @@ part 'subscription_state.dart';
 class SubscriptionCubit extends Cubit<SubscriptionState> {
   final SubscriptionService _service;
   final PurchaseActivationService _activation;
+  final GetUserStatus _getUserStatus;
 
-  SubscriptionCubit(this._service, this._activation) : super(const SubscriptionInitial());
+  SubscriptionCubit(this._service, this._activation, this._getUserStatus)
+      : super(const SubscriptionInitial());
 
   Future<void> load() async {
     emit(const SubscriptionLoading());
@@ -19,7 +23,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
       final results = await Future.wait([
         _service.isPremium(),
         _service.getOffering(),
-        _service.getCurrentProductId(),
+        _fetchBackendProductId(),
       ]);
       emit(SubscriptionLoaded(
         isPremium: results[0] as bool,
@@ -38,13 +42,15 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     try {
       final info = await _service.purchase(package);
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
-      final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
       if (isPremium) await _reconcileWithBackend();
+      // Backend is authoritative for the active product (RC SDK leaks across
+      // Google accounts that share an Apple ID).
+      final backendProductId = isPremium ? await _fetchBackendProductId() : null;
       if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
         offering: current.offering,
-        currentProductId: currentProductId,
+        currentProductId: backendProductId,
         justPurchased: isPremium,
       ));
     } on PlatformException catch (e) {
@@ -68,13 +74,13 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     try {
       final info = await _service.restore();
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
-      final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
       if (isPremium) await _reconcileWithBackend();
+      final backendProductId = isPremium ? await _fetchBackendProductId() : null;
       if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
         offering: current.offering,
-        currentProductId: currentProductId,
+        currentProductId: backendProductId,
         justPurchased: isPremium,
       ));
     } catch (_) {
@@ -89,6 +95,11 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
   Future<void> _reconcileWithBackend() async {
     final ok = await _activation.syncOnce();
     if (!ok) _activation.startBackgroundRetries();
+  }
+
+  Future<String?> _fetchBackendProductId() async {
+    final result = await _getUserStatus(const NoParams());
+    return result.fold((_) => null, (s) => s.subscriptionProductId);
   }
 
   String _errorMessage(PurchasesErrorCode code) => switch (code) {

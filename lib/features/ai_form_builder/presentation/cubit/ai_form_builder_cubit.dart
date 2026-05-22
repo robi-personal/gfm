@@ -421,9 +421,10 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
       isPremium:    current.isPremium,
       quotaBalance: q.balance,
       unlimited:    q.unlimited,
-      gracePeriodUntil:    current.gracePeriodUntil,
-      youtubeMinutesUsed:  current.youtubeMinutesUsed,
-      youtubeMinutesLimit: current.youtubeMinutesLimit,
+      gracePeriodUntil:      current.gracePeriodUntil,
+      subscriptionProductId: current.subscriptionProductId,
+      youtubeMinutesUsed:    current.youtubeMinutesUsed,
+      youtubeMinutesLimit:   current.youtubeMinutesLimit,
       youtubeMinutesResetsAt: current.youtubeMinutesResetsAt,
     );
   }
