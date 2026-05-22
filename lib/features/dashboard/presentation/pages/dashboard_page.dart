@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
@@ -13,6 +14,7 @@ import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
 import '../../../notifications/data/services/notification_service.dart';
+import '../../../paywall/data/services/subscription_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
@@ -83,6 +85,53 @@ class _DashboardViewState extends State<_DashboardView> {
         if (mounted) _refreshPremium();
       },
     );
+  }
+
+  Future<void> _restorePurchases() async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (_) => const Center(
+        child: CupertinoActivityIndicator(radius: 16, color: Colors.white),
+      ),
+    );
+
+    try {
+      final info = await getIt<SubscriptionService>().restore();
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
+      if (isPremium) {
+        _refreshPremium();
+        await ErrorModal.show(
+          context,
+          title: 'Purchases restored',
+          body: 'Your subscription has been restored. Welcome back to Premium!',
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+      } else {
+        await ErrorModal.show(
+          context,
+          title: 'No purchases found',
+          body: "We couldn't find any active subscriptions on this Apple ID.",
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      await ErrorModal.show(
+        context,
+        title: 'Restore failed',
+        body: 'Check your connection and try again.',
+        primaryLabel: 'OK',
+        onPrimary: () {},
+      );
+    }
   }
 
   Future<void> _setupNotifications() async {
@@ -228,6 +277,7 @@ class _DashboardViewState extends State<_DashboardView> {
           onCreateForm: () => _onNewForm(context),
           onImportForm: () => _openImport(context),
           onShowPaywall: _showPaywall,
+          onRestorePurchases: _restorePurchases,
         );
 
         if (tablet) {

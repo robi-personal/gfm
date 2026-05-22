@@ -17,6 +17,7 @@ class DashboardDrawer extends StatelessWidget {
   final VoidCallback onCreateForm;
   final VoidCallback onImportForm;
   final VoidCallback onShowPaywall;
+  final VoidCallback onRestorePurchases;
 
   const DashboardDrawer({
     super.key,
@@ -24,6 +25,7 @@ class DashboardDrawer extends StatelessWidget {
     required this.onCreateForm,
     required this.onImportForm,
     required this.onShowPaywall,
+    required this.onRestorePurchases,
   });
 
   @override
@@ -35,6 +37,7 @@ class DashboardDrawer extends StatelessWidget {
         onCreateForm: onCreateForm,
         onImportForm: onImportForm,
         onShowPaywall: onShowPaywall,
+        onRestorePurchases: onRestorePurchases,
       ),
     );
   }
@@ -45,12 +48,14 @@ class _DrawerContent extends StatelessWidget {
   final VoidCallback onCreateForm;
   final VoidCallback onImportForm;
   final VoidCallback onShowPaywall;
+  final VoidCallback onRestorePurchases;
 
   const _DrawerContent({
     required this.onAiBuilder,
     required this.onCreateForm,
     required this.onImportForm,
     required this.onShowPaywall,
+    required this.onRestorePurchases,
   });
 
   @override
@@ -92,6 +97,11 @@ class _DrawerContent extends StatelessWidget {
                     icon: CupertinoIcons.star_fill,
                     title: 'Upgrade Plan',
                     onTap: () { Navigator.of(context).pop(); onShowPaywall(); },
+                  ),
+                  _DrawerItem(
+                    icon: CupertinoIcons.arrow_clockwise,
+                    title: 'Restore Purchases',
+                    onTap: () { Navigator.of(context).pop(); onRestorePurchases(); },
                   ),
                 ],
               ),
