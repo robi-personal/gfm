@@ -31,10 +31,9 @@ import '../../features/editor/domain/usecases/load_form.dart';
 import '../../features/editor/domain/usecases/refresh_revision.dart';
 import '../../features/editor/domain/usecases/update_editor_settings.dart';
 import '../../features/editor/presentation/cubit/editor_cubit.dart';
-import '../../features/editor/presentation/pages/tabs/responses/data/datasources/responses_datasource.dart';
-import '../../features/editor/presentation/pages/tabs/responses/data/repositories/responses_repository_impl.dart';
-import '../../features/editor/presentation/pages/tabs/responses/domain/repositories/responses_repository.dart';
-import '../../features/editor/presentation/pages/tabs/responses/domain/usecases/get_responses.dart';
+import '../../features/editor/data/repositories/responses_repository_impl.dart';
+import '../../features/editor/domain/repositories/responses_repository.dart';
+import '../../features/editor/domain/usecases/get_responses.dart';
 import '../../features/editor/presentation/pages/tabs/responses/presentation/cubit/responses_cubit.dart';
 import '../../features/sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../features/ai_form_builder/data/datasources/ai_form_datasource.dart';
@@ -147,12 +146,8 @@ void configureDependencies() {
   );
 
   // ── Responses feature ─────────────────────────────────────────────────────
-  getIt.registerLazySingleton(
-    () => ResponsesDataSource(getIt<FormsClient>()),
-  );
-
   getIt.registerLazySingleton<ResponsesRepository>(
-    () => ResponsesRepositoryImpl(getIt<ResponsesDataSource>()),
+    () => ResponsesRepositoryImpl(getIt<EditorDataSource>()),
   );
 
   getIt.registerLazySingleton(

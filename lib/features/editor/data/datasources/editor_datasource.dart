@@ -4,6 +4,7 @@ import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../../../core/api/forms_client.dart';
 import '../../../../core/models/form_doc.dart';
+import '../../../../core/models/form_response.dart';
 import '../../../../core/models/form_settings.dart';
 import '../../domain/repositories/editor_repository.dart';
 
@@ -44,6 +45,24 @@ class EditorDataSource {
       revisionId: resp.form?.revisionId ?? revisionId,
       createdItemId: resp.replies?.firstOrNull?.createItem?.itemId,
     );
+  }
+
+  /// Fetches all responses for [formId], following pagination tokens.
+  /// Returns them sorted newest-first.
+  Future<List<FormResponse>> getResponses(String formId) async {
+    final raw = <FormResponse>[];
+    String? pageToken;
+    do {
+      final result = await _client.api.forms.responses.list(
+        formId,
+        pageSize: 100,
+        pageToken: pageToken,
+      );
+      raw.addAll((result.responses ?? []).map(FormResponse.fromApi));
+      pageToken = result.nextPageToken;
+    } while (pageToken != null);
+    raw.sort((a, b) => b.createTime.compareTo(a.createTime));
+    return raw;
   }
 
   /// Sends an updateSettings batchUpdate for quiz mode + email collection.

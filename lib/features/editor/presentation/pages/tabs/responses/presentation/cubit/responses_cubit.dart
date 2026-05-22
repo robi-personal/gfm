@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/usecases/get_responses.dart';
+import '../../../../../../domain/usecases/get_responses.dart';
 import 'responses_state.dart';
 
 export 'responses_state.dart';

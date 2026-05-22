@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 
-import '../../../../../../../../core/error/failure.dart';
-import '../../../../../../../../core/models/form_response.dart';
+import '../../../../core/error/failure.dart';
+import '../../../../core/models/form_response.dart';
 import '../../domain/repositories/responses_repository.dart';
-import '../datasources/responses_datasource.dart';
+import '../datasources/editor_datasource.dart';
 
 class ResponsesRepositoryImpl implements ResponsesRepository {
-  final ResponsesDataSource _dataSource;
+  final EditorDataSource _dataSource;
 
   ResponsesRepositoryImpl(this._dataSource);
 
