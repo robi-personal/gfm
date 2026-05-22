@@ -70,10 +70,15 @@ final class ChoiceQuestion extends QuestionKind {
         shuffle: json['shuffle'] as bool? ?? false,
       );
 
+  // Only RADIO and CHECKBOX support the "Other" option; strip it for DROPDOWN.
+  List<ChoiceOption> get _apiOptions => type == ChoiceType.dropDown
+      ? options.where((o) => !o.isOther).toList()
+      : options;
+
   @override
   MapEntry<String, dynamic> toJsonEntry() => MapEntry('choiceQuestion', {
         'type': type.toJson(),
-        'options': options.map((o) => o.toJson()).toList(),
+        'options': _apiOptions.map((o) => o.toJson()).toList(),
         'shuffle': shuffle,
       });
 
