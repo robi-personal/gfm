@@ -10,6 +10,7 @@ import '../../../../../../../core/theme/app_colors.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
 import '../../questions/cubit/questions_cubit.dart';
 import '../cubit/settings_cubit.dart';
+import '../widgets/email_collection_card.dart';
 import '../widgets/notification_toggle.dart';
 import '../widgets/settings_tiles.dart';
 import '../widgets/toggle_confirm_sheet.dart';
@@ -87,7 +88,6 @@ class _SettingsContent extends StatefulWidget {
 }
 
 class _SettingsContentState extends State<_SettingsContent> {
-  late EmailCollectionType _emailType;
   late bool _isQuiz;
   bool _isQuizWorking = false;
 
@@ -95,7 +95,6 @@ class _SettingsContentState extends State<_SettingsContent> {
   void initState() {
     super.initState();
     final settings = (context.read<SettingsCubit>().state as SettingsLoaded).settings;
-    _emailType = settings.emailCollectionType;
     _isQuiz = settings.quizSettings.isQuiz;
   }
 
@@ -128,13 +127,14 @@ class _SettingsContentState extends State<_SettingsContent> {
       _isQuiz = value;
       _isQuizWorking = true;
     });
-    await _save(emailType: _emailType, isQuiz: value);
+    final settings = (context.read<SettingsCubit>().state as SettingsLoaded).settings;
+    await _save(emailType: settings.emailCollectionType, isQuiz: value);
     if (mounted) setState(() => _isQuizWorking = false);
   }
 
   Future<void> _onEmailTypeChange(EmailCollectionType value) async {
-    setState(() => _emailType = value);
-    await _save(emailType: value, isQuiz: _isQuiz);
+    final settings = (context.read<SettingsCubit>().state as SettingsLoaded).settings;
+    await _save(emailType: value, isQuiz: settings.quizSettings.isQuiz);
   }
 
   @override
@@ -148,7 +148,6 @@ class _SettingsContentState extends State<_SettingsContent> {
       listener: (context, state) {
         if (state is! SettingsLoaded) return;
         setState(() {
-          _emailType = state.settings.emailCollectionType;
           _isQuiz = state.settings.quizSettings.isQuiz;
         });
         context.read<SettingsCubit>().clearSaveFailed();
@@ -177,30 +176,11 @@ class _SettingsContentState extends State<_SettingsContent> {
                       ? const CupertinoActivityIndicator(radius: 7)
                       : null,
                 ),
-                SettingsCard(children: [
-                  SettingsRadioTile(
-                    label: "Don't collect",
-                    selected: _emailType == EmailCollectionType.doNotCollect,
-                    onTap: isSaving
-                        ? null
-                        : () => _onEmailTypeChange(EmailCollectionType.doNotCollect),
-                  ),
-                  SettingsRadioTile(
-                    label: 'Verified (Workspace accounts only)',
-                    selected: _emailType == EmailCollectionType.verified,
-                    onTap: isSaving
-                        ? null
-                        : () => _onEmailTypeChange(EmailCollectionType.verified),
-                  ),
-                  SettingsRadioTile(
-                    label: 'Ask respondents',
-                    selected: _emailType == EmailCollectionType.responderInput,
-                    isLast: true,
-                    onTap: isSaving
-                        ? null
-                        : () => _onEmailTypeChange(EmailCollectionType.responderInput),
-                  ),
-                ]),
+                EmailCollectionCard(
+                  emailType: (settingsState as SettingsLoaded).settings.emailCollectionType,
+                  isSaving: isSaving,
+                  onChanged: _onEmailTypeChange,
+                ),
                 const SizedBox(height: 28),
 
                 // ── Quiz mode ────────────────────────────────────────────────
