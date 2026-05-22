@@ -227,7 +227,7 @@ void configureDependencies() {
   getIt.registerLazySingleton(() => SubscriptionService());
 
   getIt.registerFactory(
-    () => SubscriptionCubit(getIt<SubscriptionService>()),
+    () => SubscriptionCubit(getIt<SubscriptionService>(), getIt<NotificationsApi>()),
   );
 
   // ── Push notifications ────────────────────────────────────────────────────

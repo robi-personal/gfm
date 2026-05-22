@@ -2,14 +2,16 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../../../features/notifications/data/datasources/notifications_api.dart';
 import '../../data/services/subscription_service.dart';
 
 part 'subscription_state.dart';
 
 class SubscriptionCubit extends Cubit<SubscriptionState> {
   final SubscriptionService _service;
+  final NotificationsApi _api;
 
-  SubscriptionCubit(this._service) : super(const SubscriptionInitial());
+  SubscriptionCubit(this._service, this._api) : super(const SubscriptionInitial());
 
   Future<void> load() async {
     emit(const SubscriptionLoading());
@@ -37,6 +39,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
       final info = await _service.purchase(package);
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       final currentProductId = info.entitlements.active[SubscriptionService.entitlement]?.productIdentifier;
+      if (isPremium) _syncWithRetry();
       if (isClosed) return;
       emit(SubscriptionLoaded(
         isPremium: isPremium,
@@ -76,6 +79,18 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     } catch (_) {
       if (isClosed) return;
       emit(const SubscriptionError('Restore failed. Please try again.'));
+    }
+  }
+
+  void _syncWithRetry() async {
+    const delays = [Duration(seconds: 2), Duration(seconds: 5), Duration(seconds: 10)];
+    for (final delay in delays) {
+      try {
+        await _api.syncPurchase();
+        return;
+      } catch (_) {
+        await Future.delayed(delay);
+      }
     }
   }
 

@@ -77,6 +77,18 @@ class NotificationsApi {
     }
   }
 
+  /// Syncs the most recent purchase with the GFM backend so premium is
+  /// reflected immediately, even if the RC webhook was delayed or missed.
+  Future<void> syncPurchase() async {
+    final res = await _httpClient.post(
+      Uri.parse('$_kBaseUrl/user/purchase/sync'),
+      headers: await _authHeaders(),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('syncPurchase failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
   /// Remove the mapping after the app deletes the watch on Google's side.
   Future<void> unregisterWatch(String watchId) async {
     final res = await _httpClient.delete(
