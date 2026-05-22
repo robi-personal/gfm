@@ -201,6 +201,10 @@ class NotificationService {
   Future<void> _showLocalForForeground(RemoteMessage msg) async {
     final n = msg.notification;
     if (n == null) return;
+    // iOS handles foreground presentation natively via willPresent in AppDelegate.
+    // flutter_local_notifications is only needed on Android, where FCM does not
+    // auto-display notifications while the app is in the foreground.
+    if (Platform.isIOS) return;
     await _local.show(
       msg.hashCode,
       n.title,
