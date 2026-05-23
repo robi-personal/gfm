@@ -25,6 +25,11 @@ class Unauthenticated extends SignInState {
   const Unauthenticated();
 }
 
+/// Sign-out is in progress — show a fullscreen loading overlay.
+class SigningOut extends SignInState {
+  const SigningOut();
+}
+
 /// Interactive sign-in failed (network error, API rejection, etc.).
 /// User cancelled silently resolves to [Unauthenticated] instead.
 class SignInError extends SignInState {

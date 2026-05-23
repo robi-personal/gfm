@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/design.dart';
 import 'core/di/injection.dart';
 import 'core/services/analytics_service.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
@@ -36,9 +38,10 @@ class _AuthGate extends StatelessWidget {
     return BlocBuilder<SignInCubit, SignInState>(
       builder: (context, state) {
         return switch (state) {
-          Authenticated() => const DashboardPage(),
-          SignInInitial() || SignInLoading() => const _SplashScreen(),
-          Unauthenticated() || SignInError() => const SignInScreen(),
+          Authenticated()                    => const DashboardPage(),
+          SignInInitial() || SignInLoading()  => const _SplashScreen(),
+          SigningOut()                        => const _SigningOutScreen(),
+          Unauthenticated() || SignInError()  => const SignInScreen(),
         };
       },
     );
@@ -52,6 +55,37 @@ class _SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _SigningOutScreen extends StatelessWidget {
+  const _SigningOutScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CupertinoActivityIndicator(
+              radius: 14,
+              color: AppColors.purple600,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Signing out…',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

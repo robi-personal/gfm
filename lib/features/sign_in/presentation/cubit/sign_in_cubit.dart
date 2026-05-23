@@ -87,6 +87,7 @@ class SignInCubit extends Cubit<SignInState> {
   }
 
   Future<void> signOut() async {
+    emit(const SigningOut());
     await _notificationService.unregisterForUser();
     await _signOut();
     _formsClient.reset();
