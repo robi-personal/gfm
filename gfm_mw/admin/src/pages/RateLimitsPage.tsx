@@ -6,9 +6,7 @@ const FIELDS = [
   { key: "RL_AI_IP_HOURLY",     label: "AI per IP",          hint: "AI requests / hour per IP address",           unit: "req/hr" },
   { key: "RL_AI_USER_HOURLY",   label: "AI per user / hour", hint: "AI requests / hour per authenticated user",   unit: "req/hr" },
   { key: "RL_AI_USER_DAILY",    label: "AI per user / day",  hint: "AI requests / day per authenticated user",    unit: "req/day" },
-  { key: "RL_STATUS_USER_MIN",  label: "Status per user",    hint: "GET /user/status requests / minute per user", unit: "req/min" },
   { key: "RL_RC_IP_MIN",        label: "RevenueCat webhook", hint: "Webhook POST requests / minute per IP",       unit: "req/min" },
-  { key: "RL_DEFAULT_IP_MIN",   label: "Default per IP",     hint: "Catch-all rate for unmatched routes",         unit: "req/min" },
 ];
 
 export default function RateLimitsPage() {

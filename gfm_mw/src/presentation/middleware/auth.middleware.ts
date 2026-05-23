@@ -4,6 +4,8 @@ import { verifyGoogleIdToken } from "../../infrastructure/google-auth/google-tok
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { pool } from "../../infrastructure/db/postgres";
+import { replayOrphanedEvents } from "../../application/rc-webhook/apply-event";
+import { logger } from "../../infrastructure/logger";
 
 export async function authMiddleware(
   req: Request,
@@ -27,10 +29,19 @@ export async function authMiddleware(
 
     const userRepo      = new PgUserRepository(pool);
     const whitelistRepo = new PgQuotaWhitelistRepository(pool);
-    const [user, isWhitelisted] = await Promise.all([
+    const [{ user, created }, isWhitelisted] = await Promise.all([
       userRepo.upsert(sub, email),
       whitelistRepo.contains(email),
     ]);
+
+    // On first sign-in, replay any orphan webhook events that arrived for
+    // this google_sub before the user row existed (purchase-flow.md §7 #6).
+    // Fire-and-forget so we don't block the request on this slow path.
+    if (created) {
+      replayOrphanedEvents(sub, user.id).catch((err) => {
+        logger.error({ err, user_id: user.id }, "rc_webhook_orphan_replay_unhandled");
+      });
+    }
 
     req.user = {
       id: user.id,

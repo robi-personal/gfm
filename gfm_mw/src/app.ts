@@ -8,7 +8,6 @@ import { aiGenerationDisabledMiddleware } from "./presentation/middleware/kill-s
 import {
   aiGlobalLimitMiddleware,
   aiIpLimitMiddleware,
-  defaultIpLimitMiddleware,
 } from "./presentation/middleware/rate-limit.middleware";
 import { userRouter } from "./presentation/routes/user.routes";
 import { webhookRouter } from "./presentation/routes/webhook.routes";
@@ -63,9 +62,8 @@ export function createApp(): Application {
   app.get("/admin/*", (_req, res) => res.sendFile(join(adminDist, "index.html")));
   app.use("/",         healthRouter);   // GET /health, GET /metrics
 
-  // ── 404 + catch-all rate limit ────────────────────────────────────────────
-  // Default per-IP limiter throttles unrecognised-path probing before sending 404.
-  app.all("*", defaultIpLimitMiddleware, (_req: Request, res: Response) => {
+  // ── 404 catch-all ─────────────────────────────────────────────────────────
+  app.all("*", (_req: Request, res: Response) => {
     res.status(404).json({ code: "not_found", message: "Route not found." });
   });
 

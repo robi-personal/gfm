@@ -1,142 +1,30 @@
-import crypto from "node:crypto";
 import { Router } from "express";
-import * as Sentry from "@sentry/node";
 import { env } from "../../config/env";
 import { configService } from "../../config/config-service";
 import { pool, withTransaction } from "../../infrastructure/db/postgres";
-import { DbClient } from "../../infrastructure/db/postgres";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
-import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import { PgFormWatchRepository } from "../../infrastructure/db/repositories/pg-form-watch.repository";
 import { PgDeviceTokenRepository } from "../../infrastructure/db/repositories/pg-device-token.repository";
 import { rcIpLimitMiddleware } from "../middleware/rate-limit.middleware";
+import { rcWebhookAuthMiddleware } from "../middleware/rc-webhook-auth.middleware";
 import { rcWebhookTotal, rcWebhookLagMs } from "../../infrastructure/metrics";
-import { logger } from "../../infrastructure/logger";
 import { verifyPubsubOidcToken } from "../../infrastructure/google-auth/pubsub-token-verifier";
 import { sendToTokens } from "../../infrastructure/fcm/fcm.service";
+import { applyEvent, RcPayload } from "../../application/rc-webhook/apply-event";
 
 export const webhookRouter = Router();
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-interface RcEvent {
-  id: string;
-  type: string;
-  app_user_id: string;
-  entitlement_ids?: string[];
-  product_id?: string;
-  expiration_at_ms?: number | null;
-  environment: "PRODUCTION" | "SANDBOX";
-  grace_period_expiration_at_ms?: number;
-  transferred_from?: string[];
-  transferred_to?: string[];
-}
-
-interface RcPayload {
-  event?: RcEvent;
-}
-
 class DuplicateEventError extends Error {}
 
-// ── Utilities ──────────────────────────────────────────────────────────────────
-
-function msToDate(ms: number | null | undefined): Date | null {
-  return ms != null ? new Date(ms) : null;
-}
-
-// ── Event handlers (see revenuecat-webhook-map.md §3) ─────────────────────────
-
-async function applyEvent(db: DbClient, userId: number, event: RcEvent): Promise<void> {
-  const userRepo      = new PgUserRepository(db);
-  const productRepo   = new PgQuotaProductRepository(pool);
-
-  switch (event.type) {
-    case "INITIAL_PURCHASE": {
-      if (!event.product_id) break;
-      const product = await productRepo.getById(event.product_id);
-      if (!product) {
-        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
-        break;
-      }
-      // Atomic — second caller (sync) sees is_premium=true and short-circuits.
-      await userRepo.claimPremiumAndCredit(
-        userId, product.quotaAmount, product.productId, "subscription", event.id,
-      );
-      break;
-    }
-    case "RENEWAL": {
-      if (!event.product_id) break;
-      const product = await productRepo.getById(event.product_id);
-      if (!product) {
-        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
-        break;
-      }
-      await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
-      await userRepo.setSubscriptionProduct(userId, product.productId);
-      break;
-    }
-    case "NON_RENEWING_PURCHASE": {
-      if (!event.product_id) break;
-      const product = await productRepo.getById(event.product_id);
-      if (!product) {
-        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
-        break;
-      }
-      await userRepo.creditQuota(userId, product.quotaAmount, "topup", product.productId, event.id);
-      break;
-    }
-    case "CANCELLATION":
-      // No action — subscription stays active until EXPIRATION.
-      break;
-    case "EXPIRATION":
-      // Balance rolls forward; just clear premium status.
-      await userRepo.setSubscriptionProduct(userId, null);
-      break;
-    case "BILLING_ISSUE": {
-      const gracePeriodUntil = event.grace_period_expiration_at_ms
-        ? msToDate(event.grace_period_expiration_at_ms)!
-        : new Date(Date.now() + 16 * 24 * 60 * 60 * 1_000);
-      await userRepo.setGracePeriod(userId, gracePeriodUntil);
-      break;
-    }
-    case "REFUND":
-      // Revoke premium immediately. Balance is NOT clawed back — audit trail in quota_transactions.
-      await userRepo.revokeImmediately(userId);
-      await userRepo.setSubscriptionProduct(userId, null);
-      break;
-    case "PRODUCT_CHANGE": {
-      const stillPremium = event.entitlement_ids?.includes("GFMPremium") ?? false;
-      const resetAt = msToDate(event.expiration_at_ms) ?? new Date();
-      await userRepo.updateProductChange(userId, stillPremium, resetAt);
-      if (event.product_id) {
-        const product = await productRepo.getById(event.product_id);
-        if (!product) {
-          logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
-        } else {
-          await userRepo.creditQuota(userId, product.quotaAmount, "subscription_upgrade", product.productId, event.id);
-        }
-        await userRepo.setSubscriptionProduct(userId, event.product_id);
-      }
-      break;
-    }
-    case "TRANSFER":
-      if (event.transferred_from?.length) {
-        await userRepo.transferFrom(event.transferred_from);
-      }
-      if (event.transferred_to?.length) {
-        await userRepo.transferTo(event.transferred_to);
-      }
-      break;
-    default:
-      break;
-  }
-}
-
 // ── Route ──────────────────────────────────────────────────────────────────────
+// Middleware order matters: bearer auth runs BEFORE the rate limit so a
+// spammer hitting this URL cannot eat into the per-IP budget that RC's own
+// (small) IP pool needs. See purchase-flow.md §7 *Outstanding* #2.
 
 webhookRouter.post(
   "/revenuecat",
+  rcWebhookAuthMiddleware,
   rcIpLimitMiddleware,
   async (req, res) => {
     const rawBody = req.rawBody;
@@ -145,30 +33,7 @@ webhookRouter.post(
       return;
     }
 
-    const provided = req.headers.authorization ?? "";
-    const expected = env.RC_WEBHOOK_SECRET;
-
-    const providedBuf = Buffer.from(provided);
-    const expectedBuf = Buffer.from(expected);
-    const sigValid =
-      providedBuf.length === expectedBuf.length &&
-      crypto.timingSafeEqual(providedBuf, expectedBuf);
-
-    if (!sigValid) {
-      req.log.error({ path: req.path }, "rc_hmac_mismatch");
-      Sentry.withScope((scope) => {
-        scope.setLevel("warning");
-        scope.setTag("route", "POST /webhooks/revenuecat");
-        Sentry.captureException(new Error("rc_webhook_hmac_mismatch"));
-      });
-      res.status(401).json({
-        code: "invalid_signature",
-        message: "Webhook signature verification failed.",
-      });
-      return;
-    }
-
-    // Step 2: Parse envelope
+    // Parse envelope
     const payload = req.body as RcPayload;
     const event   = payload?.event;
     if (!event?.id || !event?.type) {
@@ -189,6 +54,19 @@ webhookRouter.post(
       rcWebhookTotal.inc({ event_type: event.type, outcome });
       if (purchasedAtMs) rcWebhookLagMs.observe(Date.now() - purchasedAtMs);
     };
+
+    // Step 2.5: Sandbox-in-production gate. A sandbox/TestFlight purchase
+    // hitting the prod webhook URL would otherwise credit real quota — see
+    // purchase-flow.md §7 #3. Drop silently with metric.
+    if (isSandbox && env.NODE_ENV === "production") {
+      req.log.warn(
+        { event_id: event.id, type: event.type, app_user_id: event.app_user_id },
+        "rc_webhook_sandbox_dropped",
+      );
+      recordWebhookMetric("sandbox_dropped");
+      res.json({ received: true });
+      return;
+    }
 
     // Step 3: Fast dedupe pre-check (authoritative guard is the UNIQUE constraint in Step 6)
     const webhookRepo = new PgWebhookEventRepository(pool);

@@ -19,6 +19,16 @@ function mapRow(row: Record<string, unknown>): User {
   };
 }
 
+// Out-of-order RC delivery guard. NULL caller timestamp means "non-webhook
+// caller, skip the check" (sync, free grant). NULL row value means "no event
+// has ever advanced this row" — first event wins. See purchase-flow.md §6.3.
+const WATERMARK_CLAUSE =
+  "(($ts::bigint IS NULL) OR last_event_at IS NULL OR last_event_at < to_timestamp($ts::bigint / 1000.0))";
+
+function tsParam(eventTimestampMs: number | null): number | null {
+  return eventTimestampMs ?? null;
+}
+
 export class PgUserRepository implements UserRepository {
   constructor(private readonly db: DbClient) {}
 
@@ -38,15 +48,17 @@ export class PgUserRepository implements UserRepository {
     return rows[0] ? mapRow(rows[0]) : null;
   }
 
-  async upsert(googleSub: string, email: string): Promise<User> {
+  async upsert(googleSub: string, email: string): Promise<{ user: User; created: boolean }> {
+    // xmax = '0' on a freshly-inserted row; non-zero on an UPDATE conflict path.
+    // Lets the caller (auth.middleware) trigger orphan-webhook replay on first sign-in.
     const { rows } = await this.db.query(
       `INSERT INTO users (google_sub, email)
        VALUES ($1, $2)
        ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email
-       RETURNING *`,
+       RETURNING *, (xmax = 0) AS created`,
       [googleSub, email],
     );
-    return mapRow(rows[0]);
+    return { user: mapRow(rows[0]), created: rows[0]["created"] === true };
   }
 
   // ── Quota balance ────────────────────────────────────────────────────────────
@@ -58,13 +70,27 @@ export class PgUserRepository implements UserRepository {
     productId?: string,
     refId?: string,
   ): Promise<void> {
+    // ON CONFLICT against quota_transactions_dedupe_idx (migration 007) makes
+    // this idempotent on (user_id, source, product_id, ref_id). The balance
+    // UPDATE only commits when the INSERT row materializes — pg evaluates the
+    // CTE in one statement, and the SELECT FROM inserted returns 0 rows on
+    // conflict, so the UPDATE writes nothing.
     await this.db.query(
-      `WITH updated AS (
-         UPDATE users SET quota_balance = quota_balance + $2 WHERE id = $1
+      `WITH inserted AS (
+         INSERT INTO quota_transactions (user_id, delta, balance_after, source, product_id, ref_id)
+         VALUES ($1, $2, 0, $3, $4, $5)
+         ON CONFLICT (user_id, source, product_id, ref_id)
+           WHERE ref_id IS NOT NULL DO NOTHING
+         RETURNING id
+       ), updated AS (
+         UPDATE users SET quota_balance = quota_balance + $2
+         WHERE id = $1 AND EXISTS (SELECT 1 FROM inserted)
          RETURNING quota_balance
        )
-       INSERT INTO quota_transactions (user_id, delta, balance_after, source, product_id, ref_id)
-       SELECT $1, $2, quota_balance, $3, $4, $5 FROM updated`,
+       UPDATE quota_transactions
+         SET balance_after = updated.quota_balance
+         FROM updated, inserted
+         WHERE quota_transactions.id = inserted.id`,
       [userId, amount, source, productId ?? null, refId ?? null],
     );
   }
@@ -124,13 +150,19 @@ export class PgUserRepository implements UserRepository {
     return (rows[0]?.["quota_balance"] as number) ?? 0;
   }
 
-  async setSubscriptionProduct(userId: number, productId: string | null): Promise<void> {
+  async setSubscriptionProduct(
+    userId: number,
+    productId: string | null,
+    eventTimestampMs: number | null,
+  ): Promise<void> {
     await this.db.query(
       `UPDATE users SET
          subscription_product_id = $2::text,
-         is_premium              = ($2::text IS NOT NULL)
-       WHERE id = $1`,
-      [userId, productId],
+         is_premium              = ($2::text IS NOT NULL),
+         last_event_at           = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
+       WHERE id = $1
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+      [userId, productId, tsParam(eventTimestampMs)],
     );
   }
 
@@ -140,28 +172,34 @@ export class PgUserRepository implements UserRepository {
     productId: string,
     source: string,
     refId: string,
+    eventTimestampMs: number | null,
   ): Promise<boolean> {
-    // The `WHERE is_premium = false` guard makes this a single atomic claim:
-    // only one of two concurrent callers (webhook INITIAL_PURCHASE + sync) will
-    // see rows returned from the UPDATE, so the quota_transactions INSERT also
-    // runs at most once.
+    // The `is_premium = FALSE` guard atomizes the INITIAL_PURCHASE claim across
+    // concurrent webhook + sync callers. The watermark clause additionally
+    // rejects late-arriving INITIAL_PURCHASE events (e.g. after EXPIRATION).
+    // See purchase-flow.md §6.1 and §6.3.
     const { rows } = await this.db.query(
       `WITH claimed AS (
          UPDATE users
          SET
            quota_balance           = quota_balance + $2,
            subscription_product_id = $3,
-           is_premium              = TRUE
-         WHERE id = $1 AND is_premium = FALSE
+           is_premium              = TRUE,
+           last_event_at           = COALESCE(to_timestamp($6::bigint / 1000.0), last_event_at)
+         WHERE id = $1
+           AND is_premium = FALSE
+           AND ${WATERMARK_CLAUSE.replace("$ts", "$6")}
          RETURNING quota_balance
        ), tx AS (
          INSERT INTO quota_transactions
            (user_id, delta, balance_after, source, product_id, ref_id)
          SELECT $1, $2, quota_balance, $4, $3, $5 FROM claimed
+         ON CONFLICT (user_id, source, product_id, ref_id)
+           WHERE ref_id IS NOT NULL DO NOTHING
          RETURNING 1
        )
        SELECT EXISTS (SELECT 1 FROM claimed) AS claimed`,
-      [userId, amount, productId, source, refId],
+      [userId, amount, productId, source, refId, tsParam(eventTimestampMs)],
     );
     return rows[0]?.["claimed"] === true;
   }
@@ -191,87 +229,95 @@ export class PgUserRepository implements UserRepository {
   }
 
   // ── RevenueCat event handlers ────────────────────────────────────────────────
-  // All premium writes use the "only advance, never retract" guard on premium_reset_at
-  // to handle out-of-order RC delivery. See revenuecat-webhook-map.md §4.1.
+  // All premium-state writes carry the watermark guard so a late event can never
+  // retract or duplicate a more recent one. See purchase-flow.md §6.3.
 
-  // premiumResetAt is accepted for interface compatibility but no longer stored
-  // — subscription tracking is handled by setSubscriptionProduct.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async setPremium(userId: number, _premiumResetAt: Date): Promise<void> {
+  async setGracePeriod(
+    userId: number,
+    gracePeriodUntil: Date,
+    eventTimestampMs: number | null,
+  ): Promise<void> {
     await this.db.query(
       `UPDATE users SET
-         is_premium         = true,
-         grace_period_until = NULL
-       WHERE id = $1`,
-      [userId],
+         grace_period_until = GREATEST(grace_period_until, $2),
+         last_event_at      = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
+       WHERE id = $1
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+      [userId, gracePeriodUntil, tsParam(eventTimestampMs)],
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async renewPremium(userId: number, _premiumResetAt: Date): Promise<void> {
+  async clearGracePeriod(userId: number, eventTimestampMs: number | null): Promise<void> {
     await this.db.query(
       `UPDATE users SET
-         is_premium         = true,
-         grace_period_until = NULL
-       WHERE id = $1`,
-      [userId],
+         grace_period_until = NULL,
+         last_event_at      = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
+       WHERE id = $1
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+      [userId, tsParam(eventTimestampMs)],
     );
   }
 
-  async setGracePeriod(userId: number, gracePeriodUntil: Date): Promise<void> {
+  async revokeImmediately(userId: number, eventTimestampMs: number | null): Promise<void> {
     await this.db.query(
       `UPDATE users SET
-         grace_period_until = GREATEST(grace_period_until, $2)
-       WHERE id = $1`,
-      [userId, gracePeriodUntil],
+         is_premium              = FALSE,
+         grace_period_until      = NULL,
+         subscription_product_id = NULL,
+         last_event_at           = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
+       WHERE id = $1
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+      [userId, tsParam(eventTimestampMs)],
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async revokePremium(userId: number, _eventExpiresAt: Date): Promise<void> {
+  async updateProductChange(
+    userId: number,
+    isPremium: boolean,
+    eventTimestampMs: number | null,
+  ): Promise<void> {
     await this.db.query(
       `UPDATE users SET
-         is_premium         = false,
-         grace_period_until = NULL
-       WHERE id = $1`,
-      [userId],
+         is_premium    = $2,
+         last_event_at = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
+       WHERE id = $1
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+      [userId, isPremium, tsParam(eventTimestampMs)],
     );
   }
 
-  async revokeImmediately(userId: number): Promise<void> {
-    await this.db.query(
-      `UPDATE users SET
-         is_premium         = false,
-         grace_period_until = NULL
-       WHERE id = $1`,
-      [userId],
-    );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateProductChange(userId: number, isPremium: boolean, _newResetAt: Date): Promise<void> {
-    await this.db.query(
-      "UPDATE users SET is_premium = $2 WHERE id = $1",
-      [userId, isPremium],
-    );
-  }
-
-  async transferFrom(googleSubs: string[]): Promise<void> {
+  async transferFrom(googleSubs: string[], eventTimestampMs: number | null): Promise<void> {
     if (googleSubs.length === 0) return;
+    // Clear subscription_product_id too — leaving it set on a transferred-away
+    // user is the bug the doc §7 used to flag. Quota balance is not clawed back.
     await this.db.query(
       `UPDATE users SET
-         is_premium         = false,
-         grace_period_until = NULL
-       WHERE google_sub = ANY($1::text[])`,
-      [googleSubs],
+         is_premium              = FALSE,
+         grace_period_until      = NULL,
+         subscription_product_id = NULL,
+         last_event_at           = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
+       WHERE google_sub = ANY($1::text[])
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+      [googleSubs, tsParam(eventTimestampMs)],
     );
   }
 
-  async transferTo(googleSubs: string[]): Promise<void> {
+  async transferTo(
+    googleSubs: string[],
+    productId: string | null,
+    eventTimestampMs: number | null,
+  ): Promise<void> {
     if (googleSubs.length === 0) return;
+    // Receiver gets premium + product label, but no quota credit (per
+    // purchase-flow.md §7 decision: transfer moves entitlement, not balance).
     await this.db.query(
-      "UPDATE users SET is_premium = true WHERE google_sub = ANY($1::text[])",
-      [googleSubs],
+      `UPDATE users SET
+         is_premium              = TRUE,
+         subscription_product_id = COALESCE($2::text, subscription_product_id),
+         last_event_at           = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
+       WHERE google_sub = ANY($1::text[])
+         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+      [googleSubs, productId, tsParam(eventTimestampMs)],
     );
   }
 }

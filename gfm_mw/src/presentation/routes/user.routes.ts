@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { denylistMiddleware } from "../middleware/kill-switch.middleware";
-import { statusUserLimitMiddleware, syncUserLimitMiddleware } from "../middleware/rate-limit.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
@@ -16,7 +15,6 @@ userRouter.get(
   "/status",
   authMiddleware,
   denylistMiddleware,
-  statusUserLimitMiddleware,
   async (req, res, next) => {
     try {
       const userRepo      = new PgUserRepository(pool);
@@ -67,7 +65,6 @@ userRouter.post(
   "/purchase/sync",
   authMiddleware,
   denylistMiddleware,
-  syncUserLimitMiddleware,
   async (req, res, next) => {
     try {
       if (!env.RC_SECRET_API_KEY) {
@@ -120,7 +117,10 @@ userRouter.post(
       }
 
       // Always ensure premium status and subscription product are current.
-      await userRepo.setSubscriptionProduct(user.id, product.productId);
+      // Pass null for eventTimestampMs — sync is a poll, not an event, so it
+      // should not advance the watermark or be subject to it (the heal-only
+      // guard below provides idempotency).
+      await userRepo.setSubscriptionProduct(user.id, product.productId, null);
 
       // Heal-only credit: only credit if no webhook-issued subscription transaction
       // exists for this user+product. Prevents double-credit when the webhook

@@ -78,10 +78,10 @@ const schema = z.object({
   RL_AI_IP_HOURLY: z.coerce.number().default(30),
   RL_AI_USER_HOURLY: z.coerce.number().default(10),
   RL_AI_USER_DAILY: z.coerce.number().default(50),
-  RL_STATUS_USER_MIN: z.coerce.number().default(60),
-  RL_SYNC_USER_MIN:   z.coerce.number().default(5),
-  RL_RC_IP_MIN: z.coerce.number().default(120),
-  RL_DEFAULT_IP_MIN: z.coerce.number().default(120),
+  // Per-IP cap on /webhooks/revenuecat. Auth runs before this middleware,
+  // so only RC-signed traffic counts. 300/min/IP is comfortable headroom
+  // for RC's small dispatch IP pool — see purchase-flow.md §7 Outstanding #2.
+  RL_RC_IP_MIN: z.coerce.number().default(300),
 
 }).superRefine((data, ctx) => {
   if (data.AI_PROVIDER === "gemini" && !data.GEMINI_API_KEY) {
@@ -96,6 +96,15 @@ const schema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["OPENROUTER_API_KEY"],
       message: "OPENROUTER_API_KEY is required when AI_PROVIDER=openrouter",
+    });
+  }
+  // /user/purchase/sync depends on this. Without it the orphan-recovery path
+  // (purchase-flow.md §7 #5) is dead and post-purchase reconciliation 503s.
+  if (data.NODE_ENV === "production" && !data.RC_SECRET_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["RC_SECRET_API_KEY"],
+      message: "RC_SECRET_API_KEY is required in production",
     });
   }
 });

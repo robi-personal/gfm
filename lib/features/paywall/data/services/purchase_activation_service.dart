@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../notifications/data/datasources/notifications_api.dart';
@@ -28,7 +29,8 @@ class PurchaseActivationService {
     try {
       await _api.syncPurchase();
       return true;
-    } catch (_) {
+    } catch (err, stack) {
+      _recordSyncFailure(err, stack, phase: 'foreground');
       return false;
     }
   }
@@ -68,14 +70,32 @@ class PurchaseActivationService {
       Duration(seconds: 30),
       Duration(minutes: 1),
     ];
+    Object? lastErr;
+    StackTrace? lastStack;
     for (final delay in delays) {
       await Future.delayed(delay);
       try {
         await _api.syncPurchase();
         return;
-      } catch (_) {
-        // keep trying
+      } catch (err, stack) {
+        lastErr = err;
+        lastStack = stack;
       }
     }
+    // All retries exhausted. The webhook is still the real backstop, but
+    // record the failure so we can see if this becomes a class of bugs.
+    if (lastErr != null) {
+      _recordSyncFailure(lastErr, lastStack, phase: 'background_exhausted');
+    }
+  }
+
+  void _recordSyncFailure(Object err, StackTrace? stack, {required String phase}) {
+    FirebaseCrashlytics.instance.recordError(
+      err,
+      stack,
+      reason: 'purchase_sync_failed',
+      information: ['phase=$phase'],
+      fatal: false,
+    );
   }
 }

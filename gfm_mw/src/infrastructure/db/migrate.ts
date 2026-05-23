@@ -12,6 +12,10 @@ const MIGRATIONS = [
   { id: "004", filename: "004_quota_system.sql",     seededTable: "quota_products" },
   { id: "005", filename: "005_rename_subscription_products.sql", seededTable: "_never" },
   { id: "006", filename: "006_push_notifications.sql", seededTable: "device_tokens" },
+  // 007 only ADDs a column + index — there is no new table that initdb could
+  // have pre-seeded. Use a sentinel name so the seededTable short-circuit
+  // never falsely marks it applied.
+  { id: "007", filename: "007_event_watermark_and_dedupe.sql", seededTable: "_never_007" },
 ];
 
 export async function runMigrations(): Promise<void> {
