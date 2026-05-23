@@ -161,7 +161,7 @@ export class PgUserRepository implements UserRepository {
          is_premium              = ($2::text IS NOT NULL),
          last_event_at           = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
        WHERE id = $1
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$3")}`,
       [userId, productId, tsParam(eventTimestampMs)],
     );
   }
@@ -188,7 +188,7 @@ export class PgUserRepository implements UserRepository {
            last_event_at           = COALESCE(to_timestamp($6::bigint / 1000.0), last_event_at)
          WHERE id = $1
            AND is_premium = FALSE
-           AND ${WATERMARK_CLAUSE.replace("$ts", "$6")}
+           AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$6")}
          RETURNING quota_balance
        ), tx AS (
          INSERT INTO quota_transactions
@@ -242,7 +242,7 @@ export class PgUserRepository implements UserRepository {
          grace_period_until = GREATEST(grace_period_until, $2),
          last_event_at      = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
        WHERE id = $1
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$3")}`,
       [userId, gracePeriodUntil, tsParam(eventTimestampMs)],
     );
   }
@@ -253,7 +253,7 @@ export class PgUserRepository implements UserRepository {
          grace_period_until = NULL,
          last_event_at      = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
        WHERE id = $1
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$2")}`,
       [userId, tsParam(eventTimestampMs)],
     );
   }
@@ -266,7 +266,7 @@ export class PgUserRepository implements UserRepository {
          subscription_product_id = NULL,
          last_event_at           = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
        WHERE id = $1
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$2")}`,
       [userId, tsParam(eventTimestampMs)],
     );
   }
@@ -281,7 +281,7 @@ export class PgUserRepository implements UserRepository {
          is_premium    = $2,
          last_event_at = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
        WHERE id = $1
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$3")}`,
       [userId, isPremium, tsParam(eventTimestampMs)],
     );
   }
@@ -297,7 +297,7 @@ export class PgUserRepository implements UserRepository {
          subscription_product_id = NULL,
          last_event_at           = COALESCE(to_timestamp($2::bigint / 1000.0), last_event_at)
        WHERE google_sub = ANY($1::text[])
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$2")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$2")}`,
       [googleSubs, tsParam(eventTimestampMs)],
     );
   }
@@ -316,7 +316,7 @@ export class PgUserRepository implements UserRepository {
          subscription_product_id = COALESCE($2::text, subscription_product_id),
          last_event_at           = COALESCE(to_timestamp($3::bigint / 1000.0), last_event_at)
        WHERE google_sub = ANY($1::text[])
-         AND ${WATERMARK_CLAUSE.replace("$ts", "$3")}`,
+         AND ${WATERMARK_CLAUSE.replaceAll("$ts", "$3")}`,
       [googleSubs, productId, tsParam(eventTimestampMs)],
     );
   }
