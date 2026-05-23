@@ -10,12 +10,14 @@ import 'dashboard_form_card.dart';
 class DashboardFormList extends StatelessWidget {
   final List<FormEntry> forms;
   final String query;
+  final SortOrder sortOrder;
   final String? renamingId;
 
   const DashboardFormList({
     super.key,
     required this.forms,
     required this.query,
+    required this.sortOrder,
     this.renamingId,
   });
 
@@ -25,7 +27,7 @@ class DashboardFormList extends StatelessWidget {
 
     final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 90;
     final tablet = isTablet(context);
-    final items = _buildItems(forms, renamingId);
+    final items = _buildItems(forms, renamingId, sortOrder);
 
     return RefreshIndicator(
       color: AppColors.purple600,
@@ -100,14 +102,14 @@ class _FormItem extends _ListItem {
   _FormItem(this.form, {this.isRenaming = false});
 }
 
-List<_ListItem> _buildItems(List<FormEntry> forms, String? renamingId) {
+List<_ListItem> _buildItems(List<FormEntry> forms, String? renamingId, SortOrder sortOrder) {
   final now = DateTime.now();
   final today = <FormEntry>[];
   final thisWeek = <FormEntry>[];
   final earlier = <FormEntry>[];
 
   for (final f in forms) {
-    final t = f.modifiedTime;
+    final t = sortOrder == SortOrder.modifiedDesc ? f.modifiedTime : f.createdTime;
     if (t == null) {
       earlier.add(f);
       continue;

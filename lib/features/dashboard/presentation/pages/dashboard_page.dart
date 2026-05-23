@@ -369,7 +369,7 @@ class _DashboardViewState extends State<_DashboardView> {
             ? Column(children: [
                 DashboardInlineBanner(message: message),
                 Expanded(
-                    child: DashboardFormList(forms: cachedForms, query: '')),
+                    child: DashboardFormList(forms: cachedForms, query: '', sortOrder: SortOrder.modifiedDesc)),
               ])
             : DashboardFullScreenError(
                 message: message,
@@ -402,6 +402,7 @@ class _DashboardViewState extends State<_DashboardView> {
               : DashboardFormList(
                   forms: forms,
                   query: query,
+                  sortOrder: sortOrder,
                   renamingId: renamingId,
                 ),
         ),
