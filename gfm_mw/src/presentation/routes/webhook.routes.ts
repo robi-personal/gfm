@@ -55,18 +55,10 @@ webhookRouter.post(
       if (purchasedAtMs) rcWebhookLagMs.observe(Date.now() - purchasedAtMs);
     };
 
-    // Step 2.5: Sandbox-in-production gate. A sandbox/TestFlight purchase
-    // hitting the prod webhook URL would otherwise credit real quota — see
-    // purchase-flow.md §7 #3. Drop silently with metric.
-    if (isSandbox && env.NODE_ENV === "production") {
-      req.log.warn(
-        { event_id: event.id, type: event.type, app_user_id: event.app_user_id },
-        "rc_webhook_sandbox_dropped",
-      );
-      recordWebhookMetric("sandbox_dropped");
-      res.json({ received: true });
-      return;
-    }
+    // Sandbox events are processed identically to production — accepted by
+    // explicit decision during pre-launch + solo-dev testing. Re-introduce
+    // a gate (env flag or NODE_ENV check) before opening the app to public
+    // sign-ups so external sandbox Apple IDs can't credit real quota.
 
     // Step 3: Fast dedupe pre-check (authoritative guard is the UNIQUE constraint in Step 6)
     const webhookRepo = new PgWebhookEventRepository(pool);

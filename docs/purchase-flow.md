@@ -309,7 +309,6 @@ This closes the previous gap where orphans depended on the next RC event or on `
 - **Orphan webhook replay** — `auth.middleware` calls `replayOrphanedEvents` on first sign-in. See §6.4.
 - **`creditQuota` idempotency** — UNIQUE partial index on `quota_transactions(user_id, source, product_id, ref_id) WHERE ref_id IS NOT NULL`, with `ON CONFLICT DO NOTHING` on insert. Defense in depth on top of `webhook_events.event_id` UNIQUE.
 - **`gracePeriodUntil` auto-clear** — RENEWAL handler calls `clearGracePeriod` after credit. REFUND's `revokeImmediately` already clears it.
-- **Sandbox in production** — webhook route drops sandbox events when `NODE_ENV=production` with `rc_webhook_sandbox_dropped` log + metric.
 - **`RC_SECRET_API_KEY` required in production** — `env.ts` `superRefine` adds the check; service fails at boot if missing.
 - **Silent `INITIAL_PURCHASE` missing `product_id`** — now logs `rc_initial_purchase_missing_product_id` (error level) before short-circuiting.
 - **Flutter sync swallows errors** — `PurchaseActivationService` now records both foreground and exhausted-background failures to Crashlytics with a `phase` tag.
@@ -325,9 +324,11 @@ This closes the previous gap where orphans depended on the next RC event or on `
 
 2. **Per-IP rate limit on `/webhooks/revenuecat` can throttle legitimate RC traffic.** RC sends from a small IP pool. A promo-day burst of INITIAL_PURCHASE events arrives from the same few IPs and can trip `rcIpLimitMiddleware`. RC will retry, but the limit costs latency on launch day. Consider exempting requests whose `Authorization` matches `RC_WEBHOOK_SECRET` from the IP limit, or raising the cap substantially.
 
-3. **Sandbox product ID drift.** Migration `005` renamed product IDs to match the live store. Sandbox tooling that still uses the old `gfm_weekly` / `gfm_monthly` IDs hits `productRepo.getById` returning null and logs `rc_webhook_unknown_product`. No DB write; webhook is ack'd 200. Worth knowing during testing.
+3. **Sandbox events credit real quota in production — intentional pre-launch.** The webhook route processes sandbox events identically to production (no gate). Acceptable while the user base is solo / the developer; **must be re-gated before opening the app to public sign-ups** so external sandbox Apple IDs can't credit real quota. Reintroduction options: env flag (`RC_ALLOW_SANDBOX=false`) or strict `env.NODE_ENV === "production"` check. See `webhook.routes.ts` around the "Sandbox events are processed identically" comment for the drop site.
 
-4. **No automated tests** for the webhook handler or the sync endpoint. The middleware repo has no test framework configured (no Jest/Vitest in `package.json`). Manual verification is via the RC dashboard "Send test event" + sandbox purchases. Minimum bar: handler-level unit tests with a fake `PgUserRepository` covering each `event.type` switch case and the §6.1 / §6.3 interleavings.
+4. **Sandbox product ID drift.** Migration `005` renamed product IDs to match the live store. Sandbox tooling that still uses the old `gfm_weekly` / `gfm_monthly` IDs hits `productRepo.getById` returning null and logs `rc_webhook_unknown_product`. No DB write; webhook is ack'd 200. Worth knowing during testing.
+
+5. **No automated tests** for the webhook handler or the sync endpoint. The middleware repo has no test framework configured (no Jest/Vitest in `package.json`). Manual verification is via the RC dashboard "Send test event" + sandbox purchases. Minimum bar: handler-level unit tests with a fake `PgUserRepository` covering each `event.type` switch case and the §6.1 / §6.3 interleavings.
 
 ---
 
@@ -345,12 +346,11 @@ This closes the previous gap where orphans depended on the next RC event or on `
 | `rc_sync_no_active_entitlement` | `user.routes.ts:100` | RC says user is not entitled |
 | `rc_sync_fetch_failed` | `user.routes.ts:84` | RC subscriber API returned non-2xx — sync returns 502, app retries |
 | `rc_sync_unknown_product` | `user.routes.ts:117` | RC reports a product ID not in `quota_products` — product-catalog drift |
-| `rc_webhook_sandbox_dropped` | `webhook.routes.ts` | Sandbox event silently dropped in production (§7 fix) |
 | `rc_initial_purchase_missing_product_id` | `application/rc-webhook/apply-event.ts` | INITIAL_PURCHASE arrived with no `product_id` — RC config drift |
 | `rc_webhook_orphan_replay_start` | `application/rc-webhook/apply-event.ts` | First sign-in: replaying N orphan events for this user |
 | `rc_webhook_orphan_replayed` | `application/rc-webhook/apply-event.ts` | Single orphan event applied successfully |
 | `rc_webhook_orphan_replay_failed` | `application/rc-webhook/apply-event.ts` | One orphan failed; row stays `user_id=NULL` for retry |
-| `rcWebhookTotal{event_type, outcome}` | Prometheus | Counter; `outcome` now includes `sandbox_dropped` |
+| `rcWebhookTotal{event_type, outcome}` | Prometheus | Counter |
 | `rcWebhookLagMs` | Prometheus | now − `purchased_at_ms`; tail latency = webhook delay |
 
 ---
