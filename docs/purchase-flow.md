@@ -1,6 +1,6 @@
 # Purchase Flow — App ↔ Middleware
 
-**Status:** Reference doc (matches code as of 2026-05-24, post-migration 007 hardening). Earlier §7 items resolved by 007 + `application/rc-webhook/apply-event.ts`; remaining items listed under §7 *Outstanding*. §6.1 / §6.3 / §6.4 rewritten 2026-05-24 to correct stale `premium_reset_at` claims and document the new watermark + orphan-replay paths.
+**Status:** Reference doc (matches code as of 2026-05-24, post-migration 007 hardening + PRODUCT_CHANGE race fix). Earlier §7 items resolved by migration 007 + `application/rc-webhook/apply-event.ts`; remaining items listed under §7 *Outstanding*. §6.1 / §6.3 / §6.4 rewritten 2026-05-24 to correct stale `premium_reset_at` claims and document the watermark + orphan-replay paths; §6.1.1 added 2026-05-24 covering the PRODUCT_CHANGE sync-first race.
 **Scope:** End-to-end trace of a paid subscription purchase, from the Flutter paywall through the RevenueCat SDK and the GFM middleware, to the point where the app sees `isPremium=true` and quota on `/user/status`.
 **Companion doc:** `revenuecat-webhook-map.md` — per-event handler internals. This doc covers the wider system and points at that one for webhook details.
 
@@ -260,7 +260,22 @@ Both writers converge to exactly one credit because each path has its own guard:
 
 The `is_premium=FALSE` guard inside `claimPremiumAndCredit` is what makes this safe — it is not a comment-level convention but a SQL-enforced precondition. See `pg-user.repository.ts:144-147` for the rationale comment that mirrors this section.
 
-> **Caveat — only safe for INITIAL_PURCHASE.** The guard relies on `is_premium` being `FALSE` at the moment the webhook arrives. It does **not** protect RENEWAL, PRODUCT_CHANGE, or NON_RENEWING_PURCHASE — those handlers call `creditQuota` directly, which has no idempotency guard beyond the outer `webhook_events.event_id` UNIQUE. See §7.
+#### 6.1.1 The same race for PRODUCT_CHANGE (upgrade flow)
+
+Upgrades fire the same two writers — webhook (`PRODUCT_CHANGE`) and sync — but the `is_premium=FALSE` SQL guard does **not** apply because `is_premium` is already `TRUE` throughout an upgrade. So for PRODUCT_CHANGE the protection has to live in the handler logic, not in the SQL.
+
+Subtle wrinkle that makes this race uglier than INITIAL_PURCHASE: the two writers use **different `source` values**. Sync writes `source='subscription'` (it doesn't know it's an upgrade); webhook writes `source='subscription_upgrade'`. The partial UNIQUE index on `(user_id, source, product_id, ref_id)` therefore does **not** catch cross-path duplicates — two rows for the same product land, balance is double-credited.
+
+Fix: webhook `PRODUCT_CHANGE` handler runs the same `hasSubscriptionTransactionForProduct` check sync does before crediting (`apply-event.ts` PRODUCT_CHANGE case). Because the check matches `source IN ('subscription', 'subscription_upgrade')`, both directions see each other and at most one credit lands:
+
+| Order | First writer leaves behind | Second writer's heal check | Net |
+|---|---|---|---|
+| Webhook → Sync | `('subscription_upgrade', X, event.id)` | Sync finds it → skips | 1 credit |
+| Sync → Webhook | `('subscription', X, 'sync-heal:…')` | Webhook finds it → skips | 1 credit |
+
+The `setSubscriptionProduct(productId, ts)` call still runs in both branches so the product label is always re-asserted.
+
+> **Why RENEWAL doesn't need this fix.** For RENEWAL, the user already has a tx row for that product (from the prior INITIAL_PURCHASE or earlier RENEWAL), so sync's `hasSubscriptionTransactionForProduct` returns true and sync silently skips. Only the webhook credits. PRODUCT_CHANGE is uniquely vulnerable because the new product is, by definition, one the user hasn't been credited for yet.
 
 ### 6.2 Webhook dedupe
 
@@ -272,11 +287,13 @@ RC guarantees at-least-once, not order. Migration `007_event_watermark_and_dedup
 
 ```sql
 AND (
-  $ts::bigint IS NULL                       -- non-webhook caller (sync, free grant)
-  OR last_event_at IS NULL                  -- never seen an event before
-  OR last_event_at < to_timestamp($ts / 1000.0)
+  $ts::bigint IS NULL                        -- non-webhook caller (sync, free grant)
+  OR last_event_at IS NULL                   -- never seen an event before
+  OR last_event_at <= to_timestamp($ts / 1000.0)
 )
 ```
+
+> **Why `<=` not `<`.** A single handler often issues multiple UPDATEs with the same `ts` (e.g. RENEWAL: `setSubscriptionProduct` then `clearGracePeriod`). The first call writes `last_event_at = ts`; the second would self-block under `<`. Duplicate-event protection lives one layer up at `webhook_events.event_id UNIQUE`, so the watermark only needs to reject *older* events.
 
 with `last_event_at = COALESCE(to_timestamp($ts/1000.0), last_event_at)` on success. Effect on the previously-corrupting sequences:
 
@@ -313,6 +330,7 @@ This closes the previous gap where orphans depended on the next RC event or on `
 - **Silent `INITIAL_PURCHASE` missing `product_id`** — now logs `rc_initial_purchase_missing_product_id` (error level) before short-circuiting.
 - **Flutter sync swallows errors** — `PurchaseActivationService` now records both foreground and exhausted-background failures to Crashlytics with a `phase` tag.
 - **Dead `setPremium` / `renewPremium` / `revokePremium`** — removed from `UserRepository` interface and `PgUserRepository`.
+- **PRODUCT_CHANGE sync-first double-credit race** — webhook PRODUCT_CHANGE handler now runs the same `hasSubscriptionTransactionForProduct` heal check sync does. See §6.1.1.
 
 ### Outstanding
 
