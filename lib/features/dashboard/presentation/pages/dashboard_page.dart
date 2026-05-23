@@ -63,8 +63,15 @@ class _DashboardViewState extends State<_DashboardView> {
     _notificationTapSub = getIt<NotificationService>()
         .onNotificationTap
         .listen(_handleNotificationTap);
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _setupNotifications());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _setupNotifications();
+      // Reconcile RC-side premium status with the backend on every dashboard
+      // mount. Catches the cold-start case where the user is already premium
+      // (existing subscriber re-signing in) but the backend doesn't know yet.
+      // After sync attempt, refresh the premium future so the crown hides.
+      final reconciled = await _activation.reconcileIfClientPremium();
+      if (mounted && reconciled) _refreshPremium();
+    });
   }
 
   @override

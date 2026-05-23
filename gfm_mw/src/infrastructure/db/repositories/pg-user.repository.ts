@@ -69,6 +69,18 @@ export class PgUserRepository implements UserRepository {
     );
   }
 
+  async hasSubscriptionTransactionForProduct(userId: number, productId: string): Promise<boolean> {
+    const { rows } = await this.db.query(
+      `SELECT 1 FROM quota_transactions
+       WHERE user_id = $1
+         AND product_id = $2
+         AND source IN ('subscription', 'subscription_upgrade')
+       LIMIT 1`,
+      [userId, productId],
+    );
+    return rows.length > 0;
+  }
+
   async debitQuota(userId: number, amount: number, refId: string): Promise<void> {
     // Guard: only debit if balance covers the cost. Generation gate prevents reaching
     // here with an insufficient balance, so this check is a safety net for races.
@@ -115,8 +127,8 @@ export class PgUserRepository implements UserRepository {
   async setSubscriptionProduct(userId: number, productId: string | null): Promise<void> {
     await this.db.query(
       `UPDATE users SET
-         subscription_product_id = $2,
-         is_premium              = ($2 IS NOT NULL)
+         subscription_product_id = $2::text,
+         is_premium              = ($2::text IS NOT NULL)
        WHERE id = $1`,
       [userId, productId],
     );

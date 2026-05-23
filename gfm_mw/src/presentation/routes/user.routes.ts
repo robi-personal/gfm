@@ -118,13 +118,24 @@ userRouter.post(
         res.json({ synced: false });
         return;
       }
-      const claimed = await userRepo.claimPremiumAndCredit(
-        user.id, product.quotaAmount, product.productId, "subscription", `sync:${req.user!.googleSub}`,
+
+      // Always ensure premium status and subscription product are current.
+      await userRepo.setSubscriptionProduct(user.id, product.productId);
+
+      // Heal-only credit: only credit if no webhook-issued subscription transaction
+      // exists for this user+product. Prevents double-credit when the webhook
+      // (INITIAL_PURCHASE / PRODUCT_CHANGE) has already run, while still healing
+      // the case where the webhook failed or never fired.
+      const hasSubscriptionTx = await userRepo.hasSubscriptionTransactionForProduct(
+        user.id, product.productId,
       );
-      req.log.info(
-        { user_id: user.id, product_id: productId, claimed },
-        claimed ? "rc_sync_premium_granted" : "rc_sync_already_premium",
-      );
+      if (!hasSubscriptionTx) {
+        const refId = `sync-heal:${req.user!.googleSub}:${product.productId}`;
+        await userRepo.creditQuota(user.id, product.quotaAmount, "subscription", product.productId, refId);
+        req.log.info({ user_id: user.id, product_id: productId }, "rc_sync_premium_granted");
+      } else {
+        req.log.info({ user_id: user.id, product_id: productId }, "rc_sync_already_credited");
+      }
 
       res.json({ synced: true });
     } catch (err) {

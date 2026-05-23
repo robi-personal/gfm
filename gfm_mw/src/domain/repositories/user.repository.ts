@@ -17,6 +17,7 @@ export interface UserRepository {
   debitQuota(userId: number, amount: number, refId: string): Promise<void>;
   applyFreeGrantIfDue(userId: number, freeProduct: QuotaProduct): Promise<void>;
   getQuotaBalance(userId: number): Promise<number>;
+  hasSubscriptionTransactionForProduct(userId: number, productId: string): Promise<boolean>;
   setSubscriptionProduct(userId: number, productId: string | null): Promise<void>;
   /**
    * Atomically flip is_premium → true, set subscription product, and credit
