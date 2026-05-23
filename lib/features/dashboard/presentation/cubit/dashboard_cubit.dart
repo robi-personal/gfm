@@ -69,10 +69,10 @@ class DashboardCubit extends Cubit<DashboardState> {
       (owned) {
         final imported = importedResult.getOrElse(() => []);
         final ownedIds = owned.map((f) => f.id).toSet();
-        final merged = [
+        final merged = _sorted([
           ...owned,
           ...imported.where((f) => !ownedIds.contains(f.id)),
-        ];
+        ], currentSort);
         emit(DashboardLoaded(
           allForms: merged,
           query: currentQuery,
