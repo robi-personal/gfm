@@ -28,7 +28,7 @@ INSERT INTO quota_products (product_id, product_type, display_name, quota_amount
   ('free',         'free',         'Free Monthly',   3,   NOW()),
   ('gfm_weekly',   'subscription', 'Weekly Premium', 15,  NOW()),
   ('gfm_monthly',  'subscription', 'Monthly Premium',50,  NOW()),
-  ('gfm_yearly',   'subscription', 'Yearly Premium', 700, NOW()),
+  ('gfm_yearly',   'subscription', 'Yearly Premium', 600, NOW()),
   ('gfm_topup_10', 'topup',        'Top-up 10',      10,  NOW()),
   ('gfm_topup_20', 'topup',        'Top-up 20',      20,  NOW()),
   ('gfm_topup_30', 'topup',        'Top-up 30',      30,  NOW());
