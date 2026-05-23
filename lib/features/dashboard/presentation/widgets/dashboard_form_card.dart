@@ -63,10 +63,12 @@ class DashboardFormCard extends StatelessWidget {
     );
   }
 
-  void _openForm(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(
+  void _openForm(BuildContext context) async {
+    final cubit = context.read<DashboardCubit>();
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => EditorPage(formId: form.id, formName: form.name),
     ));
+    cubit.loadForms();
   }
 }
 
@@ -184,10 +186,7 @@ class _KebabMenu extends StatelessWidget {
   void _handleAction(BuildContext context, _RowAction action) {
     switch (action) {
       case _RowAction.open:
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) =>
-              EditorPage(formId: form.id, formName: form.name),
-        ));
+        _open(context);
       case _RowAction.rename:
         _rename(context);
       case _RowAction.delete:
@@ -195,6 +194,14 @@ class _KebabMenu extends StatelessWidget {
       case _RowAction.removeImport:
         _removeImport(context);
     }
+  }
+
+  void _open(BuildContext context) async {
+    final cubit = context.read<DashboardCubit>();
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => EditorPage(formId: form.id, formName: form.name),
+    ));
+    cubit.loadForms();
   }
 
   void _rename(BuildContext context) async {

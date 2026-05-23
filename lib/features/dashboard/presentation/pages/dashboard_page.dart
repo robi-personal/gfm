@@ -181,16 +181,18 @@ class _DashboardViewState extends State<_DashboardView> {
     await svc.registerForUser();
   }
 
-  void _handleNotificationTap(Map<String, String> data) {
+  void _handleNotificationTap(Map<String, String> data) async {
     final formId = data['formId'];
     if (formId == null || !mounted) return;
-    Navigator.of(context).push(MaterialPageRoute<void>(
+    final cubit = context.read<DashboardCubit>();
+    await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => EditorPage(
         formId: formId,
         formName: '',
         initialTabIndex: 1,
       ),
     ));
+    cubit.loadForms();
   }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
