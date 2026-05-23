@@ -87,7 +87,7 @@ class TemplateCategorySection extends StatelessWidget {
         crossAxisCount: isTablet(context) ? 4 : 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 1.6,
+        childAspectRatio: 0.78,
       ),
       itemBuilder: (context, index) => _TemplateCard(
         template: templates[index],
@@ -120,42 +120,42 @@ class _TemplateCard extends StatelessWidget {
         onTap: () => _createFromTemplate(context, template),
         borderRadius: AppShapes.cardRadius,
         splashColor: colors.accent.withValues(alpha: 0.06),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            spacing: 12,
-            children: [
-              _buildIconBox(colors),
-              Expanded(child: _buildLabel()),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildThumbnail(),
+            _buildLabel(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildIconBox(_CategoryColors colors) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: colors.bg,
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildThumbnail() {
+    return Expanded(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+        child: Image.asset(
+          template.imagePath,
+          fit: BoxFit.cover,
+        ),
       ),
-      child: Icon(template.icon, color: colors.accent, size: 22),
     );
   }
 
   Widget _buildLabel() {
-    return Text(
-      template.title,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w600,
-        color: AppColors.ink,
-        height: 1.35,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      child: Text(
+        template.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: AppColors.ink,
+          height: 1.35,
+        ),
       ),
     );
   }
