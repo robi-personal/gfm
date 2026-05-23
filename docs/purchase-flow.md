@@ -328,7 +328,7 @@ This closes the previous gap where orphans depended on the next RC event or on `
 
 4. **Sandbox product ID drift.** Migration `005` renamed product IDs to match the live store. Sandbox tooling that still uses the old `gfm_weekly` / `gfm_monthly` IDs hits `productRepo.getById` returning null and logs `rc_webhook_unknown_product`. No DB write; webhook is ack'd 200. Worth knowing during testing.
 
-5. **No automated tests** for the webhook handler or the sync endpoint. The middleware repo has no test framework configured (no Jest/Vitest in `package.json`). Manual verification is via the RC dashboard "Send test event" + sandbox purchases. Minimum bar: handler-level unit tests with a fake `PgUserRepository` covering each `event.type` switch case and the §6.1 / §6.3 interleavings.
+5. **`/user/purchase/sync` has no HTTP-level test.** Vitest + supertest are now wired (`npm test` — 30 cases covering repository SQL, applyEvent per event type, orphan replay, and webhook HTTP). The sync endpoint specifically isn't covered because mocking RC's `/v1/subscribers/{sub}` API is more test plumbing than the bug surface justifies — the heal-only decision logic is covered by the `hasSubscriptionTransactionForProduct` + `setSubscriptionProduct` repository tests. Add an HTTP test the next time the sync handler grows non-trivial branches.
 
 ---
 

@@ -2,6 +2,20 @@ import type { PoolClient } from "pg";
 import { pool } from "../../src/infrastructure/db/postgres";
 
 /**
+ * For tests that exercise code paths opening their own connections
+ * (HTTP routes via supertest, orphan replay's own withTransaction).
+ * Wipes the user-scoped tables only — quota_products and schema_migrations
+ * stay so subsequent tests have valid product references.
+ */
+export async function truncateTestData(): Promise<void> {
+  await pool.query(
+    `TRUNCATE users, quota_transactions, webhook_events, ai_generations,
+              device_tokens, form_watches, processed_pubsub_messages
+       RESTART IDENTITY CASCADE`,
+  );
+}
+
+/**
  * Runs `fn` inside a transaction that is ALWAYS rolled back, so the test
  * commits nothing. The PoolClient handed to `fn` is the same one the
  * transaction is open on — pass it to repository constructors so their
