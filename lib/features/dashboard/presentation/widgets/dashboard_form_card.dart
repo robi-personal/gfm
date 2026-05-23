@@ -46,7 +46,11 @@ class DashboardFormCard extends StatelessWidget {
                 size: 40,
               ),
               const SizedBox(width: 12),
-              Expanded(child: _FormMeta(form: form)),
+              Expanded(child: _FormMeta(form: form, sortOrder: context.select<DashboardCubit, SortOrder>((c) => switch (c.state) {
+                DashboardLoaded(:final sortOrder) => sortOrder,
+                DashboardError(:final sortOrder) => sortOrder,
+                _ => SortOrder.modifiedDesc,
+              }))),
               const SizedBox(width: 8),
               isRenaming
                   ? const CupertinoActivityIndicator(
@@ -70,11 +74,16 @@ class DashboardFormCard extends StatelessWidget {
 
 class _FormMeta extends StatelessWidget {
   final FormEntry form;
+  final SortOrder sortOrder;
 
-  const _FormMeta({required this.form});
+  const _FormMeta({required this.form, required this.sortOrder});
 
   @override
   Widget build(BuildContext context) {
+    final time = sortOrder == SortOrder.modifiedDesc
+        ? form.modifiedTime
+        : form.createdTime;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,7 +93,7 @@ class _FormMeta extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: AppTextStyles.cardTitle,
         ),
-        if (form.modifiedTime != null) ...[
+        if (time != null) ...[
           const SizedBox(height: 4),
           Row(
             children: [
@@ -92,7 +101,7 @@ class _FormMeta extends StatelessWidget {
                   size: 12, color: AppColors.muted),
               const SizedBox(width: 4),
               Text(
-                _relativeDate(form.modifiedTime!),
+                _relativeDate(time),
                 style: AppTextStyles.meta,
               ),
             ],
@@ -103,15 +112,16 @@ class _FormMeta extends StatelessWidget {
   }
 
   static String _relativeDate(DateTime dt) {
+    final local = dt.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(dt.year, dt.month, dt.day);
+    final date = DateTime(local.year, local.month, local.day);
     final diff = today.difference(date).inDays;
 
     if (diff == 0) {
-      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final m = dt.minute.toString().padLeft(2, '0');
-      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      final h = local.hour % 12 == 0 ? 12 : local.hour % 12;
+      final m = local.minute.toString().padLeft(2, '0');
+      final period = local.hour >= 12 ? 'PM' : 'AM';
       return 'Today, $h:$m $period';
     }
     if (diff == 1) return 'Yesterday';
@@ -121,7 +131,7 @@ class _FormMeta extends StatelessWidget {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
-    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    return '${local.day} ${months[local.month - 1]} ${local.year}';
   }
 }
 
