@@ -66,8 +66,7 @@ class ErrorModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-      child: DefaultTextStyle.merge(
-        style: const TextStyle(decoration: TextDecoration.none),
+      child: Material(
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -111,7 +110,7 @@ class ErrorModal extends StatelessWidget {
                   ],
                 ),
               ),
-
+        
               // ── Actions ────────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
