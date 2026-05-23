@@ -21,9 +21,13 @@ function mapRow(row: Record<string, unknown>): User {
 
 // Out-of-order RC delivery guard. NULL caller timestamp means "non-webhook
 // caller, skip the check" (sync, free grant). NULL row value means "no event
-// has ever advanced this row" — first event wins. See purchase-flow.md §6.3.
+// has ever advanced this row" — first event wins. `<=` not `<` so chained
+// UPDATEs inside one handler (e.g. RENEWAL: setSubscriptionProduct +
+// clearGracePeriod with the same event ts) all apply; duplicate-event
+// protection lives one layer up at webhook_events.event_id UNIQUE.
+// See purchase-flow.md §6.3.
 const WATERMARK_CLAUSE =
-  "(($ts::bigint IS NULL) OR last_event_at IS NULL OR last_event_at < to_timestamp($ts::bigint / 1000.0))";
+  "(($ts::bigint IS NULL) OR last_event_at IS NULL OR last_event_at <= to_timestamp($ts::bigint / 1000.0))";
 
 function tsParam(eventTimestampMs: number | null): number | null {
   return eventTimestampMs ?? null;
