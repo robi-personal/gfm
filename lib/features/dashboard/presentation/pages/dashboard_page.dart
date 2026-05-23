@@ -17,6 +17,7 @@ import '../../../notifications/data/services/notification_service.dart';
 import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../../paywall/data/services/subscription_service.dart';
 import '../../../paywall/presentation/pages/paywall_page.dart';
+import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../domain/entities/form_entry.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/dashboard_dialogs.dart';
@@ -265,6 +266,19 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget build(BuildContext context) {
     final tablet = isTablet(context);
 
+    return BlocBuilder<SignInCubit, SignInState>(
+      buildWhen: (prev, curr) =>
+          (prev is SigningOut) != (curr is SigningOut),
+      builder: (context, signInState) => Stack(
+        children: [
+          _buildDashboard(context, tablet),
+          if (signInState is SigningOut) const _SigningOutOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context, bool tablet) {
     return BlocConsumer<DashboardCubit, DashboardState>(
       listenWhen: (prev, curr) {
         final prevNav = prev is DashboardLoaded ? prev.createNav : null;
@@ -450,6 +464,50 @@ class _ActivationBanner extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _SigningOutOverlay extends StatelessWidget {
+  const _SigningOutOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black.withValues(alpha: 0.45),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 24,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 14,
+              children: [
+                CupertinoActivityIndicator(radius: 14, color: AppColors.purple600),
+                Text(
+                  'Signing out…',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
