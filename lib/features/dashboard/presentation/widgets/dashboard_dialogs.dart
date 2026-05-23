@@ -418,20 +418,23 @@ class _SheetContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x29141028),
-            blurRadius: 30,
-            offset: Offset(0, -10),
-          ),
-        ],
+    return DefaultTextStyle.merge(
+      style: const TextStyle(decoration: TextDecoration.none),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x29141028),
+              blurRadius: 30,
+              offset: Offset(0, -10),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
+        child: child,
       ),
-      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
-      child: child,
     );
   }
 }
