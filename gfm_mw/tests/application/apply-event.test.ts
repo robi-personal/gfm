@@ -211,6 +211,59 @@ describe("applyEvent: CANCELLATION", () => {
   });
 });
 
+describe("applyEvent: PRODUCT_CHANGE race (sync first then webhook)", () => {
+  it("does not double-credit when sync already wrote the upgrade row", async () => {
+    await withTestTransaction(async (client) => {
+      const user = await createTestUser(client);
+
+      // Seed: user has Weekly (INITIAL_PURCHASE applied earlier — gives 15).
+      await applyEvent(client, user.id, rcEvent({
+        id: "evt-init-weekly", type: "INITIAL_PURCHASE",
+        app_user_id: user.googleSub, product_id: WEEKLY,
+        event_timestamp_ms: Date.now() - 60_000,
+      }));
+      expect((await fetchUser(client, user.id)).quotaBalance).toBe(15);
+
+      // Sync runs first (app fires /user/purchase/sync immediately after the
+      // paywall closes; the webhook hasn't arrived yet). Mirror exactly what
+      // user.routes.ts does: setSubscriptionProduct(null ts) + creditQuota
+      // under source="subscription" with the sync-heal ref_id.
+      const repo = new (
+        await import("../../src/infrastructure/db/repositories/pg-user.repository")
+      ).PgUserRepository(client);
+      await repo.setSubscriptionProduct(user.id, MONTHLY, null);
+      const already = await repo.hasSubscriptionTransactionForProduct(user.id, MONTHLY);
+      expect(already).toBe(false); // sync's heal check sees no Monthly tx yet
+      await repo.creditQuota(
+        user.id, 50, "subscription", MONTHLY,
+        `sync-heal:${user.googleSub}:${MONTHLY}`,
+      );
+      // After sync: Weekly(15) + Monthly(50) = 65, one tx for Monthly.
+      expect((await fetchUser(client, user.id)).quotaBalance).toBe(65);
+
+      // Webhook PRODUCT_CHANGE arrives second.
+      await applyEvent(client, user.id, rcEvent({
+        id: "evt-product-change", type: "PRODUCT_CHANGE",
+        app_user_id: user.googleSub, product_id: MONTHLY,
+        entitlement_ids: ["GFMPremium"],
+      }));
+
+      const after = await fetchUser(client, user.id);
+      // BUG (pre-fix): webhook credits with source="subscription_upgrade",
+      // partial UNIQUE doesn't match the sync row (different source), so
+      // balance becomes 15 + 50 + 50 = 115.
+      // EXPECTED (post-fix): webhook's heal check sees the sync row and
+      // skips creditQuota, balance stays at 65.
+      expect(after.quotaBalance).toBe(65);
+      expect(after.subscriptionProductId).toBe(MONTHLY);
+
+      const txs = await fetchTransactions(client, user.id);
+      const monthlyTxs = txs.filter((t) => t.productId === MONTHLY);
+      expect(monthlyTxs).toHaveLength(1); // one Monthly credit, not two
+    });
+  });
+});
+
 describe("applyEvent: out-of-order delivery", () => {
   it("late RENEWAL after REFUND does not reactivate (watermark + dedupe)", async () => {
     await withTestTransaction(async (client) => {

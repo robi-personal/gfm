@@ -124,7 +124,17 @@ export async function applyEvent(
         if (!product) {
           logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
         } else {
-          await userRepo.creditQuota(userId, product.quotaAmount, "subscription_upgrade", product.productId, event.id);
+          // Heal-only credit. Mirrors the sync side's check (user.routes.ts)
+          // so the sync-first/webhook-second race can't double-credit. The
+          // partial UNIQUE on quota_transactions doesn't catch this on its
+          // own because sync writes source='subscription' and we'd write
+          // source='subscription_upgrade' — different rows, no conflict.
+          const already = await userRepo.hasSubscriptionTransactionForProduct(
+            userId, product.productId,
+          );
+          if (!already) {
+            await userRepo.creditQuota(userId, product.quotaAmount, "subscription_upgrade", product.productId, event.id);
+          }
         }
         await userRepo.setSubscriptionProduct(userId, event.product_id, ts);
       }
