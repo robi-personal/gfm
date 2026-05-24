@@ -74,29 +74,37 @@ export class PgUserRepository implements UserRepository {
     productId?: string,
     refId?: string,
   ): Promise<void> {
-    // ON CONFLICT against quota_transactions_dedupe_idx (migration 007) makes
-    // this idempotent on (user_id, source, product_id, ref_id). The balance
-    // UPDATE only commits when the INSERT row materializes — pg evaluates the
-    // CTE in one statement, and the SELECT FROM inserted returns 0 rows on
-    // conflict, so the UPDATE writes nothing.
-    await this.db.query(
-      `WITH inserted AS (
-         INSERT INTO quota_transactions (user_id, delta, balance_after, source, product_id, ref_id)
-         VALUES ($1, $2, 0, $3, $4, $5)
-         ON CONFLICT (user_id, source, product_id, ref_id)
-           WHERE ref_id IS NOT NULL DO NOTHING
-         RETURNING id
-       ), updated AS (
-         UPDATE users SET quota_balance = quota_balance + $2
-         WHERE id = $1 AND EXISTS (SELECT 1 FROM inserted)
-         RETURNING quota_balance
-       )
-       UPDATE quota_transactions
-         SET balance_after = updated.quota_balance
-         FROM updated, inserted
-         WHERE quota_transactions.id = inserted.id`,
+    // Step 1: claim the dedup slot. ON CONFLICT DO NOTHING makes this
+    // idempotent on (user_id, source, product_id, ref_id) via the partial
+    // unique index from migration 007. Bail early on duplicate — no credit.
+    const { rows } = await this.db.query(
+      `INSERT INTO quota_transactions (user_id, delta, balance_after, source, product_id, ref_id)
+       VALUES ($1, $2, 0, $3, $4, $5)
+       ON CONFLICT (user_id, source, product_id, ref_id)
+         WHERE ref_id IS NOT NULL DO NOTHING
+       RETURNING id`,
       [userId, amount, source, productId ?? null, refId ?? null],
     );
+    if (rows.length === 0) return;
+
+    // Step 2: apply the credit and capture the new running balance.
+    // PG CTE snapshot isolation prevents the primary query of a WITH statement
+    // from seeing rows inserted by a sibling CTE via a table scan — so the
+    // original single-statement approach always wrote balance_after=0.
+    const { rows: updated } = await this.db.query(
+      `UPDATE users SET quota_balance = quota_balance + $2
+       WHERE id = $1
+       RETURNING quota_balance`,
+      [userId, amount],
+    );
+
+    // Step 3: patch the audit row with the correct running balance.
+    if (updated.length > 0) {
+      await this.db.query(
+        `UPDATE quota_transactions SET balance_after = $2 WHERE id = $1`,
+        [rows[0]["id"] as number, updated[0]["quota_balance"] as number],
+      );
+    }
   }
 
   async hasSubscriptionTransactionForProduct(userId: number, productId: string): Promise<boolean> {
