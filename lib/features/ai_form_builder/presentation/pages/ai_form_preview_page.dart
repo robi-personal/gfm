@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/generated_form.dart';
 import '../cubit/ai_form_builder_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Preview screen — shown after a successful AI generation (§1.2 / §2.2).
 /// Displays every generated question so the user can review before creating
@@ -109,7 +110,11 @@ class _PreviewBody extends StatelessWidget {
         ),
 
         // Create Form button — sticky at bottom
-        _CreateFormBar(isCreating: isCreating, onTap: cubit.createForm),
+        _CreateFormBar(
+          isCreating: isCreating,
+          isQuiz: form.isQuiz,
+          onTap: cubit.createForm,
+        ),
       ],
     );
   }
@@ -252,6 +257,21 @@ class _QuestionCard extends StatelessWidget {
 
             // Type-specific detail
             _TypeDetail(question: question),
+
+            // Quiz: points (matches editor card design)
+            if (question.grading != null) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Points: ${question.grading!.pointValue}',
+                  style: AppTextStyles.meta.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.purple,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -324,6 +344,9 @@ class _TypeDetail extends StatelessWidget {
         _OptionsDetail(question: question),
       AiQuestionType.linearScale => _ScaleDetail(question: question),
       AiQuestionType.rating => _RatingDetail(question: question),
+      AiQuestionType.shortAnswer ||
+      AiQuestionType.paragraph =>
+        _CorrectAnswerDetail(question: question),
       _ => const SizedBox.shrink(),
     };
   }
@@ -339,11 +362,12 @@ class _OptionsDetail extends StatelessWidget {
     final options = question.options;
     if (options == null || options.isEmpty) return const SizedBox.shrink();
 
-    final leadingIcon = switch (question.type) {
+    final defaultIcon = switch (question.type) {
       AiQuestionType.multipleChoice => Icons.radio_button_unchecked,
       AiQuestionType.checkboxes => Icons.check_box_outline_blank,
       _ => Icons.arrow_right, // dropdown
     };
+    final correctSet = question.grading?.correctAnswers.toSet() ?? const <String>{};
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -354,13 +378,21 @@ class _OptionsDetail extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(leadingIcon, size: 16, color: Colors.grey.shade400),
+                if (correctSet.contains(option))
+                  Icon(Icons.check_circle, size: 16, color: Colors.green.shade600)
+                else
+                  Icon(defaultIcon, size: 16, color: Colors.grey.shade400),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     option,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade700,
+                          color: correctSet.contains(option)
+                              ? Colors.green.shade800
+                              : Colors.grey.shade700,
+                          fontWeight: correctSet.contains(option)
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                   ),
                 ),
@@ -466,13 +498,53 @@ class _RatingDetail extends StatelessWidget {
   }
 }
 
+// ── Quiz: correct answer for text questions ──────────────────────────────────
+
+class _CorrectAnswerDetail extends StatelessWidget {
+  final AiQuestion question;
+  const _CorrectAnswerDetail({required this.question});
+
+  @override
+  Widget build(BuildContext context) {
+    final answers = question.grading?.correctAnswers ?? const [];
+    if (answers.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              answers.length == 1
+                  ? 'Correct answer: ${answers.first}'
+                  : 'Correct answers: ${answers.join(', ')}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.green.shade800,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Create Form bar ───────────────────────────────────────────────────────────
 
 class _CreateFormBar extends StatelessWidget {
   final bool isCreating;
+  final bool isQuiz;
   final VoidCallback onTap;
 
-  const _CreateFormBar({required this.isCreating, required this.onTap});
+  const _CreateFormBar({
+    required this.isCreating,
+    required this.isQuiz,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +573,10 @@ class _CreateFormBar extends StatelessWidget {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Create Form', style: TextStyle(fontSize: 16)),
+              : Text(
+                  isQuiz ? 'Create Quiz' : 'Create Form',
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
       ),
     );
