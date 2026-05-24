@@ -28,6 +28,7 @@ class AiReadyBody extends StatefulWidget {
   final VoidCallback onPromptChanged;
   final void Function(int? questionCountHint, bool isQuiz)? onSubmitText;
   final VoidCallback onUpgrade;
+  final VoidCallback onRefresh;
 
   const AiReadyBody({
     super.key,
@@ -40,6 +41,7 @@ class AiReadyBody extends StatefulWidget {
     required this.onPromptChanged,
     required this.onSubmitText,
     required this.onUpgrade,
+    required this.onRefresh,
   });
 
   @override
@@ -335,7 +337,7 @@ class _AiReadyBodyState extends State<AiReadyBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade),
+                AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade, onRefresh: widget.onRefresh),
                 const SizedBox(height: 12),
 
                 if (status.gracePeriodUntil != null) ...[

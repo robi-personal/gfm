@@ -7,11 +7,13 @@ import '../../domain/entities/user_status.dart';
 class AiQuotaCounter extends StatelessWidget {
   final UserStatus status;
   final VoidCallback onUpgradeTap;
+  final VoidCallback onRefresh;
 
   const AiQuotaCounter({
     super.key,
     required this.status,
     required this.onUpgradeTap,
+    required this.onRefresh,
   });
 
   @override
@@ -91,8 +93,21 @@ class AiQuotaCounter extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onRefresh,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                ),
+              ),
               if (!isPremium) ...[
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: onUpgradeTap,
                   child: Container(
