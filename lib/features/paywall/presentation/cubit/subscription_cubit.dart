@@ -121,6 +121,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
         PurchasesErrorCode.networkError => 'No internet connection. Please try again.',
         PurchasesErrorCode.purchaseNotAllowedError => 'Purchases are not allowed on this device.',
         PurchasesErrorCode.paymentPendingError => 'Your payment is pending. Check back soon.',
+        PurchasesErrorCode.storeProblemError => 'No Apple ID is signed in. Go to Settings → App Store and sign in, then try again.',
         _ => 'Something went wrong. Please try again.',
       };
 }
