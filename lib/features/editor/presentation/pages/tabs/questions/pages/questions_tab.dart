@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../../../core/auth/google_auth_datasource.dart';
+import '../../../../../../../core/di/injection.dart';
 import '../../../../../../../core/models/item_content.dart';
+import '../../../../../../../core/services/webview_session_manager.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
 import '../cubit/questions_cubit.dart';
 import '../widgets/editor_body.dart';
@@ -118,6 +121,11 @@ class QuestionsTab extends StatelessWidget {
       if (after is QuestionsLoaded && (after.isDirty || after.saveFailed)) return;
     }
 
+    if (!context.mounted) return;
+    final sub = getIt<GoogleAuthDataSource>().currentUser?.id;
+    if (sub != null) {
+      await getIt<WebViewSessionManager>().syncWithUser(sub);
+    }
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
