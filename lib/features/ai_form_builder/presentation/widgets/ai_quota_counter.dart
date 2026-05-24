@@ -27,6 +27,8 @@ class AiQuotaCounter extends StatelessWidget {
             ? 'No generations left'
             : '$balance generation${balance == 1 ? '' : 's'} remaining';
 
+    final resetLabel = _resetLabel(status.subscriptionProductId);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -67,7 +69,7 @@ class AiQuotaCounter extends StatelessWidget {
                     if (!isUnlimited) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Resets monthly',
+                        resetLabel,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 12,
@@ -126,5 +128,12 @@ class AiQuotaCounter extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _resetLabel(String? productId) {
+    if (productId == null) return 'Resets monthly';
+    if (productId.toLowerCase().contains('weekly')) return 'Resets weekly';
+    if (productId.toLowerCase().contains('yearly')) return 'Resets yearly';
+    return 'Resets monthly';
   }
 }
