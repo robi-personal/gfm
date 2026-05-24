@@ -38,7 +38,11 @@ class TemplateBlankCardsRow extends StatelessWidget {
 
   void _create(BuildContext context, {required bool quiz}) async {
     final defaultName = quiz ? 'Untitled quiz' : 'Untitled form';
-    final name = await showFormNameSheet(context, prefill: defaultName);
+    final name = await showFormNameSheet(
+      context,
+      prefill: defaultName,
+      isQuiz: quiz,
+    );
     if (name == null || !context.mounted) return;
 
     final cubit = context.read<DashboardCubit>();

@@ -6,15 +6,16 @@ import '../../../../../core/design.dart';
 // ── Form name sheet ───────────────────────────────────────────────────────────
 
 Future<String?> showFormNameSheet(BuildContext context,
-    {String prefill = ''}) {
+    {String prefill = '', bool isQuiz = false}) {
   return _showSheet<String>(
-      context, child: _FormNameSheet(prefill: prefill));
+      context, child: _FormNameSheet(prefill: prefill, isQuiz: isQuiz));
 }
 
 class _FormNameSheet extends StatefulWidget {
   final String prefill;
+  final bool isQuiz;
 
-  const _FormNameSheet({required this.prefill});
+  const _FormNameSheet({required this.prefill, required this.isQuiz});
 
   @override
   State<_FormNameSheet> createState() => _FormNameSheetState();
@@ -61,9 +62,9 @@ class _FormNameSheetState extends State<_FormNameSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SheetHandle(),
-          const _SheetHeader(
+          _SheetHeader(
             icon: CupertinoIcons.doc_text,
-            title: 'Name Your Form',
+            title: widget.isQuiz ? 'Name Your Quiz' : 'Name Your Form',
             subtitle: 'You can rename it anytime',
           ),
           const SizedBox(height: 16),
