@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 
+import '../../../../core/auth/google_auth_datasource.dart';
 import '../../../../core/design.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -120,6 +121,24 @@ class _DashboardViewState extends State<_DashboardView> {
     );
 
     try {
+      // Pre-check: if the Apple ID is bound to another Google account, abort
+      // before RC restores (which would otherwise trigger a TRANSFER).
+      final check = await getIt<PurchaseActivationService>().checkAppleBinding();
+      if (!check.allowed) {
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).pop();
+        await ErrorModal.show(
+          context,
+          title: 'Apple ID already linked',
+          body: check.message ?? 'This Apple ID is already linked to another account.',
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+        return;
+      }
+      final googleSub = getIt<GoogleAuthDataSource>().currentUser?.id;
+      if (googleSub != null) await getIt<SubscriptionService>().identifyUser(googleSub);
+
       final info = await getIt<SubscriptionService>().restore();
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();

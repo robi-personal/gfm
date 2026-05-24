@@ -2,6 +2,7 @@ import { pool, DbClient, withTransaction } from "../../infrastructure/db/postgre
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
 import { PgWebhookEventRepository } from "../../infrastructure/db/repositories/pg-webhook-event.repository";
+import { PgAppleSubscriptionBindingRepository } from "../../infrastructure/db/repositories/pg-apple-subscription-binding.repository";
 import { logger } from "../../infrastructure/logger";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -10,6 +11,7 @@ export interface RcEvent {
   id: string;
   type: string;
   app_user_id: string;
+  original_transaction_id?: string;
   entitlement_ids?: string[];
   product_id?: string;
   expiration_at_ms?: number | null;
@@ -43,6 +45,8 @@ export function eventWatermark(event: RcEvent): number | null {
 // See revenuecat-webhook-map.md §3 for per-event semantics and
 // purchase-flow.md §6.1/§6.3 for the dedupe + watermark contracts.
 
+const SUBSCRIPTION_BINDING_EVENTS: ReadonlySet<string> = new Set(["INITIAL_PURCHASE", "RENEWAL"]);
+
 export async function applyEvent(
   db: DbClient,
   userId: number,
@@ -63,6 +67,29 @@ export async function applyEvent(
     },
     "rc_apply_event_start",
   );
+
+  // Apple subscription binding guard: one Apple originalTransactionId belongs
+  // to one Google account forever. Catches anything the client-side pre-check
+  // missed (RC transfer arrived after the user tapped Subscribe, malicious
+  // client bypassing the check, etc.). Runs inside the caller's transaction
+  // so bind + quota credit are atomic.
+  if (SUBSCRIPTION_BINDING_EVENTS.has(event.type) && event.original_transaction_id) {
+    const bindingRepo = new PgAppleSubscriptionBindingRepository(db);
+    const boundUserId = await bindingRepo.bindIfAbsent(event.original_transaction_id, userId);
+    if (boundUserId !== userId) {
+      logger.warn(
+        {
+          event_id: event.id,
+          event_type: event.type,
+          bound_user_id: boundUserId,
+          requesting_user_id: userId,
+          original_transaction_id: event.original_transaction_id,
+        },
+        "rc_apple_binding_conflict",
+      );
+      return;
+    }
+  }
 
   switch (event.type) {
     case "INITIAL_PURCHASE": {

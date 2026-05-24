@@ -16,6 +16,7 @@ const MIGRATIONS = [
   // have pre-seeded. Use a sentinel name so the seededTable short-circuit
   // never falsely marks it applied.
   { id: "007", filename: "007_event_watermark_and_dedupe.sql", seededTable: "_never_007" },
+  { id: "008", filename: "008_apple_subscription_bindings.sql", seededTable: "apple_subscription_bindings" },
 ];
 
 export async function runMigrations(): Promise<void> {

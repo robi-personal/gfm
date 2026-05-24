@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../../../core/auth/google_auth_datasource.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../data/services/purchase_activation_service.dart';
@@ -14,8 +15,9 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
   final SubscriptionService _service;
   final PurchaseActivationService _activation;
   final GetUserStatus _getUserStatus;
+  final GoogleAuthDataSource _auth;
 
-  SubscriptionCubit(this._service, this._activation, this._getUserStatus)
+  SubscriptionCubit(this._service, this._activation, this._getUserStatus, this._auth)
       : super(const SubscriptionInitial());
 
   Future<void> load() async {
@@ -42,6 +44,23 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     debugPrint('[cubit] purchase — package=${package.identifier}');
     emit(SubscriptionPurchasing(isPremium: current.isPremium, offering: current.offering));
     try {
+      final check = await _activation.checkAppleBinding();
+      if (!check.allowed) {
+        if (isClosed) return;
+        emit(SubscriptionAppleBindingConflict(
+          message: check.message ?? 'This Apple ID is already linked to another account.',
+          isPremium: current.isPremium,
+          offering: current.offering,
+        ));
+        return;
+      }
+
+      // RC may still be anonymous if sign-in skipped identify (no Apple sub
+      // at that time, or pre-check fail). Identify now that we know the
+      // current user owns the binding for this device's subscription.
+      final googleSub = _auth.currentUser?.id;
+      if (googleSub != null) await _service.identifyUser(googleSub);
+
       final info = await _service.purchase(package);
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       debugPrint('[cubit] purchase — RC returned isPremium=$isPremium');
@@ -79,6 +98,20 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     debugPrint('[cubit] restore start');
     emit(SubscriptionPurchasing(isPremium: current.isPremium, offering: current.offering));
     try {
+      final check = await _activation.checkAppleBinding();
+      if (!check.allowed) {
+        if (isClosed) return;
+        emit(SubscriptionAppleBindingConflict(
+          message: check.message ?? 'This Apple ID is already linked to another account.',
+          isPremium: current.isPremium,
+          offering: current.offering,
+        ));
+        return;
+      }
+
+      final googleSub = _auth.currentUser?.id;
+      if (googleSub != null) await _service.identifyUser(googleSub);
+
       final info = await _service.restore();
       final isPremium = info.entitlements.active.containsKey(SubscriptionService.entitlement);
       debugPrint('[cubit] restore — RC returned isPremium=$isPremium');
@@ -107,6 +140,13 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     final ok = await _activation.syncOnce();
     debugPrint('[cubit] _reconcileWithBackend — syncOnce ok=$ok');
     if (!ok) _activation.startBackgroundRetries();
+  }
+
+  void resetAfterConflict() {
+    final s = state;
+    if (s is SubscriptionAppleBindingConflict) {
+      emit(SubscriptionLoaded(isPremium: s.isPremium, offering: s.offering));
+    }
   }
 
   Future<String?> _fetchBackendProductId() async {

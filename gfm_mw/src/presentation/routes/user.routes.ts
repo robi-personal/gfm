@@ -4,6 +4,7 @@ import { denylistMiddleware } from "../middleware/kill-switch.middleware";
 import { PgUserRepository } from "../../infrastructure/db/repositories/pg-user.repository";
 import { PgQuotaWhitelistRepository } from "../../infrastructure/db/repositories/pg-quota-whitelist.repository";
 import { PgQuotaProductRepository } from "../../infrastructure/db/repositories/pg-quota-product.repository";
+import { PgAppleSubscriptionBindingRepository } from "../../infrastructure/db/repositories/pg-apple-subscription-binding.repository";
 import { pool } from "../../infrastructure/db/postgres";
 import { env } from "../../config/env";
 import { configService } from "../../config/config-service";
@@ -52,6 +53,44 @@ userRouter.get(
         youtubeMinutesLimit:     ytLimit,
         youtubeMinutesResetsAt:  user.youtubeMinutesResetAt?.toISOString() ?? null,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /user/apple/check
+// Pre-purchase check. The app fetches the Apple originalTransactionId from
+// StoreKit (via native channel) and sends it here. If that transaction is
+// already bound to a different Google account, returns allowed:false with a
+// user-facing message; the app shows a dialog and does not start the purchase.
+userRouter.post(
+  "/apple/check",
+  authMiddleware,
+  async (req, res, next) => {
+    try {
+      const { original_transaction_id } = req.body as { original_transaction_id?: string };
+      if (!original_transaction_id || typeof original_transaction_id !== "string") {
+        res.status(400).json({ code: "invalid_input", message: "original_transaction_id is required." });
+        return;
+      }
+
+      const bindingRepo = new PgAppleSubscriptionBindingRepository(pool);
+      const boundUserId = await bindingRepo.findByTransactionId(original_transaction_id);
+
+      if (boundUserId !== null && boundUserId !== req.user!.id) {
+        req.log.warn(
+          { user_id: req.user!.id, bound_user_id: boundUserId, original_transaction_id },
+          "apple_check_binding_conflict",
+        );
+        res.json({
+          allowed: false,
+          message: "This Apple ID already has a subscription linked to another account. Please use a different Apple ID or go to Settings and change your Apple ID.",
+        });
+        return;
+      }
+
+      res.json({ allowed: true });
     } catch (err) {
       next(err);
     }

@@ -40,3 +40,16 @@ class SubscriptionError extends SubscriptionState {
   final String message;
   const SubscriptionError(this.message);
 }
+
+/// Apple ID is already bound to a different Google account.
+/// The overlay dismisses and a dialog is shown; the paywall stays open.
+class SubscriptionAppleBindingConflict extends SubscriptionState {
+  final String message;
+  final bool isPremium;
+  final Offering? offering;
+  const SubscriptionAppleBindingConflict({
+    required this.message,
+    required this.isPremium,
+    this.offering,
+  });
+}

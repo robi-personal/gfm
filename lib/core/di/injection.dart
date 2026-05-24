@@ -5,6 +5,7 @@ import '../api/drive_client.dart';
 import '../api/forms_client.dart';
 import '../auth/google_auth_datasource.dart';
 import '../services/webview_session_manager.dart';
+import '../../features/paywall/data/services/apple_subscription_channel.dart';
 import '../../features/paywall/data/services/purchase_activation_service.dart';
 import '../../features/paywall/data/services/subscription_service.dart';
 import '../../features/paywall/presentation/cubit/subscription_cubit.dart';
@@ -98,6 +99,7 @@ void configureDependencies() {
       driveClient: getIt(),
       driveDataSource: getIt(),
       subscriptionService: getIt(),
+      activation: getIt(),
       notificationService: getIt(),
       webViewSessionManager: getIt(),
     ),
@@ -237,11 +239,13 @@ void configureDependencies() {
 
   // ── Paywall / subscription feature ────────────────────────────────────────
   getIt.registerLazySingleton(() => SubscriptionService());
+  getIt.registerLazySingleton(() => AppleSubscriptionChannel());
 
   getIt.registerLazySingleton(
     () => PurchaseActivationService(
       getIt<NotificationsApi>(),
       getIt<SubscriptionService>(),
+      getIt<AppleSubscriptionChannel>(),
     ),
   );
 
@@ -250,6 +254,7 @@ void configureDependencies() {
       getIt<SubscriptionService>(),
       getIt<PurchaseActivationService>(),
       getIt<GetUserStatus>(),
+      getIt<GoogleAuthDataSource>(),
     ),
   );
 

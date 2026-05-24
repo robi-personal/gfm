@@ -118,11 +118,22 @@ class _PaywallViewState extends State<_PaywallView> {
             onPrimary: () {},
           );
         }
+        if (state is SubscriptionAppleBindingConflict) {
+          final cubit = context.read<SubscriptionCubit>();
+          ErrorModal.show(
+            context,
+            title: 'Apple ID already linked',
+            body: state.message,
+            primaryLabel: 'OK',
+            onPrimary: cubit.resetAfterConflict,
+          );
+        }
       },
       builder: (context, state) {
         final offering = switch (state) {
           SubscriptionLoaded(offering: final o) => o,
           SubscriptionPurchasing(offering: final o) => o,
+          SubscriptionAppleBindingConflict(offering: final o) => o,
           _ => null,
         };
         final currentProductId = state is SubscriptionLoaded ? state.currentProductId : null;

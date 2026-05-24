@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/api/drive_client.dart';
 import '../../../../core/api/forms_client.dart';
@@ -8,6 +9,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/webview_session_manager.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../notifications/data/services/notification_service.dart';
+import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../../paywall/data/services/subscription_service.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/sign_in_silently.dart';
@@ -24,6 +26,7 @@ class SignInCubit extends Cubit<SignInState> {
   final DriveClient _driveClient;
   final DriveDataSource _driveDataSource;
   final SubscriptionService _subscriptionService;
+  final PurchaseActivationService _activation;
   final NotificationService _notificationService;
   final WebViewSessionManager _webViewSession;
 
@@ -35,6 +38,7 @@ class SignInCubit extends Cubit<SignInState> {
     required DriveClient driveClient,
     required DriveDataSource driveDataSource,
     required SubscriptionService subscriptionService,
+    required PurchaseActivationService activation,
     required NotificationService notificationService,
     required WebViewSessionManager webViewSessionManager,
   })  : _signInWithGoogle = signInWithGoogle,
@@ -44,9 +48,30 @@ class SignInCubit extends Cubit<SignInState> {
         _driveClient = driveClient,
         _driveDataSource = driveDataSource,
         _subscriptionService = subscriptionService,
+        _activation = activation,
         _notificationService = notificationService,
         _webViewSession = webViewSessionManager,
         super(const SignInInitial());
+
+  /// Identifies the user with RC only after confirming the Apple subscription
+  /// on this device is not bound to a different Google account. Skipping the
+  /// identify call prevents RC from issuing a TRANSFER that would silently
+  /// disconnect the original owner from their subscription.
+  Future<void> _identifyIfSafe(String googleSub) async {
+    try {
+      final check = await _activation.checkAppleBinding();
+      if (!check.allowed) {
+        debugPrint('[sign_in] skipping RC identify — Apple ID bound to another account');
+        return;
+      }
+      await _subscriptionService.identifyUser(googleSub);
+    } catch (e) {
+      // Fail safe: don't identify on unexpected errors. Worst case the user
+      // can't subscribe until the network recovers — much better than silently
+      // transferring someone else's subscription.
+      debugPrint('[sign_in] _identifyIfSafe failed: $e — staying anonymous in RC');
+    }
+  }
 
   /// Called on app launch. Uses cached credentials — no UI prompt.
   Future<void> checkAuth() async {
@@ -56,7 +81,7 @@ class SignInCubit extends Cubit<SignInState> {
       (_) async => emit(const Unauthenticated()),
       (user) async {
         AnalyticsService.setUser(user.email);
-        _subscriptionService.identifyUser(user.googleId).ignore();
+        _identifyIfSafe(user.googleId).ignore();
         // Awaited so the dashboard never renders while a WebView clear is
         // still in flight — otherwise Import could open against half-cleared
         // cookies. Same-user case is a fast storage read + write (no clear).
@@ -79,7 +104,7 @@ class SignInCubit extends Cubit<SignInState> {
       },
       (user) async {
         AnalyticsService.setUser(user.email);
-        _subscriptionService.identifyUser(user.googleId).ignore();
+        _identifyIfSafe(user.googleId).ignore();
         await _webViewSession.syncWithUser(user.googleId);
         emit(Authenticated(user));
       },

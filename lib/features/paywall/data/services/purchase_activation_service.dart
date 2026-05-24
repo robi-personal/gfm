@@ -4,6 +4,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../notifications/data/datasources/notifications_api.dart';
+import 'apple_subscription_channel.dart';
 import 'subscription_service.dart';
 
 /// Tracks the post-purchase reconciliation with the GFM backend.
@@ -12,10 +13,11 @@ import 'subscription_service.dart';
 /// The app surfaces this state with a banner so the user understands why
 /// quota hasn't appeared yet — they paid, but the backend hasn't caught up.
 class PurchaseActivationService {
-  PurchaseActivationService(this._api, this._subscription);
+  PurchaseActivationService(this._api, this._subscription, this._appleChannel);
 
   final NotificationsApi _api;
   final SubscriptionService _subscription;
+  final AppleSubscriptionChannel _appleChannel;
 
   /// `true` while a background reconciliation is in flight after a failed
   /// foreground sync. The dashboard observes this to render the banner.
@@ -51,6 +53,28 @@ class PurchaseActivationService {
     final ok = await syncOnce();
     if (!ok) startBackgroundRetries();
     return true;
+  }
+
+  /// Pre-purchase check: returns false + a message if the Apple ID on this
+  /// device already has a subscription bound to a different Google account.
+  /// Fails open (allowed:true) on any error so connectivity issues never
+  /// block a legitimate purchase. If StoreKit reports no active subscription
+  /// on the device, skips the API call entirely.
+  Future<({bool allowed, String? message})> checkAppleBinding() async {
+    final txId = await _appleChannel.getOriginalTransactionId();
+    if (txId == null) {
+      debugPrint('[purchase] checkAppleBinding — no active sub on device, allowed');
+      return (allowed: true, message: null);
+    }
+    try {
+      final result = await _api.checkAppleSubscription(txId);
+      debugPrint('[purchase] checkAppleBinding — server says allowed=${result.allowed}');
+      return result;
+    } catch (err, stack) {
+      debugPrint('[purchase] checkAppleBinding failed (proceeding): $err');
+      _recordSyncFailure(err, stack, phase: 'apple_binding_check');
+      return (allowed: true, message: null);
+    }
   }
 
   /// Fire-and-forget background reconciliation. Delays 5 s, 15 s, 30 s, 60 s.

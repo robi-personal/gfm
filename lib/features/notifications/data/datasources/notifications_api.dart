@@ -89,6 +89,28 @@ class NotificationsApi {
     }
   }
 
+  /// Pre-purchase check: asks the backend whether the given Apple
+  /// originalTransactionId is already bound to a different Google account.
+  /// Returns (allowed, message?) — caller should show the message to the user
+  /// when allowed=false.
+  Future<({bool allowed, String? message})> checkAppleSubscription(
+    String originalTransactionId,
+  ) async {
+    final res = await _httpClient.post(
+      Uri.parse('$_kBaseUrl/user/apple/check'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'original_transaction_id': originalTransactionId}),
+    );
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return (
+        allowed: json['allowed'] as bool,
+        message: json['message'] as String?,
+      );
+    }
+    throw Exception('checkAppleSubscription failed: ${res.statusCode}');
+  }
+
   /// Remove the mapping after the app deletes the watch on Google's side.
   Future<void> unregisterWatch(String watchId) async {
     final res = await _httpClient.delete(
