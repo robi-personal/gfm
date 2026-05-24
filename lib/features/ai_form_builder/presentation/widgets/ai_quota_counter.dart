@@ -28,6 +28,7 @@ class AiQuotaCounter extends StatelessWidget {
             : '$balance generation${balance == 1 ? '' : 's'} remaining';
 
     final resetLabel = _resetLabel(status.subscriptionProductId);
+    final planBadge  = _planBadge(status.subscriptionProductId);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -58,13 +59,24 @@ class AiQuotaCounter extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (planBadge != null) ...[
+                          const SizedBox(width: 8),
+                          planBadge,
+                        ],
+                      ],
                     ),
                     if (!isUnlimited) ...[
                       const SizedBox(height: 2),
@@ -135,5 +147,35 @@ class AiQuotaCounter extends StatelessWidget {
     if (productId.toLowerCase().contains('weekly')) return 'Resets weekly';
     if (productId.toLowerCase().contains('yearly')) return 'Resets yearly';
     return 'Resets monthly';
+  }
+
+  static Widget? _planBadge(String? productId) {
+    if (productId == null) return null;
+    final id = productId.toLowerCase();
+    final (label, color) = id.contains('weekly')
+        ? ('WEEKLY',  const Color(0xFF34D399))
+        : id.contains('yearly')
+            ? ('YEARLY',  const Color(0xFFFBBF24))
+            : id.contains('monthly')
+                ? ('MONTHLY', const Color(0xFF60A5FA))
+                : (null, null);
+    if (label == null) return null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color!.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
   }
 }
