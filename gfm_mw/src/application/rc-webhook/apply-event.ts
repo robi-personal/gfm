@@ -52,6 +52,18 @@ export async function applyEvent(
   const productRepo = new PgQuotaProductRepository(pool);
   const ts          = eventWatermark(event);
 
+  logger.info(
+    {
+      event_id:    event.id,
+      event_type:  event.type,
+      user_id:     userId,
+      product_id:  event.product_id ?? null,
+      environment: event.environment,
+      watermark_ms: ts,
+    },
+    "rc_apply_event_start",
+  );
+
   switch (event.type) {
     case "INITIAL_PURCHASE": {
       if (!event.product_id) {
@@ -67,22 +79,37 @@ export async function applyEvent(
         break;
       }
       // Atomic — second caller (sync) sees is_premium=true and short-circuits.
-      await userRepo.claimPremiumAndCredit(
+      const claimed = await userRepo.claimPremiumAndCredit(
         userId, product.quotaAmount, product.productId, "subscription", event.id, ts,
+      );
+      logger.info(
+        { event_id: event.id, user_id: userId, product_id: product.productId, amount: product.quotaAmount, claimed },
+        "rc_initial_purchase_applied",
       );
       break;
     }
     case "RENEWAL": {
-      if (!event.product_id) break;
-      const product = await productRepo.getById(event.product_id);
-      if (!product) {
-        logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+      if (!event.product_id) {
+        logger.warn({ event_id: event.id, user_id: userId }, "rc_renewal_missing_product_id");
         break;
       }
+      const product = await productRepo.getById(event.product_id);
+      if (!product) {
+        logger.warn({ product_id: event.product_id, event_id: event.id }, "rc_webhook_unknown_product");
+        break;
+      }
+      logger.info(
+        { event_id: event.id, user_id: userId, product_id: product.productId, amount: product.quotaAmount },
+        "rc_renewal_crediting",
+      );
       await userRepo.creditQuota(userId, product.quotaAmount, "subscription", product.productId, event.id);
       await userRepo.setSubscriptionProduct(userId, product.productId, ts);
       // Successful renewal clears any prior grace period.
       await userRepo.clearGracePeriod(userId, ts);
+      logger.info(
+        { event_id: event.id, user_id: userId, product_id: product.productId },
+        "rc_renewal_applied",
+      );
       break;
     }
     case "NON_RENEWING_PURCHASE": {
@@ -122,7 +149,7 @@ export async function applyEvent(
       if (event.product_id) {
         const product = await productRepo.getById(event.product_id);
         if (!product) {
-          logger.warn({ product_id: event.product_id }, "rc_webhook_unknown_product");
+          logger.warn({ product_id: event.product_id, event_id: event.id }, "rc_webhook_unknown_product");
         } else {
           // Heal-only credit. Mirrors the sync side's check (user.routes.ts)
           // so the sync-first/webhook-second race can't double-credit. The
@@ -132,11 +159,21 @@ export async function applyEvent(
           const already = await userRepo.hasSubscriptionTransactionForProduct(
             userId, product.productId,
           );
+          logger.info(
+            { event_id: event.id, user_id: userId, product_id: product.productId, amount: product.quotaAmount, already_credited: already },
+            "rc_product_change_credit_check",
+          );
           if (!already) {
             await userRepo.creditQuota(userId, product.quotaAmount, "subscription_upgrade", product.productId, event.id);
+            logger.info(
+              { event_id: event.id, user_id: userId, product_id: product.productId, amount: product.quotaAmount },
+              "rc_product_change_credited",
+            );
           }
         }
         await userRepo.setSubscriptionProduct(userId, event.product_id, ts);
+      } else {
+        logger.warn({ event_id: event.id, user_id: userId }, "rc_product_change_missing_product_id");
       }
       break;
     }
@@ -149,6 +186,7 @@ export async function applyEvent(
       }
       break;
     default:
+      logger.warn({ event_id: event.id, event_type: event.type, user_id: userId }, "rc_apply_event_unhandled_type");
       break;
   }
 }
