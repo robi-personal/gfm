@@ -72,7 +72,9 @@ class _EditorSegmentedTabBarState extends State<EditorSegmentedTabBar> {
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
@@ -111,6 +113,7 @@ class _EditorSegmentedTabBarState extends State<EditorSegmentedTabBar> {
                                   ],
                                 ],
                               ),
+                            ),
                               const SizedBox(height: 4),
                               Container(
                                 height: isSelected ? 2.5 : 0,
