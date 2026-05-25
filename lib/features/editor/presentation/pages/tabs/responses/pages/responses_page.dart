@@ -1,18 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../../../../core/theme/app_colors.dart';
-import '../../../../../../../../core/di/injection.dart';
 import '../../../../../../../../core/models/enums.dart';
 import '../../../../../../../../core/models/form_response.dart';
 import '../../../../../../../../core/models/item.dart';
 import '../../../../../../../../core/models/item_content.dart';
 import '../../../../../../../../core/models/question_kind.dart';
-import '../../../../../../../../features/notifications/data/services/notification_service.dart';
 import '../cubit/responses_cubit.dart';
 import '../widgets/response_actions_bar.dart';
 
@@ -51,32 +47,15 @@ class _ResponsesView extends StatefulWidget {
 class _ResponsesViewState extends State<_ResponsesView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  StreamSubscription<Map<String, String>>? _foregroundSub;
-  StreamSubscription<Map<String, String>>? _tapSub;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _subscribeToNotifications();
-  }
-
-  void _subscribeToNotifications() {
-    final service = getIt<NotificationService>();
-    _foregroundSub = service.onForegroundMessage.listen(_onNotificationData);
-    _tapSub = service.onNotificationTap.listen(_onNotificationData);
-  }
-
-  void _onNotificationData(Map<String, String> data) {
-    if (data['formId'] == widget.formId) {
-      context.read<ResponsesCubit>().refreshResponses(widget.formId);
-    }
   }
 
   @override
   void dispose() {
-    _foregroundSub?.cancel();
-    _tapSub?.cancel();
     _tabController.dispose();
     super.dispose();
   }
