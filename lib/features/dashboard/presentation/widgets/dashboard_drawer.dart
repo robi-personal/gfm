@@ -65,7 +65,7 @@ class _DrawerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top + 20.0;
+    final topPad = MediaQuery.of(context).padding.top;
     final service = getIt<UserStatusService>();
 
     return ListenableBuilder(
@@ -73,7 +73,6 @@ class _DrawerContent extends StatelessWidget {
       builder: (context, _) {
         final status = service.status;
 
-        // Status not yet loaded — show standard header as placeholder
         if (status == null) {
           return Column(
             children: [

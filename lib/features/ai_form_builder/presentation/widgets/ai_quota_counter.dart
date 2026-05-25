@@ -85,19 +85,27 @@ class AiQuotaCounter extends StatelessWidget {
                   text: TextSpan(
                     children: [
                       TextSpan(
+                        text: 'You have ',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      TextSpan(
                         text: NumberFormat('#,###').format(status.quotaBalance),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 22,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                           height: 1.1,
                         ),
                       ),
                       TextSpan(
-                        text: '  AI Form Generations Left',
+                        text: ' AI Form Generations Left',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
