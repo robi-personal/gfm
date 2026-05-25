@@ -331,6 +331,7 @@ class _ResponsesCard extends StatelessWidget {
                   isLoading: true,
                   onChanged: null,
                 ),
+                const SettingsSubHeader(label: 'NOTIFICATION'),
                 NotificationToggle(formId: formId, formTitle: formTitle),
               ]),
             ExtendedSettingsError(:final message) => Column(
