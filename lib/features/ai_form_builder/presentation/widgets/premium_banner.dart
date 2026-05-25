@@ -196,24 +196,32 @@ class _PremiumBannerState extends State<PremiumBanner>
                     ],
                   ),
                 ],
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 // Row 2 — generation count
                 RichText(
                   text: TextSpan(
                     children: [
+                      TextSpan(
+                        text: 'You have ',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .7),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       TextSpan(
                         text: NumberFormat(
                           '#,###',
                         ).format(widget.generationsLeft),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 26,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                           height: 1.1,
                         ),
                       ),
                        TextSpan(
-                        text: '  AI Form Generations Left',
+                        text: ' AI Form Generations Left',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .7),
                           fontSize: 14,

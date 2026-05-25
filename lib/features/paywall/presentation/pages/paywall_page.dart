@@ -158,19 +158,6 @@ class _PaywallViewState extends State<_PaywallView> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Title
-                        const Text(
-                          'Go Premium',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
                         // Header image
                         Center(
                           child: Image.asset(
@@ -179,6 +166,30 @@ class _PaywallViewState extends State<_PaywallView> {
                           ),
                         ),
                         const SizedBox(height: 28),
+
+                        // Title
+                        const Text(
+                          'Upgrade To Premium',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                            letterSpacing: -1.5,
+                          ),
+                        ),
+
+                        const Text(
+                          'Unlock everything, Cancel anytime',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.muted,
+                            letterSpacing: -.3,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
                         // Plan tiles
                         _PlanTile(
