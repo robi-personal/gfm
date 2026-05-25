@@ -42,14 +42,12 @@ enum AiErrorKind {
 class AiErrorModalConfig {
   final AiErrorKind kind;
   final int? retryAfterSeconds;
-  final DateTime? resetsAt;
   final int? quotaUsed;
   final int? quotaLimit;
 
   const AiErrorModalConfig({
     required this.kind,
     this.retryAfterSeconds,
-    this.resetsAt,
     this.quotaUsed,
     this.quotaLimit,
   });

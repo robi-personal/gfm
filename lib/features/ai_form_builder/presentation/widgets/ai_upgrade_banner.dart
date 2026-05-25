@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../../core/design.dart';
 
@@ -12,62 +13,71 @@ class AiUpgradeBanner extends StatelessWidget {
     return GestureDetector(
       onTap: onUpgrade,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.purple500, Color(0xFF5E24A8)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          color: AppColors.purple50,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.purple600.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: AppColors.purple200),
         ),
         child: Row(
           children: [
-            const Icon(Icons.workspace_premium, color: Colors.white, size: 22),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.purple100,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: const Icon(Icons.workspace_premium_rounded,
+                  color: AppColors.purple600, size: 18),
+            ),
             const SizedBox(width: 12),
             const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Upgrade to Premium',
+                    'Unlock more generations',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
+                      color: AppColors.ink,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    '50 generations · PDF, YouTube & more',
+                    'PDF, YouTube, URLs & 50/mo',
                     style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
+                      color: AppColors.muted,
+                      fontSize: 12.5,
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.purple600,
+                borderRadius: BorderRadius.circular(9),
               ),
-              child: const Text(
-                'Upgrade',
-                style: TextStyle(
-                  color: AppColors.purple600,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset('assets/dashboard_premium.svg',
+                      width: 13, height: 13,
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Upgrade',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

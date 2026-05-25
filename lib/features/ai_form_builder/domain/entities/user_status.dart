@@ -12,7 +12,6 @@ class UserStatus {
   final String? subscriptionProductId;
   final int youtubeMinutesUsed;
   final int youtubeMinutesLimit;
-  final DateTime? youtubeMinutesResetsAt;
 
   const UserStatus({
     required this.isPremium,
@@ -22,7 +21,6 @@ class UserStatus {
     this.subscriptionProductId,
     this.youtubeMinutesUsed = 0,
     this.youtubeMinutesLimit = 300,
-    this.youtubeMinutesResetsAt,
   });
 
   int get youtubeMinutesRemaining =>
@@ -40,9 +38,8 @@ class UserStatus {
       unlimited:     json['unlimited']    as bool,
       gracePeriodUntil: parseNullable(json['gracePeriodUntil'] as String?),
       subscriptionProductId: json['subscriptionProductId'] as String?,
-      youtubeMinutesUsed:     (json['youtubeMinutesUsed']  as num?)?.toInt() ?? 0,
-      youtubeMinutesLimit:    (json['youtubeMinutesLimit'] as num?)?.toInt() ?? 300,
-      youtubeMinutesResetsAt: parseNullable(json['youtubeMinutesResetsAt'] as String?),
+      youtubeMinutesUsed:  (json['youtubeMinutesUsed']  as num?)?.toInt() ?? 0,
+      youtubeMinutesLimit: (json['youtubeMinutesLimit'] as num?)?.toInt() ?? 300,
     );
   }
 }

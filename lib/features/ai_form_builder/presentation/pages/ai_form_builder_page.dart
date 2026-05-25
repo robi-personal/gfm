@@ -213,13 +213,10 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
           },
         );
       case AiErrorKind.quotaExceededFree:
-        final resetsAtStr = config.resetsAt != null
-            ? ' Your free quota resets on ${_formatDate(config.resetsAt!)}.'
-            : '';
         return _ModalParams(
           title: 'No generations left',
           body: 'You\'ve used all ${config.quotaLimit ?? 3} free generations this month. '
-              'Upgrade for 50 generations per month.$resetsAtStr',
+              'Upgrade for 50 generations per month.',
           primaryLabel: 'Upgrade',
           onPrimary: () {
             dismissError();
@@ -229,12 +226,9 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
           onSecondary: dismissError,
         );
       case AiErrorKind.quotaExceededPremium:
-        final resetStr = config.resetsAt != null
-            ? ' Your limit resets on ${_formatDate(config.resetsAt!)}.'
-            : '';
         return _ModalParams(
           title: 'Monthly limit reached',
-          body: 'You\'ve used all ${config.quotaLimit ?? 50} generations this month.$resetStr',
+          body: 'You\'ve used all ${config.quotaLimit ?? 50} generations this month.',
           primaryLabel: 'OK',
           onPrimary: dismissError,
         );
@@ -521,10 +515,3 @@ class _ModalParams {
   });
 }
 
-String _formatDate(DateTime dt) {
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-  return '${months[dt.month - 1]} ${dt.day}';
-}

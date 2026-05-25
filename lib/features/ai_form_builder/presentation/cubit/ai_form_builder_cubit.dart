@@ -425,7 +425,6 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
       subscriptionProductId: current.subscriptionProductId,
       youtubeMinutesUsed:    current.youtubeMinutesUsed,
       youtubeMinutesLimit:   current.youtubeMinutesLimit,
-      youtubeMinutesResetsAt: current.youtubeMinutesResetsAt,
     );
   }
 

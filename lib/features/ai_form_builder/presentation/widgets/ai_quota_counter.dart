@@ -22,135 +22,99 @@ class AiQuotaCounter extends StatelessWidget {
     final balance     = status.quotaBalance;
     final isExhausted = status.isQuotaExhausted;
     final isPremium   = status.isPremium;
+    final isPaid = isPremium;
 
-    final label = isUnlimited
-        ? 'Unlimited generations'
-        : isExhausted
-            ? 'No generations left'
-            : '$balance generation${balance == 1 ? '' : 's'} remaining';
-
-    final resetLabel = _resetLabel(status.subscriptionProductId);
-    final planBadge  = _planBadge(status.subscriptionProductId);
+    final gradientColors = isPaid
+        ? const [Color(0xFF7B2CE0), Color(0xFFD4A017)]
+        : const [Color(0xFF7B2CE0), Color(0xFF5614B0)];
+    final shadowColor = isPaid
+        ? const Color(0xFFAA6BE0)
+        : const Color(0xFF7B2CE0);
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.purpleMid, AppColors.purple600],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Icon
               Container(
-                width: 40,
-                height: 40,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                child: Icon(
+                  isPaid ? Icons.workspace_premium_rounded : Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
+              // Quota text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (planBadge != null) ...[
-                          const SizedBox(width: 8),
-                          planBadge,
-                        ],
-                      ],
-                    ),
-                    if (!isUnlimited) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        resetLabel,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 12,
-                        ),
+                    Text(
+                      isUnlimited
+                          ? 'Unlimited'
+                          : isExhausted
+                              ? 'No generations left'
+                              : '$balance left',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isUnlimited ? 'All features unlocked' : _resetLabel(status.subscriptionProductId),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
-                onTap: onRefresh,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.refresh, color: Colors.white, size: 16),
-                ),
+              // Action buttons
+              Row(
+                children: [
+                  _IconButton(icon: Icons.refresh_rounded, onTap: onRefresh),
+                  if (!isPremium) ...[
+                    const SizedBox(width: 8),
+                    _UpgradeChip(onTap: onUpgradeTap),
+                  ],
+                ],
               ),
-              if (!isPremium) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: onUpgradeTap,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SvgPicture.asset('assets/dashboard_premium.svg', width: 14, height: 14),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Upgrade',
-                          style: TextStyle(
-                            color: AppColors.purple600,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
-          if (!isUnlimited) ...[
-            const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: (balance / 10.0).clamp(0.0, 1.0),
-                minHeight: 4,
-                backgroundColor: Colors.white.withValues(alpha: 0.25),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isExhausted
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : Colors.white,
-                ),
-              ),
-            ),
+          if (_planBadge(status.subscriptionProductId) != null) ...[
+            const SizedBox(height: 12),
+            _planBadge(status.subscriptionProductId)!,
           ],
         ],
       ),
@@ -158,37 +122,111 @@ class AiQuotaCounter extends StatelessWidget {
   }
 
   static String _resetLabel(String? productId) {
-    if (productId == null) return 'Resets monthly';
-    if (productId.toLowerCase().contains('weekly')) return 'Resets weekly';
-    if (productId.toLowerCase().contains('yearly')) return 'Resets yearly';
+    if (productId == null) return 'Free · resets monthly';
+    final id = productId.toLowerCase();
+    if (id.contains('weekly'))  return 'Resets weekly';
+    if (id.contains('yearly'))  return 'Resets yearly';
     return 'Resets monthly';
   }
 
   static Widget? _planBadge(String? productId) {
     if (productId == null) return null;
     final id = productId.toLowerCase();
-    final (label, color) = id.contains('weekly')
-        ? ('WEEKLY',  const Color(0xFF34D399))
+    final (label, color, icon) = id.contains('weekly')
+        ? ('WEEKLY',  const Color(0xFF34D399), Icons.bolt_rounded)
         : id.contains('yearly')
-            ? ('YEARLY',  const Color(0xFFFBBF24))
+            ? ('YEARLY',  const Color(0xFFFBBF24), Icons.workspace_premium_rounded)
             : id.contains('monthly')
-                ? ('MONTHLY', const Color(0xFF60A5FA))
-                : (null, null);
+                ? ('MONTHLY', const Color(0xFF60A5FA), Icons.calendar_month_rounded)
+                : (null, null, null);
     if (label == null) return null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color!.withValues(alpha: 0.25),
+        color: color!.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.6), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 11),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon, color: Colors.white, size: 17),
+      ),
+    );
+  }
+}
+
+class _UpgradeChip extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _UpgradeChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(9),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset('assets/dashboard_premium.svg', width: 13, height: 13),
+            const SizedBox(width: 4),
+            const Text(
+              'Upgrade',
+              style: TextStyle(
+                color: AppColors.purple600,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -17,6 +17,7 @@ import 'ai_question_count_row.dart';
 import 'ai_quiz_toggle_row.dart';
 import 'ai_quota_counter.dart';
 import 'ai_upgrade_banner.dart';
+import 'premium_banner.dart';
 
 class AiReadyBody extends StatefulWidget {
   final AiFormBuilderCubit cubit;
@@ -337,7 +338,14 @@ class _AiReadyBodyState extends State<AiReadyBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade, onRefresh: widget.onRefresh),
+                if (isPremium)
+                  PremiumBanner(
+                    generationsLeft: status.quotaBalance,
+                    currentPlan: _toPlanType(status.subscriptionProductId),
+                    onRefresh: widget.onRefresh,
+                  )
+                else
+                  AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade, onRefresh: widget.onRefresh),
                 const SizedBox(height: 12),
 
                 if (status.gracePeriodUntil != null) ...[
@@ -721,4 +729,11 @@ class _IosTextField extends StatelessWidget {
       ),
     );
   }
+}
+
+PlanType _toPlanType(String? productId) {
+  final id = productId?.toLowerCase() ?? '';
+  if (id.contains('weekly'))  return PlanType.weekly;
+  if (id.contains('yearly'))  return PlanType.yearly;
+  return PlanType.monthly;
 }

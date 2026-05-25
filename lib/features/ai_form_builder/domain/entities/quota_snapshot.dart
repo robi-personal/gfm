@@ -7,7 +7,6 @@ class QuotaSnapshot {
   final bool unlimited;
   final int youtubeMinutesUsed;
   final int youtubeMinutesLimit;
-  final DateTime? youtubeMinutesResetsAt;
 
   const QuotaSnapshot({
     required this.balance,
@@ -15,7 +14,6 @@ class QuotaSnapshot {
     required this.unlimited,
     this.youtubeMinutesUsed = 0,
     this.youtubeMinutesLimit = 300,
-    this.youtubeMinutesResetsAt,
   });
 
   int get remaining => balance;
@@ -24,15 +22,12 @@ class QuotaSnapshot {
       (youtubeMinutesLimit - youtubeMinutesUsed).clamp(0, youtubeMinutesLimit);
 
   factory QuotaSnapshot.fromJson(Map<String, dynamic> json) {
-    DateTime? parseNullable(String? raw) =>
-        raw == null ? null : DateTime.parse(raw);
     return QuotaSnapshot(
       balance:   (json['balance']   as num).toInt(),
       quotaCost: (json['quotaCost'] as num).toInt(),
       unlimited: json['unlimited']  as bool,
-      youtubeMinutesUsed:     (json['youtubeMinutesUsed']  as num?)?.toInt() ?? 0,
-      youtubeMinutesLimit:    (json['youtubeMinutesLimit'] as num?)?.toInt() ?? 300,
-      youtubeMinutesResetsAt: parseNullable(json['youtubeMinutesResetsAt'] as String?),
+      youtubeMinutesUsed:  (json['youtubeMinutesUsed']  as num?)?.toInt() ?? 0,
+      youtubeMinutesLimit: (json['youtubeMinutesLimit'] as num?)?.toInt() ?? 300,
     );
   }
 }
