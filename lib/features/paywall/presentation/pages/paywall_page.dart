@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -353,7 +355,24 @@ class _PlanTile extends StatefulWidget {
   State<_PlanTile> createState() => _PlanTileState();
 }
 
-class _PlanTileState extends State<_PlanTile> {
+class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixin {
+  late final AnimationController _sparkle;
+
+  @override
+  void initState() {
+    super.initState();
+    _sparkle = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _sparkle.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasBadge = widget.badge != null;
@@ -485,26 +504,44 @@ class _PlanTileState extends State<_PlanTile> {
                 ],
               ),
             ),
-            // Sparkles around the badge
-            Positioned(
-              top: -6,
-              left: 20,
-              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.9), size: 9),
-            ),
-            Positioned(
-              top: -4,
-              right: 22,
-              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.7), size: 7),
-            ),
-            Positioned(
-              top: 2,
-              left: 6,
-              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.6), size: 6),
-            ),
-            Positioned(
-              top: 2,
-              right: 8,
-              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.8), size: 8),
+            // Animated sparkles around the badge
+            AnimatedBuilder(
+              animation: _sparkle,
+              builder: (context, _) {
+                double pulse(double phase) {
+                  final v = (_sparkle.value + phase) % 1.0;
+                  return (math.sin(v * math.pi * 2) + 1) / 2;
+                }
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      top: -8,
+                      left: 18,
+                      child: Icon(Icons.auto_awesome,
+                          color: Colors.white.withValues(alpha: 0.3 + pulse(0.0) * 0.7), size: 9),
+                    ),
+                    Positioned(
+                      top: -6,
+                      right: 20,
+                      child: Icon(Icons.auto_awesome,
+                          color: Colors.white.withValues(alpha: 0.2 + pulse(0.25) * 0.7), size: 7),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 4,
+                      child: Icon(Icons.auto_awesome,
+                          color: Colors.white.withValues(alpha: 0.2 + pulse(0.5) * 0.6), size: 6),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 6,
+                      child: Icon(Icons.auto_awesome,
+                          color: Colors.white.withValues(alpha: 0.2 + pulse(0.75) * 0.7), size: 8),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ],
