@@ -8,11 +8,19 @@ import '../../domain/entities/user_status.dart';
 class AiQuotaCounter extends StatelessWidget {
   final UserStatus status;
   final VoidCallback onUpgradeTap;
+  final String? userName;
+  final String? userEmail;
+  final String? userPhotoUrl;
+  final double topPadding;
 
   const AiQuotaCounter({
     super.key,
     required this.status,
     required this.onUpgradeTap,
+    this.userName,
+    this.userEmail,
+    this.userPhotoUrl,
+    this.topPadding = 0,
   });
 
   @override
@@ -28,7 +36,7 @@ class AiQuotaCounter extends StatelessWidget {
             child: IgnorePointer(child: CustomPaint(painter: _DotGridPainter())),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: EdgeInsets.fromLTRB(18, 14 + topPadding, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -40,6 +48,44 @@ class AiQuotaCounter extends StatelessWidget {
                     _UpgradeButton(onTap: onUpgradeTap),
                   ],
                 ),
+                if (userName != null || userEmail != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    spacing: 10,
+                    children: [
+                      _UserAvatar(photoUrl: userPhotoUrl, displayName: userName),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (userName != null)
+                              Text(
+                                userName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (userEmail != null)
+                              Text(
+                                userEmail!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
@@ -48,7 +94,7 @@ class AiQuotaCounter extends StatelessWidget {
                         text: NumberFormat('#,###').format(status.quotaBalance),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 26,
+                          fontSize: 22,
                           fontWeight: FontWeight.w500,
                           height: 1.1,
                         ),
@@ -73,6 +119,41 @@ class AiQuotaCounter extends StatelessWidget {
   }
 }
 
+class _UserAvatar extends StatelessWidget {
+  final String? photoUrl;
+  final String? displayName;
+
+  const _UserAvatar({this.photoUrl, this.displayName});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial =
+        (displayName?.isNotEmpty == true ? displayName![0] : null) ?? '?';
+
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.white.withValues(alpha: 0.20),
+        backgroundImage: NetworkImage(photoUrl!),
+        onBackgroundImageError: (e, _) {},
+      );
+    }
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: Colors.white.withValues(alpha: 0.20),
+      child: Text(
+        initial.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _FreeLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -84,7 +165,7 @@ class _FreeLabel extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 0.5),
       ),
       child: const Text(
-        'FREE',
+        'FREE TIER',
         style: TextStyle(
           color: Colors.white,
           fontSize: 10,
@@ -110,7 +191,7 @@ class _UpgradeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
+          borderRadius: BorderRadius.circular(8),
         ),
         alignment: Alignment.center,
         child: Row(
@@ -120,10 +201,10 @@ class _UpgradeButton extends StatelessWidget {
               'assets/dashboard_premium.svg',
               width: 12,
               height: 12,
-              colorFilter: ColorFilter.mode(AppColors.purple600, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(AppColors.purple600, BlendMode.srcIn),
             ),
             const SizedBox(width: 5),
-            Text(
+            const Text(
               'Upgrade',
               style: TextStyle(
                 color: AppColors.purple600,

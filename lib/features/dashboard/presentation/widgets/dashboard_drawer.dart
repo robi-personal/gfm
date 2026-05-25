@@ -9,6 +9,7 @@ import '../../../../../core/di/injection.dart';
 import '../../../../../core/widgets/simple_web_view_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../../ai_form_builder/data/services/user_status_service.dart';
+import '../../../ai_form_builder/presentation/widgets/ai_quota_counter.dart';
 import '../../../ai_form_builder/presentation/widgets/premium_banner.dart';
 
 const _kAppStoreId = '6479591930';
@@ -70,36 +71,12 @@ class _DrawerContent extends StatelessWidget {
       listenable: service,
       builder: (context, _) {
         final status = service.status;
-        final isPremium = status != null && status.isPremium;
 
-        if (isPremium) {
-          final signInState = context.read<SignInCubit>().state;
-          final String? displayName;
-          final String? email;
-          final String? photoUrl;
-          if (signInState is Authenticated) {
-            displayName = signInState.user.displayName;
-            email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
-            photoUrl = signInState.user.photoUrl;
-          } else {
-            displayName = null;
-            email = null;
-            photoUrl = null;
-          }
-
+        // Status not yet loaded — show standard header as placeholder
+        if (status == null) {
           return Column(
             children: [
-              PremiumBanner(
-                generationsLeft: status.quotaBalance,
-                currentPlan: _toPlanType(status.subscriptionProductId),
-                showAnimations: false,
-                showFooter: false,
-                topPadding: topPad,
-                userName: displayName,
-                userEmail: email,
-                userPhotoUrl: photoUrl,
-                onRefresh: () => service.refresh(),
-              ),
+              _DrawerHeader(topPad: topPad),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
@@ -110,9 +87,44 @@ class _DrawerContent extends StatelessWidget {
           );
         }
 
+        final signInState = context.read<SignInCubit>().state;
+        final String? displayName;
+        final String? email;
+        final String? photoUrl;
+        if (signInState is Authenticated) {
+          displayName = signInState.user.displayName;
+          email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
+          photoUrl = signInState.user.photoUrl;
+        } else {
+          displayName = null;
+          email = null;
+          photoUrl = null;
+        }
+
+        final header = status.isPremium
+            ? PremiumBanner(
+                generationsLeft: status.quotaBalance,
+                currentPlan: _toPlanType(status.subscriptionProductId),
+                showAnimations: false,
+                showFooter: false,
+                topPadding: topPad,
+                userName: displayName,
+                userEmail: email,
+                userPhotoUrl: photoUrl,
+                onRefresh: () => service.refresh(),
+              )
+            : AiQuotaCounter(
+                status: status,
+                topPadding: topPad,
+                userName: displayName,
+                userEmail: email,
+                userPhotoUrl: photoUrl,
+                onUpgradeTap: onShowPaywall,
+              );
+
         return Column(
           children: [
-            _DrawerHeader(topPad: topPad),
+            header,
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
