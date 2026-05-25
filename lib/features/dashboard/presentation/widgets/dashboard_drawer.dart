@@ -108,6 +108,7 @@ class _DrawerContent extends StatelessWidget {
                 showAnimations: true,
                 showBorderShimmer: false,
                 showFooter: false,
+                borderRadius: BorderRadius.zero,
                 topPadding: topPad,
                 userName: displayName,
                 userEmail: email,

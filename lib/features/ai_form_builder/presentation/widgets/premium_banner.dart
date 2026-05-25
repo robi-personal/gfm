@@ -14,6 +14,7 @@ class PremiumBanner extends StatefulWidget {
   final bool showFooter;
   final bool showAnimations;
   final bool showBorderShimmer;
+  final BorderRadius? borderRadius;
   final String? userName;
   final String? userEmail;
   final String? userPhotoUrl;
@@ -27,6 +28,7 @@ class PremiumBanner extends StatefulWidget {
     this.showFooter = true,
     this.showAnimations = true,
     this.showBorderShimmer = true,
+    this.borderRadius,
     this.userName,
     this.userEmail,
     this.userPhotoUrl,
@@ -85,7 +87,7 @@ class _PremiumBannerState extends State<PremiumBanner>
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: widget.borderRadius ?? BorderRadius.circular(18),
       child: Stack(
         children: [
           // Background
