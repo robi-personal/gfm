@@ -478,17 +478,8 @@ class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixi
           if (hasBadge)
             Stack(
               alignment: Alignment.center,
+              clipBehavior: Clip.none,
               children: [
-                // Sparkles behind the badge
-                RepaintBoundary(
-                  child: AnimatedBuilder(
-                    animation: _sparkleController,
-                    builder: (context, _) => CustomPaint(
-                      size: const Size(160, _badgeH + 16),
-                      painter: _BadgeSparklePainter(_sparkleController.value),
-                    ),
-                  ),
-                ),
                 Container(
                   height: _badgeH,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -506,6 +497,19 @@ class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixi
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+                // Sparkles on top, positioned outside badge edges
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: AnimatedBuilder(
+                        animation: _sparkleController,
+                        builder: (context, _) => CustomPaint(
+                          painter: _BadgeSparklePainter(_sparkleController.value),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -565,17 +569,17 @@ class _BadgeSparklePainter extends CustomPainter {
 
   // (xFraction, yFraction, size, phaseOffset)
   static const _sparkles = [
-    (0.05, 0.25, 3.5, 0.0),
-    (0.95, 0.25, 3.5, 0.3),
-    (0.12, 0.85, 2.5, 0.6),
-    (0.88, 0.85, 2.5, 0.15),
-    (0.50, 0.05, 2.0, 0.45),
+    (-0.12, 0.5,  4.0, 0.0),
+    (1.12,  0.5,  4.0, 0.3),
+    (0.15,  -0.6, 3.0, 0.6),
+    (0.85,  -0.6, 3.0, 0.15),
+    (0.50,  -0.8, 2.5, 0.45),
   ];
 
   void _drawStar(Canvas canvas, Offset center, double size, double opacity) {
     if (opacity <= 0) return;
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: opacity)
+      ..color = const Color(0xFFF5C842).withValues(alpha: opacity)
       ..style = PaintingStyle.fill;
     final path = Path();
     for (int i = 0; i < 4; i++) {
