@@ -14,6 +14,7 @@ class PremiumBanner extends StatefulWidget {
   final bool showFooter;
   final bool showAnimations;
   final bool showBorderShimmer;
+  final bool showRefreshButton;
   final BorderRadius? borderRadius;
   final String? userName;
   final String? userEmail;
@@ -28,6 +29,7 @@ class PremiumBanner extends StatefulWidget {
     this.showFooter = true,
     this.showAnimations = true,
     this.showBorderShimmer = true,
+    this.showRefreshButton = true,
     this.borderRadius,
     this.userName,
     this.userEmail,
@@ -149,7 +151,8 @@ class _PremiumBannerState extends State<PremiumBanner>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _PremiumBadge(),
-                    _RefreshButton(onPressed: _handleRefresh, isLoading: _isRefreshing),
+                    if (widget.showRefreshButton)
+                      _RefreshButton(onPressed: _handleRefresh, isLoading: _isRefreshing),
                   ],
                 ),
                 if (widget.userName != null || widget.userEmail != null) ...[
