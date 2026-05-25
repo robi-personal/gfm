@@ -102,6 +102,7 @@ class NotificationService {
     }
 
     _msgSub = FirebaseMessaging.onMessage.listen((msg) {
+      debugPrint('[notifications] foreground message: ${msg.data}');
       _showLocalForForeground(msg);
       final data = _mapFromData(msg.data);
       if (data.isNotEmpty) _onForegroundController.add(data);

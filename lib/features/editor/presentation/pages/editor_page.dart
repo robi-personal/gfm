@@ -94,7 +94,10 @@ class _EditorViewState extends State<_EditorView>
   }
 
   void _onNotificationData(Map<String, String> data) {
+    debugPrint('[editor] notification data: $data | formId: ${widget.formId}');
+    if (!mounted) return;
     if (data['formId'] == widget.formId) {
+      debugPrint('[editor] triggering silent response refresh');
       context.read<ResponsesCubit>().refreshResponses(widget.formId);
     }
   }
