@@ -105,7 +105,7 @@ class _DrawerContent extends StatelessWidget {
             ? PremiumBanner(
                 generationsLeft: status.quotaBalance,
                 currentPlan: _toPlanType(status.subscriptionProductId),
-                showAnimations: false,
+                showAnimations: true,
                 showFooter: false,
                 topPadding: topPad,
                 userName: displayName,
