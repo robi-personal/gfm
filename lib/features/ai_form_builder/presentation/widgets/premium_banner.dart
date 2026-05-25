@@ -11,12 +11,24 @@ class PremiumBanner extends StatefulWidget {
   final int generationsLeft;
   final PlanType currentPlan;
   final Future<void> Function() onRefresh;
+  final bool showFooter;
+  final bool showAnimations;
+  final String? userName;
+  final String? userEmail;
+  final String? userPhotoUrl;
+  final double topPadding;
 
   const PremiumBanner({
     super.key,
     required this.generationsLeft,
     required this.currentPlan,
     required this.onRefresh,
+    this.showFooter = true,
+    this.showAnimations = true,
+    this.userName,
+    this.userEmail,
+    this.userPhotoUrl,
+    this.topPadding = 0,
   });
 
   @override
@@ -94,33 +106,35 @@ class _PremiumBannerState extends State<PremiumBanner>
             bottom: -60,
             child: IgnorePointer(child: _GlowCircle(radius: 200, color: const Color(0x30F5B428))),
           ),
-          // Border shimmer — sweeps around the full perimeter
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _shimmerController,
-                builder: (context, _) => CustomPaint(
-                  painter: _BorderShimmerPainter(_shimmerController.value),
-                ),
-              ),
-            ),
-          ),
-          // Sparkles
-          Positioned.fill(
-            child: IgnorePointer(
-              child: RepaintBoundary(
+          if (widget.showAnimations) ...[
+            // Border shimmer — sweeps around the full perimeter
+            Positioned.fill(
+              child: IgnorePointer(
                 child: AnimatedBuilder(
-                  animation: _sparkleController,
+                  animation: _shimmerController,
                   builder: (context, _) => CustomPaint(
-                    painter: _SparklePainter(_sparkleController.value),
+                    painter: _BorderShimmerPainter(_shimmerController.value),
                   ),
                 ),
               ),
             ),
-          ),
+            // Sparkles
+            Positioned.fill(
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _sparkleController,
+                    builder: (context, _) => CustomPaint(
+                      painter: _SparklePainter(_sparkleController.value),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
           // Content with padding
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: EdgeInsets.fromLTRB(18, 14 + widget.topPadding, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -133,6 +147,47 @@ class _PremiumBannerState extends State<PremiumBanner>
                     _RefreshButton(onPressed: _handleRefresh, isLoading: _isRefreshing),
                   ],
                 ),
+                if (widget.userName != null || widget.userEmail != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    spacing: 10,
+                    children: [
+                      _UserAvatar(
+                        photoUrl: widget.userPhotoUrl,
+                        displayName: widget.userName,
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.userName != null)
+                              Text(
+                                widget.userName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (widget.userEmail != null)
+                              Text(
+                                widget.userEmail!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 10),
                 // Row 2 — generation count
                 RichText(
@@ -160,26 +215,26 @@ class _PremiumBannerState extends State<PremiumBanner>
                     ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                // Divider
-                const Divider(
-                  height: 0.5,
-                  thickness: 0.5,
-                  color: Color(0x1AFFFFFF),
-                ),
-                const SizedBox(height: 10),
-                // Row 3 — current plan
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Current plan',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                    const SizedBox(width: 8),
-                    _PlanPill(icon: _planIcon, label: _planLabel),
-                  ],
-                ),
+                if (widget.showFooter) ...[
+                  const SizedBox(height: 4),
+                  const Divider(
+                    height: 0.5,
+                    thickness: 0.5,
+                    color: Color(0x1AFFFFFF),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Current plan',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      const SizedBox(width: 8),
+                      _PlanPill(icon: _planIcon, label: _planLabel),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -288,6 +343,41 @@ class _PlanPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final String? photoUrl;
+  final String? displayName;
+
+  const _UserAvatar({this.photoUrl, this.displayName});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial =
+        (displayName?.isNotEmpty == true ? displayName![0] : null) ?? '?';
+
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.white.withValues(alpha: 0.20),
+        backgroundImage: NetworkImage(photoUrl!),
+        onBackgroundImageError: (e, _) {},
+      );
+    }
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: Colors.white.withValues(alpha: 0.20),
+      child: Text(
+        initial.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

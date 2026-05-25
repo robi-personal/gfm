@@ -5,8 +5,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
+import '../../../../../core/di/injection.dart';
+import '../../../../../core/usecases/usecase.dart';
 import '../../../../../core/widgets/simple_web_view_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
+import '../../../ai_form_builder/domain/entities/user_status.dart';
+import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../../ai_form_builder/presentation/widgets/premium_banner.dart';
 
 const _kAppStoreId = '6479591930';
 const _kAppStoreUrl = 'https://apps.apple.com/app/id$_kAppStoreId';
@@ -43,7 +48,7 @@ class DashboardDrawer extends StatelessWidget {
   }
 }
 
-class _DrawerContent extends StatelessWidget {
+class _DrawerContent extends StatefulWidget {
   final VoidCallback onAiBuilder;
   final VoidCallback onCreateForm;
   final VoidCallback onImportForm;
@@ -59,8 +64,76 @@ class _DrawerContent extends StatelessWidget {
   });
 
   @override
+  State<_DrawerContent> createState() => _DrawerContentState();
+}
+
+class _DrawerContentState extends State<_DrawerContent> {
+  static UserStatus? _cache;
+  UserStatus? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = _cache;
+    if (_cache == null) _refreshInBackground();
+  }
+
+  Future<UserStatus?> _fetch() => getIt<GetUserStatus>()
+      .call(const NoParams())
+      .then((r) => r.fold((_) => null, (s) => s));
+
+  Future<void> _refreshInBackground() async {
+    final fresh = await _fetch();
+    if (!mounted) return;
+    _cache = fresh;
+    setState(() => _status = fresh);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top + 20.0;
+    final status = _status;
+    final isPremium = status != null && status.isPremium;
+
+    if (isPremium) {
+      final signInState = context.read<SignInCubit>().state;
+      final String? displayName;
+      final String? email;
+      final String? photoUrl;
+      if (signInState is Authenticated) {
+        displayName = signInState.user.displayName;
+        email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
+        photoUrl = signInState.user.photoUrl;
+      } else {
+        displayName = null;
+        email = null;
+        photoUrl = null;
+      }
+
+      return Column(
+        children: [
+          PremiumBanner(
+            generationsLeft: status.quotaBalance,
+            currentPlan: _toPlanType(status.subscriptionProductId),
+            showAnimations: false,
+            showFooter: false,
+            topPadding: topPad,
+            userName: displayName,
+            userEmail: email,
+            userPhotoUrl: photoUrl,
+            onRefresh: () => _refreshInBackground(),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              children: [
+                _buildSections(context),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       children: [
@@ -69,120 +142,129 @@ class _DrawerContent extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
             children: [
-              _DrawerSection(
-                label: 'CREATE',
-                items: [
-                  _DrawerItem(
-                    icon: Icons.auto_awesome_rounded,
-                    title: 'AI Form Builder',
-                    onTap: () { Navigator.of(context).pop(); onAiBuilder(); },
-                  ),
-                  _DrawerItem(
-                    icon: CupertinoIcons.pencil,
-                    title: 'Create Form',
-                    onTap: () { Navigator.of(context).pop(); onCreateForm(); },
-                  ),
-                  _DrawerItem(
-                    icon: CupertinoIcons.arrow_down_circle,
-                    title: 'Import Form',
-                    onTap: () { Navigator.of(context).pop(); onImportForm(); },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _DrawerSection(
-                label: 'SUBSCRIPTION',
-                items: [
-                  _DrawerItem(
-                    icon: CupertinoIcons.star_fill,
-                    title: 'Upgrade Plan',
-                    onTap: () { Navigator.of(context).pop(); onShowPaywall(); },
-                  ),
-                  _DrawerItem(
-                    icon: CupertinoIcons.arrow_clockwise,
-                    title: 'Restore Purchases',
-                    onTap: () { Navigator.of(context).pop(); onRestorePurchases(); },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _DrawerSection(
-                label: 'SUPPORT US',
-                items: [
-                  _DrawerItem(
-                    icon: CupertinoIcons.share,
-                    title: 'Share on the App Store',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      SharePlus.instance.share(ShareParams(
-                        text: 'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
-                      ));
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: CupertinoIcons.hand_thumbsup,
-                    title: 'Rate the app',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      launchUrl(
-                        Uri.parse(_kAppStoreReviewUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _DrawerSection(
-                label: 'LEGAL',
-                items: [
-                  _DrawerItem(
-                    icon: CupertinoIcons.lock_shield,
-                    title: 'Privacy Policy',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const SimpleWebViewPage(
-                          title: 'Privacy Policy',
-                          url: 'https://gformmanager.netlify.app/privacy',
-                        ),
-                      ));
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: CupertinoIcons.doc_text,
-                    title: 'Terms of Use',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const SimpleWebViewPage(
-                          title: 'Terms of Use',
-                          url: 'https://gformmanager.netlify.app/terms',
-                        ),
-                      ));
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _DrawerSection(
-                label: 'ACCOUNT',
-                labelColor: AppColors.error,
-                items: [
-                  _DrawerItem(
-                    icon: CupertinoIcons.square_arrow_right,
-                    title: 'Sign out',
-                    iconBg: AppColors.error,
-                    textColor: AppColors.error,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      context.read<SignInCubit>().signOut();
-                    },
-                  ),
-                ],
-              ),
+              _buildSections(context),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSections(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _DrawerSection(
+          label: 'CREATE',
+          items: [
+            _DrawerItem(
+              icon: Icons.auto_awesome_rounded,
+              title: 'AI Form Builder',
+              onTap: () { Navigator.of(context).pop(); widget.onAiBuilder(); },
+            ),
+            _DrawerItem(
+              icon: CupertinoIcons.pencil,
+              title: 'Create Form',
+              onTap: () { Navigator.of(context).pop(); widget.onCreateForm(); },
+            ),
+            _DrawerItem(
+              icon: CupertinoIcons.arrow_down_circle,
+              title: 'Import Form',
+              onTap: () { Navigator.of(context).pop(); widget.onImportForm(); },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _DrawerSection(
+          label: 'SUBSCRIPTION',
+          items: [
+            _DrawerItem(
+              icon: CupertinoIcons.star_fill,
+              title: 'Upgrade Plan',
+              onTap: () { Navigator.of(context).pop(); widget.onShowPaywall(); },
+            ),
+            _DrawerItem(
+              icon: CupertinoIcons.arrow_clockwise,
+              title: 'Restore Purchases',
+              onTap: () { Navigator.of(context).pop(); widget.onRestorePurchases(); },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _DrawerSection(
+          label: 'SUPPORT US',
+          items: [
+            _DrawerItem(
+              icon: CupertinoIcons.share,
+              title: 'Share on the App Store',
+              onTap: () {
+                Navigator.of(context).pop();
+                SharePlus.instance.share(ShareParams(
+                  text: 'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
+                ));
+              },
+            ),
+            _DrawerItem(
+              icon: CupertinoIcons.hand_thumbsup,
+              title: 'Rate the app',
+              onTap: () {
+                Navigator.of(context).pop();
+                launchUrl(
+                  Uri.parse(_kAppStoreReviewUrl),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _DrawerSection(
+          label: 'LEGAL',
+          items: [
+            _DrawerItem(
+              icon: CupertinoIcons.lock_shield,
+              title: 'Privacy Policy',
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const SimpleWebViewPage(
+                    title: 'Privacy Policy',
+                    url: 'https://gformmanager.netlify.app/privacy',
+                  ),
+                ));
+              },
+            ),
+            _DrawerItem(
+              icon: CupertinoIcons.doc_text,
+              title: 'Terms of Use',
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const SimpleWebViewPage(
+                    title: 'Terms of Use',
+                    url: 'https://gformmanager.netlify.app/terms',
+                  ),
+                ));
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _DrawerSection(
+          label: 'ACCOUNT',
+          labelColor: AppColors.error,
+          items: [
+            _DrawerItem(
+              icon: CupertinoIcons.square_arrow_right,
+              title: 'Sign out',
+              iconBg: AppColors.error,
+              textColor: AppColors.error,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.read<SignInCubit>().signOut();
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -299,6 +381,13 @@ class _UserAvatar extends StatelessWidget {
       ),
     );
   }
+}
+
+PlanType _toPlanType(String? productId) {
+  final id = productId?.toLowerCase() ?? '';
+  if (id.contains('weekly')) return PlanType.weekly;
+  if (id.contains('yearly')) return PlanType.yearly;
+  return PlanType.monthly;
 }
 
 // ── Drawer section ────────────────────────────────────────────────────────────

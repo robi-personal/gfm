@@ -75,8 +75,13 @@ class _EditFormWebViewPageState extends State<EditFormWebViewPage> {
                   Expanded(
                     child: InAppWebView(
                       initialUrlRequest: URLRequest(
+                        // /u/0/ forces Google to use the first signed-in
+                        // account on this WebView's session — required so that
+                        // after a sign-out + sign-in cycle the editor picks the
+                        // new account instead of resolving to a cached default.
+                        // Same trick the import flow uses for its Drive URL.
                         url: WebUri(
-                            'https://docs.google.com/forms/d/${widget.formId}/edit'),
+                            'https://docs.google.com/forms/u/0/d/${widget.formId}/edit'),
                       ),
                       initialSettings: InAppWebViewSettings(
                         javaScriptEnabled: true,
