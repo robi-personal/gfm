@@ -14,7 +14,8 @@ import '../../../ai_form_builder/presentation/widgets/premium_banner.dart';
 
 const _kAppStoreId = '6479591930';
 const _kAppStoreUrl = 'https://apps.apple.com/app/id$_kAppStoreId';
-const _kAppStoreReviewUrl = 'itms-apps://itunes.apple.com/app/id$_kAppStoreId?action=write-review';
+const _kAppStoreReviewUrl =
+    'itms-apps://itunes.apple.com/app/id$_kAppStoreId?action=write-review';
 
 class DashboardDrawer extends StatelessWidget {
   final VoidCallback onAiBuilder;
@@ -93,7 +94,9 @@ class _DrawerContent extends StatelessWidget {
         final String? photoUrl;
         if (signInState is Authenticated) {
           displayName = signInState.user.displayName;
-          email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
+          email = signInState.user.email.isNotEmpty
+              ? signInState.user.email
+              : null;
           photoUrl = signInState.user.photoUrl;
         } else {
           displayName = null;
@@ -147,17 +150,26 @@ class _DrawerContent extends StatelessWidget {
             _DrawerItem(
               icon: Icons.auto_awesome_rounded,
               title: 'AI Form Builder',
-              onTap: () { Navigator.of(context).pop(); onAiBuilder(); },
+              onTap: () {
+                Navigator.of(context).pop();
+                onAiBuilder();
+              },
             ),
             _DrawerItem(
               icon: CupertinoIcons.pencil,
               title: 'Create Form',
-              onTap: () { Navigator.of(context).pop(); onCreateForm(); },
+              onTap: () {
+                Navigator.of(context).pop();
+                onCreateForm();
+              },
             ),
             _DrawerItem(
               icon: CupertinoIcons.arrow_down_circle,
               title: 'Import Form',
-              onTap: () { Navigator.of(context).pop(); onImportForm(); },
+              onTap: () {
+                Navigator.of(context).pop();
+                onImportForm();
+              },
             ),
           ],
         ),
@@ -168,12 +180,18 @@ class _DrawerContent extends StatelessWidget {
             _DrawerItem(
               icon: CupertinoIcons.star_fill,
               title: 'Upgrade Plan',
-              onTap: () { Navigator.of(context).pop(); onShowPaywall(); },
+              onTap: () {
+                Navigator.of(context).pop();
+                onShowPaywall();
+              },
             ),
             _DrawerItem(
               icon: CupertinoIcons.arrow_clockwise,
               title: 'Restore Purchases',
-              onTap: () { Navigator.of(context).pop(); onRestorePurchases(); },
+              onTap: () {
+                Navigator.of(context).pop();
+                onRestorePurchases();
+              },
             ),
           ],
         ),
@@ -186,9 +204,12 @@ class _DrawerContent extends StatelessWidget {
               title: 'Share on the App Store',
               onTap: () {
                 Navigator.of(context).pop();
-                SharePlus.instance.share(ShareParams(
-                  text: 'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
-                ));
+                SharePlus.instance.share(
+                  ShareParams(
+                    text:
+                        'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
+                  ),
+                );
               },
             ),
             _DrawerItem(
@@ -213,12 +234,14 @@ class _DrawerContent extends StatelessWidget {
               title: 'Privacy Policy',
               onTap: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const SimpleWebViewPage(
-                    title: 'Privacy Policy',
-                    url: 'https://gformmanager.netlify.app/privacy',
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SimpleWebViewPage(
+                      title: 'Privacy Policy',
+                      url: 'https://gformmanager.netlify.app/privacy',
+                    ),
                   ),
-                ));
+                );
               },
             ),
             _DrawerItem(
@@ -226,12 +249,14 @@ class _DrawerContent extends StatelessWidget {
               title: 'Terms of Use',
               onTap: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const SimpleWebViewPage(
-                    title: 'Terms of Use',
-                    url: 'https://gformmanager.netlify.app/terms',
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SimpleWebViewPage(
+                      title: 'Terms of Use',
+                      url: 'https://gformmanager.netlify.app/terms',
+                    ),
                   ),
-                ));
+                );
               },
             ),
           ],
@@ -276,35 +301,38 @@ class _DrawerHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: EdgeInsets.only(
-        top: topPad,
-        bottom: 28,
-        left: 20,
-        right: 20,
-      ),
-      child: BlocSelector<SignInCubit, SignInState,
-          ({String? displayName, String? photoUrl, String email})>(
-        selector: (state) => state is Authenticated
-            ? (
-                displayName: state.user.displayName,
-                photoUrl: state.user.photoUrl,
-                email: state.user.email,
-              )
-            : (displayName: null, photoUrl: null, email: ''),
-        builder: (context, user) => Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          spacing: 12,
-          children: [
-            _UserAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
-            Expanded(child: _buildUserInfo(user)),
-          ],
-        ),
-      ),
+      padding: EdgeInsets.only(top: topPad, bottom: 28, left: 20, right: 20),
+      child:
+          BlocSelector<
+            SignInCubit,
+            SignInState,
+            ({String? displayName, String? photoUrl, String email})
+          >(
+            selector: (state) => state is Authenticated
+                ? (
+                    displayName: state.user.displayName,
+                    photoUrl: state.user.photoUrl,
+                    email: state.user.email,
+                  )
+                : (displayName: null, photoUrl: null, email: ''),
+            builder: (context, user) => Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: 12,
+              children: [
+                _UserAvatar(
+                  photoUrl: user.photoUrl,
+                  displayName: user.displayName,
+                ),
+                Expanded(child: _buildUserInfo(user)),
+              ],
+            ),
+          ),
     );
   }
 
   Widget _buildUserInfo(
-      ({String? displayName, String? photoUrl, String email}) user) {
+    ({String? displayName, String? photoUrl, String email}) user,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -466,8 +494,11 @@ class _DrawerItem extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(CupertinoIcons.chevron_right,
-                size: 13, color: AppColors.muted2),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 13,
+              color: AppColors.muted2,
+            ),
           ],
         ),
       ),

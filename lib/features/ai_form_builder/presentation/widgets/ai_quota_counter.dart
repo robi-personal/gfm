@@ -41,15 +41,9 @@ class AiQuotaCounter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _FreeLabel(),
-                    _UpgradeButton(onTap: onUpgradeTap),
-                  ],
-                ),
+                _FreeLabel(),
                 if (userName != null || userEmail != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
                   Row(
                     spacing: 10,
                     children: [
@@ -110,6 +104,8 @@ class AiQuotaCounter extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                _UpgradeButton(onTap: onUpgradeTap),
               ],
             ),
           ),
