@@ -1,18 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/simple_web_view_page.dart';
 import '../cubit/subscription_cubit.dart';
 
-// Apple requires a visible link to manage/cancel during purchase flow.
-const _manageSubscriptionsUrl = 'https://apps.apple.com/account/subscriptions';
 const _privacyUrl = 'https://gformmanager.netlify.app/privacy';
 const _termsUrl   = 'https://gformmanager.netlify.app/terms';
 
@@ -39,40 +34,23 @@ class PaywallPage extends StatelessWidget {
   }
 }
 
+// ── Scaffold ──────────────────────────────────────────────────────────────────
+
 class _PaywallScaffold extends StatelessWidget {
   const _PaywallScaffold();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'GFM Premium',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.purple),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: const _PaywallView(),
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: _PaywallView(),
     );
   }
 }
 
 // ── Plan enum ─────────────────────────────────────────────────────────────────
 
-enum _Plan { weekly, annual, monthly }
+enum _Plan { weekly, monthly, annual }
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
@@ -84,25 +62,26 @@ class _PaywallView extends StatefulWidget {
 }
 
 class _PaywallViewState extends State<_PaywallView> {
-  _Plan _selected = _Plan.annual;
+  _Plan _selected = _Plan.monthly;
 
   Package? _packageFor(_Plan plan, Offering offering) => switch (plan) {
-    _Plan.weekly => offering.weekly,
-    _Plan.annual => offering.annual,
+    _Plan.weekly  => offering.weekly,
     _Plan.monthly => offering.monthly,
+    _Plan.annual  => offering.annual,
   };
 
   _Plan? _currentPlan(String? productId, Offering? offering) {
     if (productId == null) return null;
-    if (productId == offering?.weekly?.storeProduct.identifier) return _Plan.weekly;
+    if (productId == offering?.weekly?.storeProduct.identifier)  return _Plan.weekly;
     if (productId == offering?.monthly?.storeProduct.identifier) return _Plan.monthly;
-    if (productId == offering?.annual?.storeProduct.identifier) return _Plan.annual;
+    if (productId == offering?.annual?.storeProduct.identifier)  return _Plan.annual;
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewPaddingOf(context).bottom;
+    final topPad    = MediaQuery.paddingOf(context).top;
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom;
 
     return BlocConsumer<SubscriptionCubit, SubscriptionState>(
       listener: (context, state) {
@@ -131,61 +110,143 @@ class _PaywallViewState extends State<_PaywallView> {
       },
       builder: (context, state) {
         final offering = switch (state) {
-          SubscriptionLoaded(offering: final o) => o,
-          SubscriptionPurchasing(offering: final o) => o,
+          SubscriptionLoaded(offering: final o)              => o,
+          SubscriptionPurchasing(offering: final o)          => o,
           SubscriptionAppleBindingConflict(offering: final o) => o,
           _ => null,
         };
         final currentProductId = state is SubscriptionLoaded ? state.currentProductId : null;
-        final currentPlan = _currentPlan(currentProductId, offering);
+        final currentPlan  = _currentPlan(currentProductId, offering);
         final isPurchasing = state is SubscriptionPurchasing;
-        final isLoading =
-            state is SubscriptionLoading || state is SubscriptionInitial;
+        final isLoading    = state is SubscriptionLoading || state is SubscriptionInitial;
+
+        final weeklyPrice  = offering?.weekly?.storeProduct.priceString  ?? '\$3.99';
+        final monthlyPrice = offering?.monthly?.storeProduct.priceString ?? '\$9.99';
+        final annualPrice  = offering?.annual?.storeProduct.priceString  ?? '\$59.99';
 
         return Stack(
           children: [
-            Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + bottom),
+            CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Illustration
-                        Center(
-                          child: SvgPicture.asset(
-                            'assets/paywall_banner.svg',
-                            height: 140,
-                            fit: BoxFit.contain,
+                        // Close button
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: AppColors.bg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.xmark,
+                                size: 14,
+                                color: AppColors.muted,
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
-                        // Features section
-                        const _GroupLabel(text: "WHAT'S INCLUDED"),
-                        const SizedBox(height: 6),
-                        _FeatureCard(selected: _selected),
-                        const SizedBox(height: 20),
+                        // Header icon
+                        Center(
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.purple500, AppColors.purple700],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.purple600.withValues(alpha: 0.35),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.star,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
-                        // Plan selector section
-                        const _GroupLabel(text: 'SELECT YOUR PLAN'),
+                        // Title
+                        const Text(
+                          'Go Premium',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        _PricingSection(
-                          selected: _selected,
-                          currentPlan: currentPlan,
-                          offering: offering,
-                          onSelect: (p) => setState(() => _selected = p),
+                        const Text(
+                          'Unlock everything. Cancel anytime.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.muted,
+                          ),
                         ),
                         const SizedBox(height: 28),
 
-                        // Purchase button
-                        _PurchaseButton(
-                          label: _selected == currentPlan
-                              ? 'Current Plan'
-                              : _buttonLabel(_selected, offering),
+                        // Plan tiles
+                        _PlanTile(
+                          plan: _Plan.weekly,
+                          label: 'Weekly',
+                          price: weeklyPrice,
+                          period: 'week',
+                          selected: _selected == _Plan.weekly,
+                          isCurrent: currentPlan == _Plan.weekly,
+                          onTap: () => setState(() => _selected = _Plan.weekly),
+                        ),
+                        const SizedBox(height: 10),
+                        _PlanTile(
+                          plan: _Plan.monthly,
+                          label: 'Monthly',
+                          price: monthlyPrice,
+                          period: 'month',
+                          saveText: 'Save 37% vs weekly',
+                          badge: 'MOST POPULAR',
+                          selected: _selected == _Plan.monthly,
+                          isCurrent: currentPlan == _Plan.monthly,
+                          onTap: () => setState(() => _selected = _Plan.monthly),
+                        ),
+                        const SizedBox(height: 10),
+                        _PlanTile(
+                          plan: _Plan.annual,
+                          label: 'Yearly',
+                          price: annualPrice,
+                          period: 'year',
+                          saveText: 'Best value · Save 50%',
+                          selected: _selected == _Plan.annual,
+                          isCurrent: currentPlan == _Plan.annual,
+                          onTap: () => setState(() => _selected = _Plan.annual),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Continue button
+                        _ContinueButton(
                           enabled: !isPurchasing && !isLoading && _selected != currentPlan,
                           isLoading: isLoading || isPurchasing,
+                          isCurrent: _selected == currentPlan,
                           onTap: () {
                             final package = offering != null
                                 ? _packageFor(_selected, offering)
@@ -194,8 +255,7 @@ class _PaywallViewState extends State<_PaywallView> {
                               ErrorModal.show(
                                 context,
                                 title: 'Products unavailable',
-                                body:
-                                    'Could not load subscription products. Please check your connection and try again.',
+                                body: 'Could not load subscription products. Please check your connection and try again.',
                                 primaryLabel: 'OK',
                                 onPrimary: () {},
                               );
@@ -204,13 +264,19 @@ class _PaywallViewState extends State<_PaywallView> {
                             context.read<SubscriptionCubit>().purchase(package);
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 32),
+
+                        // What's included
+                        const _SectionLabel(text: "WHAT'S INCLUDED"),
+                        const SizedBox(height: 12),
+                        const _FeaturesList(),
+                        const SizedBox(height: 24),
 
                         // Footer
                         _Footer(
-                          onRestore: () =>
-                              context.read<SubscriptionCubit>().restore(),
+                          onRestore: () => context.read<SubscriptionCubit>().restore(),
                         ),
+                        SizedBox(height: 24 + bottomPad),
                       ],
                     ),
                   ),
@@ -229,464 +295,408 @@ class _PaywallViewState extends State<_PaywallView> {
       },
     );
   }
-
-  String _buttonLabel(_Plan plan, Offering? offering) {
-    if (offering != null) {
-      final pkg = _packageFor(plan, offering);
-      if (pkg != null) {
-        final price = pkg.storeProduct.priceString;
-        final period = switch (plan) {
-          _Plan.weekly => 'week',
-          _Plan.annual => 'year',
-          _Plan.monthly => 'month',
-        };
-        return 'Start Premium — $price / $period';
-      }
-    }
-    return switch (plan) {
-      _Plan.weekly => 'Start Premium — \$3.99 / week',
-      _Plan.annual => 'Start Premium — \$44.99 / year',
-      _Plan.monthly => 'Start Premium — \$4.99 / month',
-    };
-  }
 }
 
-// ── Group label (iOS settings style) ─────────────────────────────────────────
+// ── Section label ─────────────────────────────────────────────────────────────
 
-class _GroupLabel extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
   final String text;
-
-  const _GroupLabel({required this.text});
+  const _SectionLabel({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
-          letterSpacing: 0.6,
-        ),
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.muted,
+        letterSpacing: 0.8,
       ),
     );
   }
 }
 
-// ── Feature list ─────────────────────────────────────────────────────────────
+// ── Plan tile (vertical stacked) ──────────────────────────────────────────────
 
-class _FeatureCard extends StatelessWidget {
-  final _Plan selected;
+const _badgeH = 24.0;
 
-  const _FeatureCard({required this.selected});
-
-  String get _quotaLine => switch (selected) {
-    _Plan.weekly => '15 AI generations per week',
-    _Plan.monthly => '50 AI generations per month',
-    _Plan.annual => '600 AI generations per year',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final features = [
-      'AI Form builder',
-      'Unlimited Manual Form build',
-      'Unlimited response refreshes',
-      'Export responses as CSV',
-      'All future premium features',
-      _quotaLine,
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: features.map((f) => _FeatureRow(label: f)).toList(),
-      ),
-    );
-  }
-}
-
-class _FeatureRow extends StatelessWidget {
+class _PlanTile extends StatelessWidget {
+  final _Plan plan;
   final String label;
-
-  const _FeatureRow({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: AppColors.purpleTint,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_rounded, color: AppColors.purple, size: 14),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Pricing section (3-card layout) ──────────────────────────────────────────
-
-const _badgeHeight = 26.0;
-
-class _PricingSection extends StatelessWidget {
-  final _Plan selected;
-  final _Plan? currentPlan;
-  final ValueChanged<_Plan> onSelect;
-  final Offering? offering;
-
-  const _PricingSection({
-    required this.selected,
-    required this.onSelect,
-    this.currentPlan,
-    this.offering,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final weeklyPrice = offering?.weekly?.storeProduct.priceString ?? '\$3.99';
-    final annualPrice = offering?.annual?.storeProduct.priceString ?? '\$44.99';
-    final monthlyPrice =
-        offering?.monthly?.storeProduct.priceString ?? '\$4.99';
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        _SidePlanCard(
-          label: 'WEEKLY',
-          price: weeklyPrice,
-          perUnit: 'per week',
-          selected: selected == _Plan.weekly,
-          isCurrent: currentPlan == _Plan.weekly,
-          onTap: () => onSelect(_Plan.weekly),
-        ),
-        const SizedBox(width: 8),
-        _FeaturedPlanCard(
-          price: annualPrice,
-          selected: selected == _Plan.annual,
-          isCurrent: currentPlan == _Plan.annual,
-          onTap: () => onSelect(_Plan.annual),
-        ),
-        const SizedBox(width: 8),
-        _SidePlanCard(
-          label: 'MONTHLY',
-          price: monthlyPrice,
-          perUnit: 'per month',
-          selected: selected == _Plan.monthly,
-          isCurrent: currentPlan == _Plan.monthly,
-          onTap: () => onSelect(_Plan.monthly),
-        ),
-      ],
-    );
-  }
-}
-
-class _FeaturedPlanCard extends StatelessWidget {
   final String price;
+  final String period;
+  final String? saveText;
+  final String? badge;
   final bool selected;
   final bool isCurrent;
   final VoidCallback onTap;
 
-  const _FeaturedPlanCard({
+  const _PlanTile({
+    required this.plan,
+    required this.label,
     required this.price,
+    required this.period,
     required this.selected,
+    required this.isCurrent,
     required this.onTap,
-    this.isCurrent = false,
+    this.saveText,
+    this.badge,
   });
 
   @override
   Widget build(BuildContext context) {
-    final badgeLabel = isCurrent ? 'Current' : 'Save 78%';
-    final badgeColor = isCurrent ? AppColors.textSecondary : AppColors.purple;
+    final hasBadge = badge != null;
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: isCurrent ? null : onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: _badgeHeight / 2),
-              padding: const EdgeInsets.fromLTRB(8, _badgeHeight / 2 + 14, 8, 18),
-              decoration: BoxDecoration(
-                color: isCurrent
-                    ? const Color(0xFFF2F2F7)
-                    : selected
-                        ? AppColors.purpleTint.withValues(alpha: 0.6)
-                        : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isCurrent
-                      ? const Color(0xFFDDD8E8)
-                      : selected
-                          ? AppColors.purple
-                          : const Color(0xFFDDD8E8),
-                  width: selected && !isCurrent ? 2 : 1.5,
-                ),
-                boxShadow: selected && !isCurrent
-                    ? [
-                        BoxShadow(
-                          color: AppColors.purple.withValues(alpha: 0.22),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'ANNUAL',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                      color: isCurrent
-                          ? AppColors.textSecondary
-                          : selected
-                              ? AppColors.purple
-                              : Colors.grey[400],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    price,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: isCurrent
-                          ? AppColors.textSecondary
-                          : selected
-                              ? AppColors.purple
-                              : AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'per year',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isCurrent
-                          ? AppColors.textSecondary.withValues(alpha: 0.7)
-                          : selected
-                              ? AppColors.purple.withValues(alpha: 0.7)
-                              : Colors.grey[400],
-                    ),
-                  ),
-                ],
-              ),
+    return GestureDetector(
+      onTap: isCurrent ? null : onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            margin: EdgeInsets.only(top: hasBadge ? _badgeH / 2 : 0),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              hasBadge ? _badgeH / 2 + 14 : 16,
+              16,
+              16,
             ),
+            decoration: BoxDecoration(
+              color: selected && !isCurrent
+                  ? AppColors.purple50
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isCurrent
+                    ? AppColors.hairline
+                    : selected
+                        ? AppColors.purple600
+                        : AppColors.hairline,
+                width: selected && !isCurrent ? 2 : 1.5,
+              ),
+              boxShadow: selected && !isCurrent
+                  ? [
+                      BoxShadow(
+                        color: AppColors.purple600.withValues(alpha: 0.15),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isCurrent ? '$label (Current)' : label,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: isCurrent
+                              ? AppColors.muted
+                              : AppColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            price,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: isCurrent
+                                  ? AppColors.muted
+                                  : selected
+                                      ? AppColors.purple600
+                                      : AppColors.ink,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '/ $period',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isCurrent
+                                  ? AppColors.muted2
+                                  : AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (saveText != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          saveText!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isCurrent
+                                ? AppColors.muted2
+                                : AppColors.purple600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _RadioIndicator(selected: selected, isCurrent: isCurrent),
+              ],
+            ),
+          ),
+          if (hasBadge)
             Container(
-              height: _badgeHeight,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              height: _badgeH,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: badgeColor,
+                gradient: const LinearGradient(
+                  colors: [AppColors.purple500, AppColors.purple700],
+                ),
                 borderRadius: BorderRadius.circular(20),
               ),
               alignment: Alignment.center,
               child: Text(
-                badgeLabel,
+                badge!,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.6,
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _SidePlanCard extends StatelessWidget {
-  final String label;
-  final String price;
-  final String perUnit;
+class _RadioIndicator extends StatelessWidget {
   final bool selected;
+  final bool isCurrent;
+
+  const _RadioIndicator({required this.selected, required this.isCurrent});
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCurrent) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.hairline, width: 2),
+        ),
+      );
+    }
+    if (selected) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(
+          color: AppColors.purple600,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check_rounded, color: Colors.white, size: 15),
+      );
+    }
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.muted2, width: 2),
+      ),
+    );
+  }
+}
+
+// ── Continue button ───────────────────────────────────────────────────────────
+
+class _ContinueButton extends StatelessWidget {
+  final bool enabled;
+  final bool isLoading;
   final bool isCurrent;
   final VoidCallback onTap;
 
-  const _SidePlanCard({
-    required this.label,
-    required this.price,
-    required this.perUnit,
-    required this.selected,
-    required this.onTap,
-    this.isCurrent = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: isCurrent ? null : onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isCurrent
-                ? const Color(0xFFF2F2F7)
-                : selected
-                    ? AppColors.purpleTint.withValues(alpha: 0.6)
-                    : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isCurrent
-                  ? const Color(0xFFDDD8E8)
-                  : selected
-                      ? AppColors.purple
-                      : const Color(0xFFDDD8E8),
-              width: selected && !isCurrent ? 2 : 1.5,
-            ),
-            boxShadow: selected && !isCurrent
-                ? [
-                    BoxShadow(
-                      color: AppColors.purple.withValues(alpha: 0.18),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isCurrent ? 'CURRENT' : label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: isCurrent
-                      ? AppColors.textSecondary
-                      : selected
-                          ? AppColors.purple
-                          : Colors.grey[400],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                price,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: isCurrent
-                      ? AppColors.textSecondary
-                      : selected
-                          ? AppColors.purple
-                          : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                perUnit,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isCurrent
-                      ? AppColors.textSecondary.withValues(alpha: 0.7)
-                      : selected
-                          ? AppColors.purple.withValues(alpha: 0.7)
-                          : Colors.grey[400],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Purchase button ───────────────────────────────────────────────────────────
-
-class _PurchaseButton extends StatelessWidget {
-  final String label;
-  final bool enabled;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  const _PurchaseButton({
-    required this.label,
+  const _ContinueButton({
     required this.enabled,
+    required this.isLoading,
+    required this.isCurrent,
     required this.onTap,
-    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final label = isCurrent ? 'Current Plan' : 'Continue';
+
     return GestureDetector(
       onTap: (enabled && !isLoading) ? onTap : null,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 52,
+        duration: const Duration(milliseconds: 160),
+        height: 54,
         decoration: BoxDecoration(
-          color: (enabled && !isLoading) ? AppColors.purple : AppColors.iconInactive,
-          borderRadius: BorderRadius.circular(14),
+          gradient: (enabled && !isLoading)
+              ? const LinearGradient(
+                  colors: [AppColors.purple500, AppColors.purple700],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: (enabled && !isLoading) ? null : AppColors.iconInactive,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: (enabled && !isLoading)
               ? [
                   BoxShadow(
-                    color: AppColors.purple.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: AppColors.purple600.withValues(alpha: 0.40),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
                   ),
                 ]
               : [],
         ),
         child: Center(
           child: isLoading
-              ? const CupertinoActivityIndicator(
-                  color: Colors.white,
-                  radius: 11,
-                )
+              ? const CupertinoActivityIndicator(color: Colors.white, radius: 11)
               : Text(
                   label,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: enabled ? Colors.white : AppColors.textSecondary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? Colors.white : AppColors.muted,
                     letterSpacing: 0.1,
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Features list ─────────────────────────────────────────────────────────────
+
+class _FeaturesList extends StatelessWidget {
+  const _FeaturesList();
+
+  static const _features = [
+    (
+      icon: CupertinoIcons.sparkles,
+      title: 'Unlimited AI generations',
+      subtitle: 'Build as many AI forms as you need, every day.',
+    ),
+    (
+      icon: CupertinoIcons.pencil_outline,
+      title: 'Unlimited manual form build',
+      subtitle: 'Create and edit forms without any restrictions.',
+    ),
+    (
+      icon: CupertinoIcons.arrow_clockwise,
+      title: 'Unlimited response refreshes',
+      subtitle: 'Sync responses as often as you like.',
+    ),
+    (
+      icon: CupertinoIcons.arrow_down_doc,
+      title: 'Export responses as CSV',
+      subtitle: 'Download your data anytime in spreadsheet format.',
+    ),
+    (
+      icon: CupertinoIcons.bell,
+      title: 'Push notifications',
+      subtitle: 'Get notified instantly when a new response arrives.',
+    ),
+    (
+      icon: CupertinoIcons.star,
+      title: 'All future premium features',
+      subtitle: 'Every new feature we ship — yours automatically.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.hairline, width: 1),
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < _features.length; i++) ...[
+            _FeatureRow(
+              icon: _features[i].icon,
+              title: _features[i].title,
+              subtitle: _features[i].subtitle,
+            ),
+            if (i < _features.length - 1)
+              const Divider(height: 1, thickness: 1, color: AppColors.hairline, indent: 56),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _FeatureRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.purple50,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 17, color: AppColors.purple600),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -708,34 +718,20 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Auto-renewal disclosure (Apple App Store guideline 3.1.2).
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            'Subscription auto-renews at the end of each period. '
-            'Cancel anytime in App Store settings at least 24 hours before the renewal date. '
-            'Payment is charged to your Apple ID account.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+        const Text(
+          'Payment will be charged to your Apple ID account. Subscription automatically renews unless auto-renewal is turned off at least 24 hours before the end of the current period.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.muted,
+            height: 1.5,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _FooterLink(label: 'Restore Purchases', onTap: onRestore),
-            const _FooterDot(),
-            _FooterLink(
-              label: 'Manage Subscription',
-              onTap: () => launchUrl(Uri.parse(_manageSubscriptionsUrl),
-                  mode: LaunchMode.externalApplication),
-            ),
-            const _FooterDot(),
             _FooterLink(
               label: 'Privacy Policy',
               onTap: () => _open(context, _privacyUrl, 'Privacy Policy'),
@@ -745,6 +741,8 @@ class _Footer extends StatelessWidget {
               label: 'Terms of Use',
               onTap: () => _open(context, _termsUrl, 'Terms of Use'),
             ),
+            const _FooterDot(),
+            _FooterLink(label: 'Restore Purchase', onTap: onRestore),
           ],
         ),
       ],
@@ -768,7 +766,7 @@ class _FooterLink extends StatelessWidget {
         label,
         style: const TextStyle(
           fontSize: 12,
-          color: AppColors.textSecondary,
+          color: AppColors.purple600,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -783,10 +781,7 @@ class _FooterDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 2),
-      child: Text(
-        '·',
-        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-      ),
+      child: Text('·', style: TextStyle(color: AppColors.muted, fontSize: 12)),
     );
   }
 }
