@@ -541,7 +541,7 @@ class _ContinueButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = isCurrent ? 'Current Plan' : 'Continue';
+    final label = isCurrent ? 'Current Plan' : 'Upgrade';
 
     return GestureDetector(
       onTap: (enabled && !isLoading) ? onTap : null,
