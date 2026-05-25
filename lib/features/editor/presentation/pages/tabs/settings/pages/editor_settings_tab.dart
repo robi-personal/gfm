@@ -331,7 +331,7 @@ class _ResponsesCard extends StatelessWidget {
                   isLoading: true,
                   onChanged: null,
                 ),
-                const SettingsSubHeader(label: 'NOTIFICATION'),
+                const SettingsSubHeader(label: 'PUSH NOTIFICATION'),
                 NotificationToggle(formId: formId, formTitle: formTitle),
               ]),
             ExtendedSettingsError(:final message) => Column(
@@ -396,7 +396,7 @@ class _ResponsesCard extends StatelessWidget {
             : (v) => _applyExtended(context, formId,
                 ExtendedFormSettings(limitOneResponsePerUser: v)),
       ),
-      const SettingsSubHeader(label: 'NOTIFICATION'),
+      const SettingsSubHeader(label: 'PUSH NOTIFICATION'),
       NotificationToggle(formId: formId, formTitle: formTitle),
     ]);
   }
