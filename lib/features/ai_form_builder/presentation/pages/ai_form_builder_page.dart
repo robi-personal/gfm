@@ -490,7 +490,7 @@ class _AiFormBuilderViewState extends State<_AiFormBuilderView> {
       },
       onSubmitText: isSubmitting ? null : (hint, isQuiz) => _submitText(cubit, hint, isQuiz),
       onUpgrade: () => _showPaywall(cubit),
-      onRefresh: () => cubit.loadStatus(),
+      onRefresh: () => cubit.refreshStatus(),
     );
   }
 }

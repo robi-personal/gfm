@@ -104,6 +104,29 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
     );
   }
 
+  /// Silent refresh — fetches `/user/status` without emitting a loading state,
+  /// so the UI stays interactive. Used by the inline refresh button.
+  Future<void> refreshStatus() async {
+    final result = await _getUserStatus(const NoParams());
+    if (isClosed) return;
+    result.fold(
+      (_) {},
+      (status) {
+        final s = state;
+        if (s is AiFormBuilderReady) {
+          emit(s.copyWith(status: status));
+        } else if (s is AiFormBuilderPreview) {
+          emit(AiFormBuilderPreview(
+            status: status,
+            form: s.form,
+            generationId: s.generationId,
+            quota: s.quota,
+          ));
+        }
+      },
+    );
+  }
+
   // ── Input selection ────────────────────────────────────────────────────────
 
   /// Updates the selected input type. Rotates the idempotency key per §2.3

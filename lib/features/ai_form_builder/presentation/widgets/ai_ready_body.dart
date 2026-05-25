@@ -342,7 +342,7 @@ class _AiReadyBodyState extends State<AiReadyBody> {
                   PremiumBanner(
                     generationsLeft: status.quotaBalance,
                     currentPlan: _toPlanType(status.subscriptionProductId),
-                    onRefresh: widget.onRefresh,
+                    onRefresh: () async => widget.onRefresh(),
                   )
                 else
                   AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade, onRefresh: widget.onRefresh),

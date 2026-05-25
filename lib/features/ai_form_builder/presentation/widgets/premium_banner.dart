@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +10,7 @@ enum PlanType { weekly, monthly, yearly }
 class PremiumBanner extends StatefulWidget {
   final int generationsLeft;
   final PlanType currentPlan;
-  final VoidCallback onRefresh;
+  final Future<void> Function() onRefresh;
 
   const PremiumBanner({
     super.key,
@@ -26,6 +27,7 @@ class _PremiumBannerState extends State<PremiumBanner>
     with TickerProviderStateMixin {
   late final AnimationController _sparkleController;
   late final AnimationController _shimmerController;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -45,6 +47,13 @@ class _PremiumBannerState extends State<PremiumBanner>
     _sparkleController.dispose();
     _shimmerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    await widget.onRefresh();
+    if (mounted) setState(() => _isRefreshing = false);
   }
 
   String get _planLabel => switch (widget.currentPlan) {
@@ -72,35 +81,39 @@ class _PremiumBannerState extends State<PremiumBanner>
             ),
           ),
           // Dot grid
-          Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+          Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _DotGridPainter()))),
           // Purple glow top-left
           Positioned(
             left: -30,
             top: -50,
-            child: _GlowCircle(radius: 180, color: const Color(0x388B5CF6)),
+            child: IgnorePointer(child: _GlowCircle(radius: 180, color: const Color(0x388B5CF6))),
           ),
           // Gold glow bottom-right
           Positioned(
             right: -40,
             bottom: -60,
-            child: _GlowCircle(radius: 200, color: const Color(0x30F5B428)),
+            child: IgnorePointer(child: _GlowCircle(radius: 200, color: const Color(0x30F5B428))),
           ),
           // Border shimmer — sweeps around the full perimeter
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _shimmerController,
-              builder: (context, _) => CustomPaint(
-                painter: _BorderShimmerPainter(_shimmerController.value),
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _shimmerController,
+                builder: (context, _) => CustomPaint(
+                  painter: _BorderShimmerPainter(_shimmerController.value),
+                ),
               ),
             ),
           ),
           // Sparkles
           Positioned.fill(
-            child: RepaintBoundary(
-              child: AnimatedBuilder(
-                animation: _sparkleController,
-                builder: (context, _) => CustomPaint(
-                  painter: _SparklePainter(_sparkleController.value),
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _sparkleController,
+                  builder: (context, _) => CustomPaint(
+                    painter: _SparklePainter(_sparkleController.value),
+                  ),
                 ),
               ),
             ),
@@ -117,7 +130,7 @@ class _PremiumBannerState extends State<PremiumBanner>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _PremiumBadge(),
-                    _RefreshButton(onPressed: widget.onRefresh),
+                    _RefreshButton(onPressed: _handleRefresh, isLoading: _isRefreshing),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -224,13 +237,14 @@ class _PremiumBadge extends StatelessWidget {
 
 class _RefreshButton extends StatelessWidget {
   final VoidCallback onPressed;
+  final bool isLoading;
 
-  const _RefreshButton({required this.onPressed});
+  const _RefreshButton({required this.onPressed, required this.isLoading});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onPressed,
+      onTap: isLoading ? null : onPressed,
       child: Container(
         width: 34,
         height: 34,
@@ -242,7 +256,9 @@ class _RefreshButton extends StatelessWidget {
             width: 0.5,
           ),
         ),
-        child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 17),
+        child: isLoading
+            ? const CupertinoActivityIndicator(color: Colors.white, radius: 8)
+            : const Icon(Icons.refresh_rounded, color: Colors.white, size: 17),
       ),
     );
   }
