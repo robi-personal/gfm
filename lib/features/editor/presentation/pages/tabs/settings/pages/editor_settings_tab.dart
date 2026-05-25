@@ -200,19 +200,13 @@ class _SettingsContentState extends State<_SettingsContent> {
                 ),
                 _ResponsesCard(
                   formId: widget.formId,
+                  formTitle: context.read<QuestionsCubit>().state is QuestionsLoaded
+                      ? (context.read<QuestionsCubit>().state as QuestionsLoaded).form.info.title
+                      : '',
                   emailType: (settingsState as SettingsLoaded).settings.emailCollectionType,
                   isSavingBase: isSaving,
                   onEmailTypeChange: _onEmailTypeChange,
                 ),
-                const SizedBox(height: 12),
-                SettingsCard(children: [
-                  NotificationToggle(
-                    formId: widget.formId,
-                    formTitle: context.read<QuestionsCubit>().state is QuestionsLoaded
-                        ? (context.read<QuestionsCubit>().state as QuestionsLoaded).form.info.title
-                        : '',
-                  ),
-                ]),
                 const SizedBox(height: 28),
 
                 // ── Presentation ────────────────────────────────────────────
@@ -300,12 +294,14 @@ Widget _errorCard(BuildContext context, String formId, String message) =>
 /// Forms web settings layout.
 class _ResponsesCard extends StatelessWidget {
   final String formId;
+  final String formTitle;
   final EmailCollectionType emailType;
   final bool isSavingBase;
   final ValueChanged<EmailCollectionType> onEmailTypeChange;
 
   const _ResponsesCard({
     required this.formId,
+    required this.formTitle,
     required this.emailType,
     required this.isSavingBase,
     required this.onEmailTypeChange,
@@ -332,10 +328,10 @@ class _ResponsesCard extends StatelessWidget {
                   label: 'Limit to 1 response',
                   subtitle: 'Respondents will be required to sign in to Google',
                   value: false,
-                  isLast: true,
                   isLoading: true,
                   onChanged: null,
                 ),
+                NotificationToggle(formId: formId, formTitle: formTitle),
               ]),
             ExtendedSettingsError(:final message) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,12 +390,12 @@ class _ResponsesCard extends StatelessWidget {
         label: 'Limit to 1 response',
         subtitle: 'Respondents will be required to sign in to Google',
         value: s.limitOneResponsePerUser ?? false,
-        isLast: true,
         onChanged: saving
             ? null
             : (v) => _applyExtended(context, formId,
                 ExtendedFormSettings(limitOneResponsePerUser: v)),
       ),
+      NotificationToggle(formId: formId, formTitle: formTitle),
     ]);
   }
 }
