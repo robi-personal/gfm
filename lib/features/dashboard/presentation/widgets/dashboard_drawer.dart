@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
@@ -13,7 +12,6 @@ import '../../../ai_form_builder/presentation/widgets/ai_quota_counter.dart';
 import '../../../ai_form_builder/presentation/widgets/premium_banner.dart';
 
 const _kAppStoreId = '6479591930';
-const _kAppStoreUrl = 'https://apps.apple.com/app/id$_kAppStoreId';
 const _kAppStoreReviewUrl =
     'itms-apps://itunes.apple.com/app/id$_kAppStoreId?action=write-review';
 
@@ -198,19 +196,6 @@ class _DrawerContent extends StatelessWidget {
         _DrawerSection(
           label: 'SUPPORT US',
           items: [
-            _DrawerItem(
-              icon: CupertinoIcons.share,
-              title: 'Share on the App Store',
-              onTap: () {
-                Navigator.of(context).pop();
-                SharePlus.instance.share(
-                  ShareParams(
-                    text:
-                        'Check out GFM — the best Google Forms companion app! $_kAppStoreUrl',
-                  ),
-                );
-              },
-            ),
             _DrawerItem(
               icon: CupertinoIcons.hand_thumbsup,
               title: 'Rate the app',
