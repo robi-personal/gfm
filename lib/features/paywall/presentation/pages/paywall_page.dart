@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -326,7 +328,7 @@ class _SectionLabel extends StatelessWidget {
 
 const _badgeH = 24.0;
 
-class _PlanTile extends StatelessWidget {
+class _PlanTile extends StatefulWidget {
   final _Plan plan;
   final String label;
   final String price;
@@ -350,11 +352,33 @@ class _PlanTile extends StatelessWidget {
   });
 
   @override
+  State<_PlanTile> createState() => _PlanTileState();
+}
+
+class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixin {
+  late final AnimationController _sparkleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _sparkleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _sparkleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasBadge = badge != null;
+    final hasBadge = widget.badge != null;
 
     return GestureDetector(
-      onTap: isCurrent ? null : onTap,
+      onTap: widget.isCurrent ? null : widget.onTap,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
@@ -369,19 +393,19 @@ class _PlanTile extends StatelessWidget {
               16,
             ),
             decoration: BoxDecoration(
-              color: selected && !isCurrent
+              color: widget.selected && !widget.isCurrent
                   ? AppColors.purple50
                   : Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isCurrent
+                color: widget.isCurrent
                     ? AppColors.hairline
-                    : selected
+                    : widget.selected
                         ? AppColors.purple600
                         : AppColors.hairline,
-                width: selected && !isCurrent ? 2 : 1.5,
+                width: widget.selected && !widget.isCurrent ? 2 : 1.5,
               ),
-              boxShadow: selected && !isCurrent
+              boxShadow: widget.selected && !widget.isCurrent
                   ? [
                       BoxShadow(
                         color: AppColors.purple600.withValues(alpha: 0.15),
@@ -398,13 +422,11 @@ class _PlanTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isCurrent ? '$label (Current)' : label,
+                        widget.isCurrent ? '${widget.label} (Current)' : widget.label,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: isCurrent
-                              ? AppColors.muted
-                              : AppColors.ink,
+                          color: widget.isCurrent ? AppColors.muted : AppColors.ink,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -413,39 +435,35 @@ class _PlanTile extends StatelessWidget {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            price,
+                            widget.price,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
-                              color: isCurrent
+                              color: widget.isCurrent
                                   ? AppColors.muted
-                                  : selected
+                                  : widget.selected
                                       ? AppColors.purple600
                                       : AppColors.ink,
                             ),
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '/ $period',
+                            '/ ${widget.period}',
                             style: TextStyle(
                               fontSize: 13,
-                              color: isCurrent
-                                  ? AppColors.muted2
-                                  : AppColors.muted,
+                              color: widget.isCurrent ? AppColors.muted2 : AppColors.muted,
                             ),
                           ),
                         ],
                       ),
-                      if (saveText != null) ...[
+                      if (widget.saveText != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          saveText!,
+                          widget.saveText!,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: isCurrent
-                                ? AppColors.muted2
-                                : AppColors.purple600,
+                            color: widget.isCurrent ? AppColors.muted2 : AppColors.purple600,
                           ),
                         ),
                       ],
@@ -453,30 +471,45 @@ class _PlanTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _RadioIndicator(selected: selected, isCurrent: isCurrent),
+                _RadioIndicator(selected: widget.selected, isCurrent: widget.isCurrent),
               ],
             ),
           ),
           if (hasBadge)
-            Container(
-              height: _badgeH,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.purple500, AppColors.purple700],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
+            Stack(
               alignment: Alignment.center,
-              child: Text(
-                badge!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
+              children: [
+                // Sparkles behind the badge
+                RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _sparkleController,
+                    builder: (context, _) => CustomPaint(
+                      size: const Size(160, _badgeH + 16),
+                      painter: _BadgeSparklePainter(_sparkleController.value),
+                    ),
+                  ),
                 ),
-              ),
+                Container(
+                  height: _badgeH,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.purple500, AppColors.purple700],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    widget.badge!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
@@ -522,6 +555,55 @@ class _RadioIndicator extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Badge sparkle painter ─────────────────────────────────────────────────────
+
+class _BadgeSparklePainter extends CustomPainter {
+  final double t;
+  _BadgeSparklePainter(this.t);
+
+  // (xFraction, yFraction, size, phaseOffset)
+  static const _sparkles = [
+    (0.05, 0.25, 3.5, 0.0),
+    (0.95, 0.25, 3.5, 0.3),
+    (0.12, 0.85, 2.5, 0.6),
+    (0.88, 0.85, 2.5, 0.15),
+    (0.50, 0.05, 2.0, 0.45),
+  ];
+
+  void _drawStar(Canvas canvas, Offset center, double size, double opacity) {
+    if (opacity <= 0) return;
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: opacity)
+      ..style = PaintingStyle.fill;
+    final path = Path();
+    for (int i = 0; i < 4; i++) {
+      final outerAngle = i * math.pi / 2;
+      final innerAngle = outerAngle + math.pi / 4;
+      final outer = Offset(center.dx + math.cos(outerAngle) * size,
+          center.dy + math.sin(outerAngle) * size);
+      final inner = Offset(center.dx + math.cos(innerAngle) * size * 0.35,
+          center.dy + math.sin(innerAngle) * size * 0.35);
+      i == 0 ? path.moveTo(outer.dx, outer.dy) : path.lineTo(outer.dx, outer.dy);
+      path.lineTo(inner.dx, inner.dy);
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final s in _sparkles) {
+      final (xF, yF, sz, phase) = s;
+      final pulse = (math.sin(((t + phase) % 1.0) * math.pi * 2) + 1) / 2;
+      final opacity = 0.3 + pulse * 0.7;
+      _drawStar(canvas, Offset(xF * size.width, yF * size.height), sz, opacity);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BadgeSparklePainter old) => old.t != t;
 }
 
 // ── Continue button ───────────────────────────────────────────────────────────
