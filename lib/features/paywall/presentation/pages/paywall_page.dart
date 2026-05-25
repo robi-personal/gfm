@@ -177,9 +177,9 @@ class _PaywallViewState extends State<_PaywallView> {
                               ],
                             ),
                             child: const Icon(
-                              CupertinoIcons.star,
+                              Icons.workspace_premium_rounded,
                               color: Colors.white,
-                              size: 32,
+                              size: 36,
                             ),
                           ),
                         ),
