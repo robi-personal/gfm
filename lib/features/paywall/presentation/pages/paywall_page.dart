@@ -621,16 +621,16 @@ class _ContinueButton extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         height: 54,
         decoration: BoxDecoration(
-          gradient: (enabled && !isLoading)
+          gradient: (enabled || isLoading)
               ? const LinearGradient(
                   colors: [AppColors.purple500, AppColors.purple700],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 )
               : null,
-          color: (enabled && !isLoading) ? null : AppColors.iconInactive,
+          color: (enabled || isLoading) ? null : AppColors.iconInactive,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: (enabled && !isLoading)
+          boxShadow: (enabled || isLoading)
               ? [
                   BoxShadow(
                     color: AppColors.purple600.withValues(alpha: 0.40),
