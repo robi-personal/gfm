@@ -77,7 +77,7 @@ class _DrawerContent extends StatelessWidget {
               _DrawerHeader(topPad: topPad),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.paddingOf(context).bottom),
                   children: [_buildSections(context)],
                 ),
               ),
@@ -127,7 +127,7 @@ class _DrawerContent extends StatelessWidget {
             header,
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.paddingOf(context).bottom),
                 children: [_buildSections(context)],
               ),
             ),
