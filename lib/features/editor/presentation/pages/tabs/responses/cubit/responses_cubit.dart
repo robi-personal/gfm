@@ -18,4 +18,13 @@ class ResponsesCubit extends Cubit<ResponsesState> {
       (responses) => emit(ResponsesLoaded(responses)),
     );
   }
+
+  /// Refreshes without emitting a loading state — used for silent background refreshes.
+  Future<void> refreshResponses(String formId) async {
+    final result = await _getResponses(formId);
+    result.fold(
+      (_) {},
+      (responses) => emit(ResponsesLoaded(responses)),
+    );
+  }
 }
