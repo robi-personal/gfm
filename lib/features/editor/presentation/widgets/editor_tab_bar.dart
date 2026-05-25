@@ -69,11 +69,10 @@ class _EditorSegmentedTabBarState extends State<EditorSegmentedTabBar> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IntrinsicWidth(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
@@ -115,6 +114,7 @@ class _EditorSegmentedTabBarState extends State<EditorSegmentedTabBar> {
                               const SizedBox(height: 4),
                               Container(
                                 height: isSelected ? 2.5 : 0,
+                                width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(2),
@@ -122,7 +122,6 @@ class _EditorSegmentedTabBarState extends State<EditorSegmentedTabBar> {
                               ),
                             ],
                           ),
-                        ),
                       ],
                     ),
                   ),
