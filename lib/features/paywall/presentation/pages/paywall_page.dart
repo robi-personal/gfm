@@ -160,29 +160,9 @@ class _PaywallViewState extends State<_PaywallView> {
 
                         // Header icon
                         Center(
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.purple500, AppColors.purple700],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.purple600.withValues(alpha: 0.35),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Image.asset(
-                              'assets/premium_banner.png',
-                              width: 44,
-                              height: 44,
-                            ),
+                          child: Image.asset(
+                            'assets/premium_banner.png',
+                            height: 150,
                           ),
                         ),
                         const SizedBox(height: 16),
