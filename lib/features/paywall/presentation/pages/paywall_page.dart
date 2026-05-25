@@ -158,15 +158,6 @@ class _PaywallViewState extends State<_PaywallView> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Header icon
-                        Center(
-                          child: Image.asset(
-                            'assets/premium_banner.png',
-                            height: 150,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
                         // Title
                         const Text(
                           'Go Premium',
@@ -178,13 +169,13 @@ class _PaywallViewState extends State<_PaywallView> {
                             letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Unlock everything. Cancel anytime.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.muted,
+                        const SizedBox(height: 12),
+
+                        // Header image
+                        Center(
+                          child: Image.asset(
+                            'assets/premium_banner.png',
+                            height: 150,
                           ),
                         ),
                         const SizedBox(height: 28),
