@@ -93,6 +93,8 @@ dependencies:
   # In-app purchases
   purchases_flutter: ^10.1.0
   purchases_ui_flutter: ^10.1.0
+  in_app_review: ^2.0.12
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

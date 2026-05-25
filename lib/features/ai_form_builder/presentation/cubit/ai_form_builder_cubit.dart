@@ -7,6 +7,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/services/rating_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../paywall/data/services/purchase_activation_service.dart';
 import '../../data/services/user_status_service.dart';
@@ -30,6 +31,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
   final GenerateForm _generateForm;
   final CreateFormFromAi _createFormFromAi;
   final PurchaseActivationService _activation;
+  final RatingService _ratingService;
 
   final StreamController<AiFormBuilderEvent> _eventsController =
       StreamController<AiFormBuilderEvent>.broadcast();
@@ -59,11 +61,13 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
     required GenerateForm generateForm,
     required CreateFormFromAi createFormFromAi,
     required PurchaseActivationService activation,
+    required RatingService ratingService,
   })  : _getUserStatus = getUserStatus,
         _statusService = statusService,
         _generateForm = generateForm,
         _createFormFromAi = createFormFromAi,
         _activation = activation,
+        _ratingService = ratingService,
         _idempotencyKey = _generateIdempotencyKey(),
         super(const AiFormBuilderStatusLoading()) {
     loadStatus();
@@ -276,7 +280,10 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
           AiErrorModalConfig(kind: _failureToErrorKind(failure)),
         ));
       },
-      (formId) => emit(AiFormBuilderEditorHandoff(formId: formId, formTitle: form.title)),
+      (formId) {
+        unawaited(_ratingService.recordAction());
+        emit(AiFormBuilderEditorHandoff(formId: formId, formTitle: form.title));
+      },
     );
   }
 

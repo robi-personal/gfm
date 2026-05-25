@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:bloc/bloc.dart';
@@ -5,6 +6,7 @@ import 'package:googleapis/forms/v1.dart' as forms_api;
 
 import '../../../../../../../core/error/failure.dart';
 import '../../../../../../../core/services/analytics_service.dart';
+import '../../../../../../../core/services/rating_service.dart';
 import '../../../../../../../core/models/form_doc.dart';
 import '../../../../../../../core/models/form_settings.dart';
 import '../../../../../../../core/models/item.dart';
@@ -20,14 +22,17 @@ class QuestionsCubit extends Cubit<QuestionsState> {
   final LoadForm _loadForm;
   final ExecuteBatch _executeBatch;
   final RefreshRevision _refreshRevision;
+  final RatingService _ratingService;
 
   QuestionsCubit({
     required LoadForm loadForm,
     required ExecuteBatch executeBatch,
     required RefreshRevision refreshRevision,
+    required RatingService ratingService,
   })  : _loadForm = loadForm,
         _executeBatch = executeBatch,
         _refreshRevision = refreshRevision,
+        _ratingService = ratingService,
         super(const QuestionsLoading());
 
   String _revisionId = '';
@@ -412,6 +417,7 @@ class QuestionsCubit extends Cubit<QuestionsState> {
       // 7. Final sync — replaces FormDoc with clean server state
       await _silentRefresh(formId);
       AnalyticsService.logFormSaved();
+      unawaited(_ratingService.recordAction());
     } catch (e, st) {
       dev.log('[QuestionsCubit] save() failed: $e',
           name: 'API', error: e, stackTrace: st);

@@ -29,7 +29,7 @@ void main() async {
     return true;
   };
 
-  configureDependencies();
+  await configureDependencies();
 
   // Initialise FCM + local notifications listeners in the background; permission
   // is requested at sign-in time, so blocking startup here is unnecessary.

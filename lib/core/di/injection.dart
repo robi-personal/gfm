@@ -1,4 +1,7 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/rating_service.dart';
 
 import '../api/apps_script_client.dart';
 import '../api/drive_client.dart';
@@ -54,7 +57,9 @@ import '../../features/notifications/data/services/notification_service.dart';
 
 final getIt = GetIt.instance;
 
-void configureDependencies() {
+Future<void> configureDependencies() async {
+  final prefs = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton<RatingService>(() => RatingService(prefs));
   // ── Infrastructure ────────────────────────────────────────────────────────
   getIt.registerLazySingleton<GoogleAuthDataSource>(
     GoogleAuthDataSource.new,
@@ -196,6 +201,7 @@ void configureDependencies() {
       loadForm: getIt(),
       executeBatch: getIt(),
       refreshRevision: getIt(),
+      ratingService: getIt(),
     ),
   );
 
@@ -239,6 +245,7 @@ void configureDependencies() {
       generateForm: getIt<GenerateForm>(),
       createFormFromAi: getIt<CreateFormFromAi>(),
       activation: getIt<PurchaseActivationService>(),
+      ratingService: getIt<RatingService>(),
     ),
   );
 
