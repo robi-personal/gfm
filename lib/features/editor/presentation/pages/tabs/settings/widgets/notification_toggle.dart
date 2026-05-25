@@ -1,14 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:googleapis/forms/v1.dart' show CloudPubsubTopic, CreateWatchRequest, Watch, WatchTarget;
 
 import '../../../../../../../core/api/forms_client.dart';
+import '../../../../../../../core/design.dart';
 import '../../../../../../../core/di/injection.dart';
-import '../../../../../../../core/theme/app_colors.dart';
-import '../../../../../../../core/theme/app_text_styles.dart';
-import '../../../../../../../core/usecases/usecase.dart';
 import '../../../../../../../core/widgets/error_modal.dart';
-import '../../../../../../ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../../../../../ai_form_builder/data/services/user_status_service.dart';
 import '../../../../../../notifications/data/datasources/notifications_api.dart';
 import '../../../../../../notifications/data/services/notification_service.dart';
 import '../../../../../../paywall/presentation/pages/paywall_page.dart';
@@ -33,26 +31,27 @@ class _NotificationToggleState extends State<NotificationToggle> {
 
   static const String _topicResource = 'projects/form-manager-493310/topics/forms-responses';
 
-  /// Process-wide cache keyed by formId. Without a cache, forms.watches.list
-  /// would re-fire whenever this widget is torn down and rebuilt (e.g. after a
-  /// settings save). Updated after each enable/disable to stay accurate.
   static final Map<String, ({bool isEnabled, String? watchId})> _cache = {};
+
+  bool get _isPremium => getIt<UserStatusService>().status?.isPremium ?? false;
 
   @override
   void initState() {
     super.initState();
-    final cached = _cache[widget.formId];
-    if (cached != null) {
-      _loading = false;
-      _isEnabled = cached.isEnabled;
-      _watchId = cached.watchId;
+    if (_isPremium) {
+      final cached = _cache[widget.formId];
+      if (cached != null) {
+        _loading = false;
+        _isEnabled = cached.isEnabled;
+        _watchId = cached.watchId;
+      } else {
+        _loadInitial();
+      }
     } else {
-      _loadInitial();
+      _loading = false;
     }
   }
 
-  /// Derives toggle state from forms.watches.list — Google is the source of
-  /// truth, so this stays accurate even across reinstalls.
   Future<void> _loadInitial() async {
     final pushAvailable = await getIt<NotificationService>().isPushAvailable();
     if (!mounted) return;
@@ -101,15 +100,6 @@ class _NotificationToggleState extends State<NotificationToggle> {
     );
     if (confirmed != true || !mounted) return;
 
-    // Premium gate — uses server as source of truth.
-    final statusResult = await getIt<GetUserStatus>().call(const NoParams());
-    if (!mounted) return;
-    final isPremium = statusResult.fold((_) => false, (s) => s.isPremium);
-    if (!isPremium) {
-      await PaywallPage.show(context);
-      return;
-    }
-
     setState(() => _isWorking = true);
     try {
       if (value) {
@@ -132,7 +122,6 @@ class _NotificationToggleState extends State<NotificationToggle> {
   }
 
   Future<void> _enable() async {
-    // Registers device with FCM first — idempotent if already registered.
     await getIt<NotificationService>().registerForUser();
 
     final client = getIt<FormsClient>();
@@ -188,6 +177,8 @@ class _NotificationToggleState extends State<NotificationToggle> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isPremium) return _lockedRow();
+
     final busy = _loading || _isWorking;
     final subtitle = _pushUnavailable
         ? 'Push notifications are not available on this device'
@@ -210,7 +201,7 @@ class _NotificationToggleState extends State<NotificationToggle> {
             ),
             if (busy)
               const SizedBox(
-                width: 51, // matches CupertinoSwitch width to prevent layout shift
+                width: 51,
                 child: Center(
                   child: CupertinoActivityIndicator(radius: 10, color: AppColors.purple),
                 ),
@@ -222,6 +213,65 @@ class _NotificationToggleState extends State<NotificationToggle> {
                 onChanged: _pushUnavailable ? null : _onToggle,
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lockedRow() {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => PaywallPage.show(context),
+      child: Opacity(
+        opacity: 0.6,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('New responses', style: AppTextStyles.body.copyWith(fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Get a push notification when this form receives a new response',
+                      style: AppTextStyles.meta,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.purple600.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.purple600.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/dashboard_premium.svg',
+                      width: 11,
+                      height: 11,
+                      colorFilter: const ColorFilter.mode(AppColors.purple600, BlendMode.srcIn),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Premium',
+                      style: TextStyle(
+                        color: AppColors.purple600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
