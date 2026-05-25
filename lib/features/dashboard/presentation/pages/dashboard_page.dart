@@ -8,9 +8,9 @@ import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import '../../../../core/auth/google_auth_datasource.dart';
 import '../../../../core/design.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/layout.dart';
 import '../../../../core/widgets/error_modal.dart';
+import '../../../ai_form_builder/data/services/user_status_service.dart';
 import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
 import '../../../ai_form_builder/presentation/pages/ai_form_builder_page.dart';
 import '../../../editor/presentation/pages/editor_page.dart';
@@ -51,15 +51,16 @@ class _DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<_DashboardView> {
-  late Future<bool> _isPremiumFuture;
   StreamSubscription<Map<String, String>>? _notificationTapSub;
   final _fabKey = GlobalKey<ExpandableFabState>();
   late final PurchaseActivationService _activation;
+  late final UserStatusService _statusService;
 
   @override
   void initState() {
     super.initState();
-    _isPremiumFuture = _fetchIsPremium();
+    _statusService = getIt<UserStatusService>();
+    _statusService.refresh();
     _activation = getIt<PurchaseActivationService>();
     _activation.isActivating.addListener(_onActivationChanged);
     _notificationTapSub = getIt<NotificationService>()
@@ -70,9 +71,8 @@ class _DashboardViewState extends State<_DashboardView> {
       // Reconcile RC-side premium status with the backend on every dashboard
       // mount. Catches the cold-start case where the user is already premium
       // (existing subscriber re-signing in) but the backend doesn't know yet.
-      // After sync attempt, refresh the premium future so the crown hides.
       final reconciled = await _activation.reconcileIfClientPremium();
-      if (mounted && reconciled) _refreshPremium();
+      if (mounted && reconciled) _statusService.refresh();
     });
   }
 
@@ -83,21 +83,10 @@ class _DashboardViewState extends State<_DashboardView> {
     super.dispose();
   }
 
-  /// When background retries finish (isActivating goes false), refresh the
-  /// premium future so the appbar crown drops without waiting for the user
-  /// to navigate away and back. Covers the case where syncOnce failed and a
-  /// later retry — or the webhook — landed past pollUntilPremium's 24 s cap.
   void _onActivationChanged() {
     if (!mounted) return;
-    if (!_activation.isActivating.value) _refreshPremium();
+    if (!_activation.isActivating.value) _statusService.refresh();
   }
-
-  Future<bool> _fetchIsPremium() => getIt<GetUserStatus>()
-      .call(const NoParams())
-      .then((r) => r.fold((_) => false, (s) => s.isPremium));
-
-  void _refreshPremium() =>
-      setState(() => _isPremiumFuture = _fetchIsPremium());
 
   Future<void> _showPaywall() async {
     await PaywallPage.show(context);
@@ -105,7 +94,7 @@ class _DashboardViewState extends State<_DashboardView> {
     await pollUntilPremium(
       useCase: getIt<GetUserStatus>(),
       onPremiumConfirmed: () async {
-        if (mounted) _refreshPremium();
+        if (mounted) _statusService.refresh();
       },
     );
   }
@@ -147,7 +136,7 @@ class _DashboardViewState extends State<_DashboardView> {
       if (isPremium) {
         final ok = await getIt<PurchaseActivationService>().syncOnce();
         if (!ok) getIt<PurchaseActivationService>().startBackgroundRetries();
-        _refreshPremium();
+        _statusService.refresh();
         await ErrorModal.show(
           context,
           title: 'Purchases restored',
@@ -321,7 +310,6 @@ class _DashboardViewState extends State<_DashboardView> {
 
         final header = DashboardHeader(
           isTablet: tablet,
-          isPremiumFuture: _isPremiumFuture,
           onShowPaywall: _showPaywall,
         );
 

@@ -3,17 +3,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../../core/design.dart';
+import '../../../../../core/di/injection.dart';
+import '../../../ai_form_builder/data/services/user_status_service.dart';
 import '../cubit/dashboard_cubit.dart';
 
 class DashboardHeader extends StatefulWidget implements PreferredSizeWidget {
   final bool isTablet;
-  final Future<bool> isPremiumFuture;
   final VoidCallback onShowPaywall;
 
   const DashboardHeader({
     super.key,
     required this.isTablet,
-    required this.isPremiumFuture,
     required this.onShowPaywall,
   });
 
@@ -125,10 +125,11 @@ class _DashboardHeaderState extends State<DashboardHeader> {
       ),
       actions: [
         _SearchButton(onTap: _openSearch),
-        FutureBuilder<bool>(
-          future: widget.isPremiumFuture,
-          builder: (context, snap) {
-            if (snap.data != false) return const SizedBox.shrink();
+        ListenableBuilder(
+          listenable: getIt<UserStatusService>(),
+          builder: (context, _) {
+            final isPremium = getIt<UserStatusService>().status?.isPremium;
+            if (isPremium != false) return const SizedBox.shrink();
             return GestureDetector(
               onTap: widget.onShowPaywall,
               child: Padding(

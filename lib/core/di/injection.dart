@@ -43,6 +43,7 @@ import '../../features/editor/presentation/pages/tabs/responses/cubit/responses_
 import '../../features/sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../features/ai_form_builder/data/datasources/ai_form_datasource.dart';
 import '../../features/ai_form_builder/data/repositories/ai_form_repository_impl.dart';
+import '../../features/ai_form_builder/data/services/user_status_service.dart';
 import '../../features/ai_form_builder/domain/repositories/ai_form_repository.dart';
 import '../../features/ai_form_builder/domain/usecases/create_form_from_ai.dart';
 import '../../features/ai_form_builder/domain/usecases/generate_form.dart';
@@ -222,6 +223,9 @@ void configureDependencies() {
     () => GetUserStatus(getIt<AiFormRepository>()),
   );
   getIt.registerLazySingleton(
+    () => UserStatusService(getIt<GetUserStatus>()),
+  );
+  getIt.registerLazySingleton(
     () => GenerateForm(getIt<AiFormRepository>()),
   );
   getIt.registerLazySingleton(
@@ -231,6 +235,7 @@ void configureDependencies() {
   getIt.registerFactory(
     () => AiFormBuilderCubit(
       getUserStatus: getIt<GetUserStatus>(),
+      statusService: getIt<UserStatusService>(),
       generateForm: getIt<GenerateForm>(),
       createFormFromAi: getIt<CreateFormFromAi>(),
       activation: getIt<PurchaseActivationService>(),

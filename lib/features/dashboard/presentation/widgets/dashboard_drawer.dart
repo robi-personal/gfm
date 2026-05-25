@@ -6,11 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
 import '../../../../../core/di/injection.dart';
-import '../../../../../core/usecases/usecase.dart';
 import '../../../../../core/widgets/simple_web_view_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
-import '../../../ai_form_builder/domain/entities/user_status.dart';
-import '../../../ai_form_builder/domain/usecases/get_user_status.dart';
+import '../../../ai_form_builder/data/services/user_status_service.dart';
 import '../../../ai_form_builder/presentation/widgets/premium_banner.dart';
 
 const _kAppStoreId = '6479591930';
@@ -48,7 +46,7 @@ class DashboardDrawer extends StatelessWidget {
   }
 }
 
-class _DrawerContent extends StatefulWidget {
+class _DrawerContent extends StatelessWidget {
   final VoidCallback onAiBuilder;
   final VoidCallback onCreateForm;
   final VoidCallback onImportForm;
@@ -64,89 +62,66 @@ class _DrawerContent extends StatefulWidget {
   });
 
   @override
-  State<_DrawerContent> createState() => _DrawerContentState();
-}
-
-class _DrawerContentState extends State<_DrawerContent> {
-  static UserStatus? _cache;
-  UserStatus? _status;
-
-  @override
-  void initState() {
-    super.initState();
-    _status = _cache;
-    if (_cache == null) _refreshInBackground();
-  }
-
-  Future<UserStatus?> _fetch() => getIt<GetUserStatus>()
-      .call(const NoParams())
-      .then((r) => r.fold((_) => null, (s) => s));
-
-  Future<void> _refreshInBackground() async {
-    final fresh = await _fetch();
-    if (!mounted) return;
-    _cache = fresh;
-    setState(() => _status = fresh);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top + 20.0;
-    final status = _status;
-    final isPremium = status != null && status.isPremium;
+    final service = getIt<UserStatusService>();
 
-    if (isPremium) {
-      final signInState = context.read<SignInCubit>().state;
-      final String? displayName;
-      final String? email;
-      final String? photoUrl;
-      if (signInState is Authenticated) {
-        displayName = signInState.user.displayName;
-        email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
-        photoUrl = signInState.user.photoUrl;
-      } else {
-        displayName = null;
-        email = null;
-        photoUrl = null;
-      }
+    return ListenableBuilder(
+      listenable: service,
+      builder: (context, _) {
+        final status = service.status;
+        final isPremium = status != null && status.isPremium;
 
-      return Column(
-        children: [
-          PremiumBanner(
-            generationsLeft: status.quotaBalance,
-            currentPlan: _toPlanType(status.subscriptionProductId),
-            showAnimations: false,
-            showFooter: false,
-            topPadding: topPad,
-            userName: displayName,
-            userEmail: email,
-            userPhotoUrl: photoUrl,
-            onRefresh: () => _refreshInBackground(),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              children: [
-                _buildSections(context),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+        if (isPremium) {
+          final signInState = context.read<SignInCubit>().state;
+          final String? displayName;
+          final String? email;
+          final String? photoUrl;
+          if (signInState is Authenticated) {
+            displayName = signInState.user.displayName;
+            email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
+            photoUrl = signInState.user.photoUrl;
+          } else {
+            displayName = null;
+            email = null;
+            photoUrl = null;
+          }
 
-    return Column(
-      children: [
-        _DrawerHeader(topPad: topPad),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          return Column(
             children: [
-              _buildSections(context),
+              PremiumBanner(
+                generationsLeft: status.quotaBalance,
+                currentPlan: _toPlanType(status.subscriptionProductId),
+                showAnimations: false,
+                showFooter: false,
+                topPadding: topPad,
+                userName: displayName,
+                userEmail: email,
+                userPhotoUrl: photoUrl,
+                onRefresh: () => service.refresh(),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  children: [_buildSections(context)],
+                ),
+              ),
             ],
-          ),
-        ),
-      ],
+          );
+        }
+
+        return Column(
+          children: [
+            _DrawerHeader(topPad: topPad),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                children: [_buildSections(context)],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -160,17 +135,17 @@ class _DrawerContentState extends State<_DrawerContent> {
             _DrawerItem(
               icon: Icons.auto_awesome_rounded,
               title: 'AI Form Builder',
-              onTap: () { Navigator.of(context).pop(); widget.onAiBuilder(); },
+              onTap: () { Navigator.of(context).pop(); onAiBuilder(); },
             ),
             _DrawerItem(
               icon: CupertinoIcons.pencil,
               title: 'Create Form',
-              onTap: () { Navigator.of(context).pop(); widget.onCreateForm(); },
+              onTap: () { Navigator.of(context).pop(); onCreateForm(); },
             ),
             _DrawerItem(
               icon: CupertinoIcons.arrow_down_circle,
               title: 'Import Form',
-              onTap: () { Navigator.of(context).pop(); widget.onImportForm(); },
+              onTap: () { Navigator.of(context).pop(); onImportForm(); },
             ),
           ],
         ),
@@ -181,12 +156,12 @@ class _DrawerContentState extends State<_DrawerContent> {
             _DrawerItem(
               icon: CupertinoIcons.star_fill,
               title: 'Upgrade Plan',
-              onTap: () { Navigator.of(context).pop(); widget.onShowPaywall(); },
+              onTap: () { Navigator.of(context).pop(); onShowPaywall(); },
             ),
             _DrawerItem(
               icon: CupertinoIcons.arrow_clockwise,
               title: 'Restore Purchases',
-              onTap: () { Navigator.of(context).pop(); widget.onRestorePurchases(); },
+              onTap: () { Navigator.of(context).pop(); onRestorePurchases(); },
             ),
           ],
         ),

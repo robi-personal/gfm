@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../paywall/data/services/purchase_activation_service.dart';
+import '../../data/services/user_status_service.dart';
 import '../../domain/entities/generated_form.dart';
 import '../../domain/entities/quota_snapshot.dart';
 import '../../domain/entities/user_status.dart';
@@ -25,6 +26,7 @@ part 'ai_form_builder_state.dart';
 /// transient side-effect events on [events] (§2.4).
 class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
   final GetUserStatus _getUserStatus;
+  final UserStatusService _statusService;
   final GenerateForm _generateForm;
   final CreateFormFromAi _createFormFromAi;
   final PurchaseActivationService _activation;
@@ -53,10 +55,12 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
 
   AiFormBuilderCubit({
     required GetUserStatus getUserStatus,
+    required UserStatusService statusService,
     required GenerateForm generateForm,
     required CreateFormFromAi createFormFromAi,
     required PurchaseActivationService activation,
   })  : _getUserStatus = getUserStatus,
+        _statusService = statusService,
         _generateForm = generateForm,
         _createFormFromAi = createFormFromAi,
         _activation = activation,
@@ -67,14 +71,24 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
-  /// Fetches `/user/status`. Called on construction and after a paywall
-  /// dismissal. On failure, emits an error event but stays in
-  /// [AiFormBuilderStatusLoading] — the UI's modal-dismissal pops the screen.
-  ///
-  /// Pre-flight: if the first fetch returns `isPremium=false` but the RC SDK
-  /// on this device thinks the user is premium, a missed/lagging webhook is
-  /// the likely cause. Trigger one reconcile and refetch once.
-  Future<void> loadStatus() async {
+  /// Loads `/user/status`. On construction and after errors, serves from the
+  /// shared [UserStatusService] cache when available — no API call. Set
+  /// [forceRefresh] to true after a paywall dismissal where stale cache would
+  /// show the wrong plan.
+  Future<void> loadStatus({bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      final cached = _statusService.status;
+      if (cached != null) {
+        if (state is AiFormBuilderStatusLoading) {
+          emit(AiFormBuilderReady(
+            status: cached,
+            idempotencyKey: _idempotencyKey,
+          ));
+        }
+        return;
+      }
+    }
+
     if (state is! AiFormBuilderStatusLoading) {
       emit(const AiFormBuilderStatusLoading());
     }
@@ -97,34 +111,34 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
           AiErrorModalConfig(kind: _failureToErrorKind(failure)),
         ),
       ),
-      (status) => emit(AiFormBuilderReady(
-        status: status,
-        idempotencyKey: _idempotencyKey,
-      )),
+      (status) {
+        _statusService.store(status);
+        emit(AiFormBuilderReady(
+          status: status,
+          idempotencyKey: _idempotencyKey,
+        ));
+      },
     );
   }
 
-  /// Silent refresh — fetches `/user/status` without emitting a loading state,
-  /// so the UI stays interactive. Used by the inline refresh button.
+  /// Silent refresh — delegates to [UserStatusService] so the cache is updated
+  /// and all listeners (drawer, header) react automatically.
   Future<void> refreshStatus() async {
-    final result = await _getUserStatus(const NoParams());
+    await _statusService.refresh();
     if (isClosed) return;
-    result.fold(
-      (_) {},
-      (status) {
-        final s = state;
-        if (s is AiFormBuilderReady) {
-          emit(s.copyWith(status: status));
-        } else if (s is AiFormBuilderPreview) {
-          emit(AiFormBuilderPreview(
-            status: status,
-            form: s.form,
-            generationId: s.generationId,
-            quota: s.quota,
-          ));
-        }
-      },
-    );
+    final status = _statusService.status;
+    if (status == null) return;
+    final s = state;
+    if (s is AiFormBuilderReady) {
+      emit(s.copyWith(status: status));
+    } else if (s is AiFormBuilderPreview) {
+      emit(AiFormBuilderPreview(
+        status: status,
+        form: s.form,
+        generationId: s.generationId,
+        quota: s.quota,
+      ));
+    }
   }
 
   // ── Input selection ────────────────────────────────────────────────────────
@@ -282,7 +296,7 @@ class AiFormBuilderCubit extends Cubit<AiFormBuilderState> {
     _rotateKey();
     _lastSubmittedBodyJson = null;
     _lastRequestBody = null;
-    await loadStatus();
+    await loadStatus(forceRefresh: true);
   }
 
   // ── Failure handling ───────────────────────────────────────────────────────
