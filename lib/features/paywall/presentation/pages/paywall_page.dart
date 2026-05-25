@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -355,24 +353,7 @@ class _PlanTile extends StatefulWidget {
   State<_PlanTile> createState() => _PlanTileState();
 }
 
-class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixin {
-  late final AnimationController _sparkleController;
-
-  @override
-  void initState() {
-    super.initState();
-    _sparkleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _sparkleController.dispose();
-    super.dispose();
-  }
-
+class _PlanTileState extends State<_PlanTile> {
   @override
   Widget build(BuildContext context) {
     final hasBadge = widget.badge != null;
@@ -476,21 +457,22 @@ class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixi
             ),
           ),
           if (hasBadge)
-            Stack(
+            Container(
+              height: _badgeH,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.purple500, AppColors.purple700],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
               alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  height: _badgeH,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.purple500, AppColors.purple700],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 5,
+                children: [
+                  const Icon(Icons.auto_awesome, color: Color(0xFFF5C842), size: 10),
+                  Text(
                     widget.badge!,
                     style: const TextStyle(
                       color: Colors.white,
@@ -499,21 +481,9 @@ class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixi
                       letterSpacing: 0.6,
                     ),
                   ),
-                ),
-                // Sparkles on top, positioned outside badge edges
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: RepaintBoundary(
-                      child: AnimatedBuilder(
-                        animation: _sparkleController,
-                        builder: (context, _) => CustomPaint(
-                          painter: _BadgeSparklePainter(_sparkleController.value),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                  const Icon(Icons.auto_awesome, color: Color(0xFFF5C842), size: 10),
+                ],
+              ),
             ),
         ],
       ),
@@ -559,55 +529,6 @@ class _RadioIndicator extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Badge sparkle painter ─────────────────────────────────────────────────────
-
-class _BadgeSparklePainter extends CustomPainter {
-  final double t;
-  _BadgeSparklePainter(this.t);
-
-  // (xFraction, yFraction, size, phaseOffset)
-  static const _sparkles = [
-    (-0.12, 0.5,  4.0, 0.0),
-    (1.12,  0.5,  4.0, 0.3),
-    (0.15,  -0.6, 3.0, 0.6),
-    (0.85,  -0.6, 3.0, 0.15),
-    (0.50,  -0.8, 2.5, 0.45),
-  ];
-
-  void _drawStar(Canvas canvas, Offset center, double size, double opacity) {
-    if (opacity <= 0) return;
-    final paint = Paint()
-      ..color = const Color(0xFFF5C842).withValues(alpha: opacity)
-      ..style = PaintingStyle.fill;
-    final path = Path();
-    for (int i = 0; i < 4; i++) {
-      final outerAngle = i * math.pi / 2;
-      final innerAngle = outerAngle + math.pi / 4;
-      final outer = Offset(center.dx + math.cos(outerAngle) * size,
-          center.dy + math.sin(outerAngle) * size);
-      final inner = Offset(center.dx + math.cos(innerAngle) * size * 0.35,
-          center.dy + math.sin(innerAngle) * size * 0.35);
-      i == 0 ? path.moveTo(outer.dx, outer.dy) : path.lineTo(outer.dx, outer.dy);
-      path.lineTo(inner.dx, inner.dy);
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final s in _sparkles) {
-      final (xF, yF, sz, phase) = s;
-      final pulse = (math.sin(((t + phase) % 1.0) * math.pi * 2) + 1) / 2;
-      final opacity = 0.3 + pulse * 0.7;
-      _drawStar(canvas, Offset(xF * size.width, yF * size.height), sz, opacity);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BadgeSparklePainter old) => old.t != t;
 }
 
 // ── Continue button ───────────────────────────────────────────────────────────
