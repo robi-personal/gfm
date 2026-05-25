@@ -106,6 +106,7 @@ class _DrawerContent extends StatelessWidget {
                 generationsLeft: status.quotaBalance,
                 currentPlan: _toPlanType(status.subscriptionProductId),
                 showAnimations: true,
+                showBorderShimmer: false,
                 showFooter: false,
                 topPadding: topPad,
                 userName: displayName,

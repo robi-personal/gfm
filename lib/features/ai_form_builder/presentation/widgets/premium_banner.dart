@@ -13,6 +13,7 @@ class PremiumBanner extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final bool showFooter;
   final bool showAnimations;
+  final bool showBorderShimmer;
   final String? userName;
   final String? userEmail;
   final String? userPhotoUrl;
@@ -25,6 +26,7 @@ class PremiumBanner extends StatefulWidget {
     required this.onRefresh,
     this.showFooter = true,
     this.showAnimations = true,
+    this.showBorderShimmer = true,
     this.userName,
     this.userEmail,
     this.userPhotoUrl,
@@ -108,16 +110,17 @@ class _PremiumBannerState extends State<PremiumBanner>
           ),
           if (widget.showAnimations) ...[
             // Border shimmer — sweeps around the full perimeter
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _shimmerController,
-                  builder: (context, _) => CustomPaint(
-                    painter: _BorderShimmerPainter(_shimmerController.value),
+            if (widget.showBorderShimmer)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _shimmerController,
+                    builder: (context, _) => CustomPaint(
+                      painter: _BorderShimmerPainter(_shimmerController.value),
+                    ),
                   ),
                 ),
               ),
-            ),
             // Sparkles
             Positioned.fill(
               child: IgnorePointer(
