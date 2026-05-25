@@ -122,8 +122,8 @@ class _PaywallViewState extends State<_PaywallView> {
         final isLoading    = state is SubscriptionLoading || state is SubscriptionInitial;
 
         final weeklyPrice  = offering?.weekly?.storeProduct.priceString  ?? '\$3.99';
-        final monthlyPrice = offering?.monthly?.storeProduct.priceString ?? '\$9.99';
-        final annualPrice  = offering?.annual?.storeProduct.priceString  ?? '\$59.99';
+        final monthlyPrice = offering?.monthly?.storeProduct.priceString ?? '\$4.99';
+        final annualPrice  = offering?.annual?.storeProduct.priceString  ?? '\$44.99';
 
         return Stack(
           children: [
@@ -228,7 +228,7 @@ class _PaywallViewState extends State<_PaywallView> {
                           label: 'Monthly',
                           price: monthlyPrice,
                           period: 'month',
-                          saveText: 'Save 37% vs weekly',
+                          saveText: 'Save 71% vs weekly',
                           badge: 'MOST POPULAR',
                           selected: _selected == _Plan.monthly,
                           isCurrent: currentPlan == _Plan.monthly,
@@ -240,7 +240,7 @@ class _PaywallViewState extends State<_PaywallView> {
                           label: 'Yearly',
                           price: annualPrice,
                           period: 'year',
-                          saveText: 'Best value · Save 50%',
+                          saveText: 'Best value · Save 25% vs monthly',
                           selected: _selected == _Plan.annual,
                           isCurrent: currentPlan == _Plan.annual,
                           onTap: () => setState(() => _selected = _Plan.annual),
