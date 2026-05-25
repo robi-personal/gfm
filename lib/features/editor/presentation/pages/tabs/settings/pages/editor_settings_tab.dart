@@ -204,14 +204,7 @@ class _SettingsContentState extends State<_SettingsContent> {
                   isSavingBase: isSaving,
                   onEmailTypeChange: _onEmailTypeChange,
                 ),
-                const SizedBox(height: 28),
-
-                // ── Presentation ────────────────────────────────────────────
-                _PresentationGroup(formId: widget.formId),
-                const SizedBox(height: 28),
-
-                // ── Notifications ───────────────────────────────────────────
-                const SettingsGroupLabel(label: 'NOTIFICATIONS'),
+                const SizedBox(height: 12),
                 SettingsCard(children: [
                   NotificationToggle(
                     formId: widget.formId,
@@ -220,6 +213,10 @@ class _SettingsContentState extends State<_SettingsContent> {
                         : '',
                   ),
                 ]),
+                const SizedBox(height: 28),
+
+                // ── Presentation ────────────────────────────────────────────
+                _PresentationGroup(formId: widget.formId),
                 const SizedBox(height: 28),
 
                 // ── Data ────────────────────────────────────────────────────
