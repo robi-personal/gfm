@@ -595,6 +595,11 @@ class _FeaturesList extends StatelessWidget {
 
   static const _staticFeatures = [
     (
+      icon: CupertinoIcons.timer,
+      title: 'Quota never expires',
+      subtitle: 'Your AI generations roll over — they never disappear.',
+    ),
+    (
       icon: CupertinoIcons.pencil_outline,
       title: 'Unlimited manual form build',
       subtitle: 'Create and edit forms without any restrictions.',
