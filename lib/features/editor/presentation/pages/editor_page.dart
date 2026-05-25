@@ -69,7 +69,7 @@ class _EditorView extends StatefulWidget {
 }
 
 class _EditorViewState extends State<_EditorView>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final TabController _tabController;
   StreamSubscription<Map<String, String>>? _foregroundSub;
   StreamSubscription<Map<String, String>>? _tapSub;
@@ -85,6 +85,7 @@ class _EditorViewState extends State<_EditorView>
     );
     _tabController.addListener(_onTabChanged);
     _subscribeToNotifications();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   void _subscribeToNotifications() {
@@ -108,7 +109,15 @@ class _EditorViewState extends State<_EditorView>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<ResponsesCubit>().refreshResponses(widget.formId);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _foregroundSub?.cancel();
     _tapSub?.cancel();
     _tabController.dispose();
