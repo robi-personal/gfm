@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/di/injection.dart';
@@ -176,10 +177,14 @@ class _PaywallViewState extends State<_PaywallView> {
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.workspace_premium_rounded,
-                              color: Colors.white,
-                              size: 36,
+                            child: SvgPicture.asset(
+                              'assets/dashboard_premium.svg',
+                              width: 34,
+                              height: 34,
+                              colorFilter: const ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
