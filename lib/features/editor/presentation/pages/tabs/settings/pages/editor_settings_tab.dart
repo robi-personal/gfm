@@ -396,6 +396,7 @@ class _ResponsesCard extends StatelessWidget {
             : (v) => _applyExtended(context, formId,
                 ExtendedFormSettings(limitOneResponsePerUser: v)),
       ),
+      const SettingsSubHeader(label: 'NOTIFICATION'),
       NotificationToggle(formId: formId, formTitle: formTitle),
     ]);
   }
