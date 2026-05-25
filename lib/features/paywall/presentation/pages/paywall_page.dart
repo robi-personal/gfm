@@ -274,7 +274,7 @@ class _PaywallViewState extends State<_PaywallView> {
                         // What's included
                         const _SectionLabel(text: "WHAT'S INCLUDED"),
                         const SizedBox(height: 12),
-                        const _FeaturesList(),
+                        _FeaturesList(plan: _selected),
                         const SizedBox(height: 24),
 
                         // Footer
@@ -589,14 +589,11 @@ class _ContinueButton extends StatelessWidget {
 // ── Features list ─────────────────────────────────────────────────────────────
 
 class _FeaturesList extends StatelessWidget {
-  const _FeaturesList();
+  final _Plan plan;
 
-  static const _features = [
-    (
-      icon: CupertinoIcons.sparkles,
-      title: 'Unlimited AI generations',
-      subtitle: 'Build as many AI forms as you need, every day.',
-    ),
+  const _FeaturesList({required this.plan});
+
+  static const _staticFeatures = [
     (
       icon: CupertinoIcons.pencil_outline,
       title: 'Unlimited manual form build',
@@ -624,8 +621,23 @@ class _FeaturesList extends StatelessWidget {
     ),
   ];
 
+  String get _aiTitle => switch (plan) {
+    _Plan.weekly  => '15 AI generations / week',
+    _Plan.monthly => '50 AI generations / month',
+    _Plan.annual  => '600 AI generations / year',
+  };
+
   @override
   Widget build(BuildContext context) {
+    final rows = [
+      (
+        icon: CupertinoIcons.sparkles,
+        title: _aiTitle,
+        subtitle: 'Generate complete forms instantly with AI.',
+      ),
+      ..._staticFeatures,
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -634,13 +646,13 @@ class _FeaturesList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (int i = 0; i < _features.length; i++) ...[
+          for (int i = 0; i < rows.length; i++) ...[
             _FeatureRow(
-              icon: _features[i].icon,
-              title: _features[i].title,
-              subtitle: _features[i].subtitle,
+              icon: rows[i].icon,
+              title: rows[i].title,
+              subtitle: rows[i].subtitle,
             ),
-            if (i < _features.length - 1)
+            if (i < rows.length - 1)
               const Divider(height: 1, thickness: 1, color: AppColors.hairline, indent: 56),
           ],
         ],
