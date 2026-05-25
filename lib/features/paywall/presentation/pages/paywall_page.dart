@@ -456,7 +456,7 @@ class _PlanTileState extends State<_PlanTile> {
               ],
             ),
           ),
-          if (hasBadge)
+          if (hasBadge) ...[
             Container(
               height: _badgeH,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -485,6 +485,28 @@ class _PlanTileState extends State<_PlanTile> {
                 ],
               ),
             ),
+            // Sparkles around the badge
+            Positioned(
+              top: -6,
+              left: 20,
+              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.9), size: 9),
+            ),
+            Positioned(
+              top: -4,
+              right: 22,
+              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.7), size: 7),
+            ),
+            Positioned(
+              top: 2,
+              left: 6,
+              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.6), size: 6),
+            ),
+            Positioned(
+              top: 2,
+              right: 8,
+              child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.8), size: 8),
+            ),
+          ],
         ],
       ),
     );
