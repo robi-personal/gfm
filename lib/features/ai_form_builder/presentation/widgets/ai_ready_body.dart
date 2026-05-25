@@ -345,7 +345,7 @@ class _AiReadyBodyState extends State<AiReadyBody> {
                     onRefresh: () async => widget.onRefresh(),
                   )
                 else
-                  AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade, onRefresh: widget.onRefresh),
+                  AiQuotaCounter(status: status, onUpgradeTap: widget.onUpgrade),
                 const SizedBox(height: 12),
 
                 if (status.gracePeriodUntil != null) ...[
