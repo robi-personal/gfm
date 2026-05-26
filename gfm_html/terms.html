@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Terms and Conditions — GFM</title>
-  <meta name="description" content="Terms and Conditions for GFM — Google Forms Manager." />
-  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <meta name="description" content="Terms and Conditions for GFM." />
+  <link rel="icon" href="./app_logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -18,7 +18,7 @@
   <div class="nav-inner">
     <div class="nav-bar">
       <a href="./index.html" class="nav-logo">
-        <img src="./app_logo.svg" alt="GFM logo" />
+        <img src="./app_logo.png" alt="GFM logo" />
         <span>GFM</span>
       </a>
       <nav>
@@ -67,7 +67,7 @@
     <div class="legal-body">
 
       <p class="legal-intro">
-        By accessing or using <strong>GFM — Google Forms Manager</strong> ("GFM", "the app") at
+        By accessing or using <strong>GFM</strong> ("GFM", "the app") at
         <a href="https://gfm.alphaiit.com">gfm.alphaiit.com</a>,
         you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree,
         you must not use the app. These Terms work alongside our
@@ -254,7 +254,7 @@
     <div class="footer-grid">
       <div>
         <div class="footer-logo">
-          <img src="./app_logo.svg" alt="GFM logo" /><span>GFM</span>
+          <img src="./app_logo.png" alt="GFM logo" /><span>GFM</span>
         </div>
         <p class="footer-tagline">Your forms. Your data. Your phone.</p>
         <p class="footer-sub">A privacy-first Google Forms companion for educators and teams.</p>
@@ -278,16 +278,31 @@
     </div>
     <div class="footer-bottom">
       <p>&copy; 2026 GFM. All rights reserved.</p>
-      <div class="fp-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
+      <div class="footer-privacy-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>Privacy-first by design</span>
       </div>
-      <a href="./privacy.html">Privacy Policy</a>
     </div>
   </div>
 </footer>
 
+<script>
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 16); }, { passive: true });
+const hamburger = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobile-menu');
+const hamOpen = document.getElementById('ham-open');
+const hamClose = document.getElementById('ham-close');
+hamburger.addEventListener('click', () => {
+  const open = mobileMenu.classList.toggle('open');
+  hamOpen.style.display = open ? 'none' : 'block';
+  hamClose.style.display = open ? 'block' : 'none';
+});
+mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  mobileMenu.classList.remove('open');
+  hamOpen.style.display = 'block';
+  hamClose.style.display = 'none';
+}));
+</script>
 </body>
 </html>
