@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../notifications/data/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/layout.dart';
@@ -71,8 +68,6 @@ class _EditorView extends StatefulWidget {
 class _EditorViewState extends State<_EditorView>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final TabController _tabController;
-  StreamSubscription<Map<String, String>>? _foregroundSub;
-  StreamSubscription<Map<String, String>>? _tapSub;
 
   @override
   void initState() {
@@ -84,23 +79,7 @@ class _EditorViewState extends State<_EditorView>
       initialIndex: widget.initialTabIndex.clamp(0, 2),
     );
     _tabController.addListener(_onTabChanged);
-    _subscribeToNotifications();
     WidgetsBinding.instance.addObserver(this);
-  }
-
-  void _subscribeToNotifications() {
-    final svc = getIt<NotificationService>();
-    _foregroundSub = svc.onForegroundMessage.listen(_onNotificationData);
-    _tapSub = svc.onNotificationTap.listen(_onNotificationData);
-  }
-
-  void _onNotificationData(Map<String, String> data) {
-    debugPrint('[editor] notification data: $data | formId: ${widget.formId}');
-    if (!mounted) return;
-    if (data['formId'] == widget.formId) {
-      debugPrint('[editor] triggering silent response refresh');
-      context.read<ResponsesCubit>().refreshResponses(widget.formId);
-    }
   }
 
   void _onTabChanged() {
@@ -113,7 +92,6 @@ class _EditorViewState extends State<_EditorView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('[editor] lifecycle: $state');
     if (state == AppLifecycleState.resumed) {
       context.read<ResponsesCubit>().refreshResponses(widget.formId);
     }
@@ -122,8 +100,6 @@ class _EditorViewState extends State<_EditorView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _foregroundSub?.cancel();
-    _tapSub?.cancel();
     _tabController.dispose();
     super.dispose();
   }

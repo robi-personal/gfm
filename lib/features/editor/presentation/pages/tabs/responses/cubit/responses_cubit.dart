@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../domain/usecases/get_responses.dart';
@@ -22,14 +21,10 @@ class ResponsesCubit extends Cubit<ResponsesState> {
 
   /// Refreshes without emitting a loading state — used for silent background refreshes.
   Future<void> refreshResponses(String formId) async {
-    debugPrint('[responses] silent refresh for $formId');
     final result = await _getResponses(formId);
     result.fold(
-      (failure) => debugPrint('[responses] refresh failed: ${failure.message}'),
-      (responses) {
-        debugPrint('[responses] refresh success: ${responses.length} responses');
-        emit(ResponsesLoaded(responses));
-      },
+      (_) {},
+      (responses) => emit(ResponsesLoaded(responses)),
     );
   }
 }

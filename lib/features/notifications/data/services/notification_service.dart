@@ -25,12 +25,6 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _openedSub;
   bool _registering = false;
 
-  final StreamController<Map<String, String>> _onForegroundController =
-      StreamController<Map<String, String>>.broadcast();
-
-  /// Fires for every FCM message received while the app is in the foreground.
-  Stream<Map<String, String>> get onForegroundMessage =>
-      _onForegroundController.stream;
 
   /// Fires when the user taps a notification and the app opens.
   /// The data map contains formId/watchId/eventType.
@@ -101,12 +95,7 @@ class NotificationService {
       debugPrint('[notifications] setForegroundNotificationPresentationOptions failed: $e');
     }
 
-    _msgSub = FirebaseMessaging.onMessage.listen((msg) {
-      debugPrint('[notifications] foreground message: ${msg.data}');
-      _showLocalForForeground(msg);
-      final data = _mapFromData(msg.data);
-      if (data.isNotEmpty) _onForegroundController.add(data);
-    });
+    _msgSub = FirebaseMessaging.onMessage.listen(_showLocalForForeground);
     _openedSub = FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       final data = _mapFromData(msg.data);
       if (data.isNotEmpty) _onTapController.add(data);
@@ -272,6 +261,5 @@ class NotificationService {
     await _msgSub?.cancel();
     await _openedSub?.cancel();
     await _onTapController.close();
-    await _onForegroundController.close();
   }
 }
