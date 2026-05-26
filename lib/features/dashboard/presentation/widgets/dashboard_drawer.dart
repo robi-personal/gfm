@@ -217,7 +217,7 @@ class _DrawerContent extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => const SimpleWebViewPage(
                       title: 'Privacy Policy',
-                      url: 'https://gformmanager.netlify.app/privacy',
+                      url: 'https://gfm.alphaiit.com/privacy.html',
                     ),
                   ),
                 );
@@ -232,7 +232,7 @@ class _DrawerContent extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => const SimpleWebViewPage(
                       title: 'Terms of Use',
-                      url: 'https://gformmanager.netlify.app/terms',
+                      url: 'https://gfm.alphaiit.com/terms.html',
                     ),
                   ),
                 );
