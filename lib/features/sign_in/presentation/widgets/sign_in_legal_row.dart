@@ -13,7 +13,7 @@ class SignInLegalRow extends StatelessWidget {
       children: [
         _LegalLink(
           label: 'Privacy Policy',
-          url: 'https://gformmanager.netlify.app/privacy',
+          url: 'https://gfm.alphaiit.com/privacy.html',
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8),
@@ -28,7 +28,7 @@ class SignInLegalRow extends StatelessWidget {
         ),
         _LegalLink(
           label: 'Terms of Use',
-          url: 'https://gformmanager.netlify.app/terms',
+          url: 'https://gfm.alphaiit.com/terms.html',
         ),
       ],
     );
