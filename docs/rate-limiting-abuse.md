@@ -1,9 +1,10 @@
 # Rate Limiting, Abuse Defense & Kill Switches
 
-**Status:** Draft (Task 6 of Phase 2)
-**Owner:** Backend (Node + Express on Hostinger VPS)
+**Owner:** Backend (`gfm_mw` — Node + Express on Hostinger VPS)
 **Depends on:** `docs/api-contract.md` (§3 endpoints, §6 error codes), `docs/ai-prompt-spec.md` (§5 pipeline)
 **Source of truth:** This document. Specific numbers (rate limits, timeouts, USD caps) are tunable — version-bump this doc when changing.
+
+Implementation files: `gfm_mw/src/presentation/middleware/rate-limit.middleware.ts`, `kill-switch.middleware.ts`, `denylist*.middleware`, `youtube-minutes.middleware.ts`, `gfm_mw/src/infrastructure/url-fetcher/url-fetcher.ts`.
 
 ---
 
@@ -106,7 +107,7 @@ All limits are **enforced** unless noted. Numbers are MVP defaults — tune via 
 
 #### Why these numbers
 
-- **`/ai/generate` global 300/hour.** Each request can trigger up to 2 Gemini calls (initial + 1 repair, see ai-prompt-spec.md §5). 300 × 2 = 600 Gemini/hour, which is below the Gemini 2.0 Flash free-tier 15 RPM × 60 = 900/hour ceiling. Safety factor 1.5×.
+- **`/ai/generate` global 300/hour.** Each request can trigger up to 2 AI provider calls (initial + 1 repair, see ai-prompt-spec.md §5). 300 × 2 = 600 calls/hour, comfortably below `gemini-2.5-flash-lite`'s rate limits at the paid tier.
 - **Per-IP 30/hour.** Tolerates a small office / coffee-shop NAT (3–10 simultaneous users at typical pace). Stricter than per-user × 3 because honest users don't share IPs that aggressively.
 - **Per-user 10/hour, 50/day.** The 10/hour is the grind-attack defense (see §9). The 50/day acts as a slow-burn cap that exceeds even a maxed-out premium user (50/month) so it only trips on abuse.
 - **`/user/status` 60/minute.** UI polls this on the AI Form Builder screen; a worst-case stuck-in-loop client gets bounded but never visibly throttled.
@@ -411,7 +412,7 @@ Already capped at **5 URLs** by the api-contract.md (`urls` minItems 1, maxItems
 
 After fetching, HTML is stripped to text (`@mozilla/readability` or `unfluff` + `sanitize-html`), then truncated to **~2500 tokens per URL** (≈10kB chars). Concatenated as the markered blocks shown in ai-prompt-spec.md §7.4.
 
-Raw bytes are **never** persisted (per Tasks.md Task 2 acceptance: "raw uploads are never persisted").
+Raw bytes are **never** persisted (required invariant: "raw uploads are never persisted").
 
 ---
 
@@ -436,7 +437,7 @@ Two layers: per-user (defends one compromised account) and global (defends our w
 
 ### 8.1 Per-user 24h spend
 
-**Trigger.** Sum of `(input_tokens × $0.075/M) + (output_tokens × $0.30/M)` from `ai_generations` rows where `user_id = $u AND created_at > now() - interval '24 hours'` exceeds the cap, **including failed rows** (per Tasks.md acceptance).
+**Trigger.** Sum of `(input_tokens × $0.075/M) + (output_tokens × $0.30/M)` from `ai_generations` rows where `user_id = $u AND created_at > now() - interval '24 hours'` exceeds the cap, **including failed rows** (required invariant).
 
 **Cap.** `MAX_USER_DAILY_GEMINI_USD` env var, default **$0.50/user/24h**.
 
@@ -444,11 +445,11 @@ A maxed-out premium user (50 generations × ~1300 tokens each ≈ $0.014/day) si
 
 **Action when tripped.** 503 `daily_budget_exceeded` for that user only. Log at `warn` with `user_id`, 24h spend, generation count.
 
-**Computation cost.** One indexed query per `/ai/generate` (not per Gemini call). Index `ai_generations(user_id, created_at)` per Tasks.md Task 2 acceptance — verify it exists.
+**Computation cost.** One indexed query per `/ai/generate` (not per Gemini call). Index `ai_generations(user_id, created_at)` required invariant — verify it exists.
 
 ### 8.2 Global daily Gemini spend
 
-**Trigger.** Sum of all token-derived USD from `ai_generations` where `created_at > date_trunc('day', now() AT TIME ZONE 'UTC')` exceeds `MAX_DAILY_GEMINI_SPEND_USD` (default **$10**, per Tasks.md).
+**Trigger.** Sum of all token-derived USD from `ai_generations` where `created_at > date_trunc('day', now() AT TIME ZONE 'UTC')` exceeds `MAX_DAILY_GEMINI_SPEND_USD` (default **$10**).
 
 **Cap behavior.** When tripped, all subsequent `/ai/generate` requests return 503 `daily_budget_exceeded`. Resets at UTC midnight (next-day window starts fresh on the read).
 
@@ -474,18 +475,18 @@ async function getGlobalDailySpendUsd(): Promise<number> {
 
 ### 8.3 Pricing constants
 
-Hardcoded for Gemini 2.0 Flash paid tier. **Move to env when we add a second model.**
+Hardcoded for `gemini-2.5-flash-lite`. **Move to env when we add a second model that needs a different price.**
 
 ```ts
-const GEMINI_INPUT_USD_PER_TOKEN  = 0.075 / 1_000_000;
-const GEMINI_OUTPUT_USD_PER_TOKEN = 0.300 / 1_000_000;
+const GEMINI_INPUT_USD_PER_TOKEN  = 0.10 / 1_000_000;
+const GEMINI_OUTPUT_USD_PER_TOKEN = 0.40 / 1_000_000;
 ```
 
-On the free tier (1500 req/day, 15 RPM), spend is $0 — these constants over-account, which is **safe** (kill switch trips earlier than reality). When migrating to paid, no change needed.
+These constants live in `gfm_mw/src/infrastructure/db/repositories/pg-ai-generation.repository.ts`. If we revise pricing, update both there and here.
 
-### 8.4 What about partial Gemini calls?
+### 8.4 What about partial AI calls?
 
-Gemini bills for what it generates, even on errors. The `ai_generations` row records `input_tokens` and `output_tokens` from the Gemini response on **every** code path (success, gemini_error, validation_error). Failures **don't burn user quota** but **do count** toward circuit breakers — exactly the asymmetry Tasks.md "Quota Burn Semantics" calls for.
+The AI provider bills for what it generates, even on errors. The `ai_generations` row records `input_tokens` and `output_tokens` from the provider response on **every** code path (success, gemini_error, validation_error). Failures **don't burn user quota** but **do count** toward circuit breakers — by design.
 
 ---
 
@@ -628,7 +629,7 @@ The Google ID token requirement on `/ai/generate` is the moat:
 - Browser fingerprinting — fragile, privacy-hostile, low signal vs. cost.
 - IP reputation lookups — defer; Hostinger-default + Nginx-default handle the obvious cases.
 
-**Where we revisit:** if logs (Task 7) show a sustained pattern of denylisted users / circuit-breaker trips from the same IP block, add Cloudflare in front and turn on Bot Fight Mode.
+**Where we revisit:** if logs (observability.md) show a sustained pattern of denylisted users / circuit-breaker trips from the same IP block, add Cloudflare in front and turn on Bot Fight Mode.
 
 ---
 
@@ -678,7 +679,7 @@ The order in step 7 is deliberately cheapest-to-most-expensive: denylist is a `S
 
 ## 13. Observability hooks
 
-Task 7 owns the metric/log spec. Hooks this doc requires Task 7 to surface:
+observability.md owns the metric/log spec. Hooks this doc requires observability.md to surface:
 
 | Signal | Source | Why |
 |---|---|---|
@@ -690,7 +691,7 @@ Task 7 owns the metric/log spec. Hooks this doc requires Task 7 to surface:
 | `gemini.spend_usd_today` gauge | budget cache | Operations dashboard |
 | `health.degraded{dep}` event | /health computation | Alerting |
 
-Suggested alert thresholds (Task 7 to refine):
+Suggested alert thresholds (observability.md to refine):
 
 - `ssrf.blocked > 5/hour` → page on-call (someone's poking).
 - `rate_limit.exceeded{scope=per-user-hourly} > 20/hour from same user` → cross-reference with `cost_breaker.tripped{scope=per-user}`; consider denylist.
@@ -705,9 +706,9 @@ Suggested alert thresholds (Task 7 to refine):
 |---|---|
 | Exact Redis sizing (single instance OK?) | Implementation; revisit after first real load test |
 | WAF / Cloudflare in front of Nginx | Defer; revisit after first 30 days of prod traffic |
-| Per-route circuit breakers (Gemini specifically going down vs cost) | Task 7 (alert thresholds) |
+| Per-route circuit breakers (Gemini specifically going down vs cost) | observability.md (alert thresholds) |
 | Auto-denylist heuristics | Manual for MVP; automation only after we have ≥30 days of denylist actions to learn from |
-| RC webhook signing key rotation | Task 5 (RevenueCat webhook map) |
+| RC webhook signing key rotation | revenuecat-webhook-map.md |
 
 ---
 

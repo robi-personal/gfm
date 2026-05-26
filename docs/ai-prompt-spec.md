@@ -1,15 +1,16 @@
-# AI Prompt Spec — Gemini → Google Forms JSON
+# AI Prompt Spec — AI Provider → Google Forms JSON
 
-**Status:** Draft (Task 3 of Phase 2)
-**Owner:** Backend (Node + Express on Hostinger VPS)
-**Depends on:** `docs/api-contract.md` (§3 Question schema, §4.1 input variants, §6 error codes)
-**Source of truth:** This document. The system prompt, JSON Schema, and validation pipeline below are the implementation contract. Anything in `Tasks.md` that conflicts is older and should be updated.
+**Owner:** Backend (`gfm_mw` — Node + Express on Hostinger VPS)
+**Depends on:** `docs/api-contract.md` (§7 Question schema, §4.1 input variants, §6 error codes)
+**Source of truth:** This document. The system prompt, JSON Schema, and validation pipeline below are the implementation contract.
+
+Implementation files: `gfm_mw/src/ai/` (system-prompt, few-shots, simple-schema, form-schema, normalizer, canonicalize, build-contents, generator, auto-repair, repair-policy) and `gfm_mw/src/infrastructure/gemini/gemini-client.ts` / `gfm_mw/src/infrastructure/ai/` (provider abstraction).
 
 ---
 
 ## 1. Goals
 
-Define exactly what flows between the middleware and Gemini 2.0 Flash so that:
+Define exactly what flows between the middleware and the AI provider (Gemini by default, OpenRouter as a fallback) so that:
 
 1. Gemini emits **valid Google-Forms-shaped JSON** (per `Question` schema in api-contract.md §3) on the first try, almost always.
 2. When Gemini produces malformed output, the server makes **one repair attempt** before giving up — bounded cost, bounded latency.
@@ -20,11 +21,15 @@ Define exactly what flows between the middleware and Gemini 2.0 Flash so that:
 
 ---
 
-## 2. Gemini configuration
+## 2. AI provider configuration
+
+`AI_PROVIDER` selects the backend (`gemini` | `openrouter`). Wire-level error codes returned to Flutter stay `gemini_*` regardless of which provider serviced the request.
+
+### Gemini (default)
 
 | Setting | Value | Why |
 |---|---|---|
-| Model | `gemini-2.0-flash` | MVP default. Free tier 1500 req/day, 15 RPM. Native PDF + YouTube support. |
+| Model | `gemini-2.5-flash-lite` | Current production default. Native PDF + YouTube support. Pricing tracked at $0.10/M input, $0.40/M output in `pg-ai-generation.repository.ts`. |
 | `responseMimeType` | `application/json` | Force JSON-only output |
 | `responseSchema` | The schema in §4 (rendered as Gemini's structured-output schema) | Reduces malformed output drastically; not a substitute for server-side Zod |
 | `temperature` | `0.4` | Forms are functional, not creative. Lower temp → fewer schema drifts. |
@@ -38,7 +43,9 @@ The total prompt envelope (system + few-shot + user input) targets **≤ 6k inpu
 
 ## 3. System prompt
 
-Single instruction block, sent as the system instruction (not as a user turn). Stable text — versioned in code as `SYSTEM_PROMPT_V1`.
+Single instruction block, sent as the system instruction (not as a user turn). Stable text — versioned in code as `PROMPT_VERSION = "v3"` in `gfm_mw/src/ai/system-prompt.ts`.
+
+> **v3 changes (current):** unified form/quiz prompt with model-driven `isQuiz` auto-detection (no UI toggle); critical "never include X in Y mode" rules to prevent quiz/non-quiz field leakage; prompt-injection rule extended to file content (PDF / YouTube / URL / book inputs).
 
 > ```
 > You are a Google Forms author. Your only job is to convert the user's input

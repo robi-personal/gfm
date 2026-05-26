@@ -1,9 +1,11 @@
 # RevenueCat Webhook Map
 
-**Status:** Draft (Task 5 of Phase 2)
-**Owner:** Backend (Node + Express on Hostinger VPS)
-**Depends on:** `docs/api-contract.md` (§4.2 processing order, §2.1 HMAC auth), `docs/db/migrations/001_init.sql` (`users`, `webhook_events` tables)
-**Source of truth:** This document for all RevenueCat webhook handling logic.
+**Owner:** Backend (`gfm_mw` — Node + Express on Hostinger VPS)
+**Depends on:** `docs/api-contract.md` (§4.2 processing order, §2.1 auth), `gfm_mw/migrations/001_init.sql` + `004_quota_system.sql` + `007_event_watermark_and_dedupe.sql` + `008_apple_subscription_bindings.sql`
+**Companion doc:** `docs/purchase-flow.md` — the wider purchase trace (paywall → sync → webhook → /user/status).
+**Source of truth:** This document for RevenueCat webhook handling logic.
+
+**Implementation:** `gfm_mw/src/application/rc-webhook/apply-event.ts` (pure handler), invoked from `gfm_mw/src/presentation/routes/webhook.routes.ts` (live delivery) and from `auth.middleware.ts` (orphan replay on first sign-in).
 
 ---
 
@@ -16,8 +18,9 @@ RevenueCat delivers webhook events to `POST /webhooks/revenuecat` when a user's 
 - Edge cases: out-of-order delivery, duplicate IDs, sandbox vs prod, account transfers (§4)
 - Acceptance checklist (§5)
 
-**Entitlement identifier:** `gfm_premium`  
-**Affected DB tables:** `users`, `webhook_events`
+**Entitlement identifier:** `GFMPremium`
+**Product IDs (post migration 005):** `GFM_Weekly_3.99`, `GFM_Monthly_4.99`, `GFM_Yearly_44.99`
+**Affected DB tables:** `users`, `quota_transactions`, `webhook_events`, `apple_subscription_bindings`
 
 ---
 
@@ -26,19 +29,19 @@ RevenueCat delivers webhook events to `POST /webhooks/revenuecat` when a user's 
 Every incoming request runs through this pipeline before event-specific logic. Source of truth for the request-level behavior is `api-contract.md §4.2`; this doc adds implementation detail.
 
 ```typescript
-app.post("/webhooks/revenuecat", rawBodyMiddleware, async (req, res) => {
+app.post("/webhooks/revenuecat", rcWebhookAuthMiddleware, rcIpLimitMiddleware, async (req, res) => {
 
-  // ── Step 1: Verify HMAC ──────────────────────────────────────────────────
-  // Compute HMAC-SHA256 over the raw request body (not the parsed JSON).
-  // rawBodyMiddleware saves req.rawBody before body-parser runs.
-  const computed = crypto
-    .createHmac("sha256", process.env.RC_WEBHOOK_SECRET!)
-    .update(req.rawBody)
-    .digest("hex");
-  if (!timingSafeEqual(Buffer.from(computed), Buffer.from(req.headers.authorization ?? ""))) {
-    return res.status(401).json({ code: "invalid_signature",
-      message: "Webhook signature verification failed." });
-  }
+  // ── Step 1: Verify bearer secret (handled by rcWebhookAuthMiddleware) ────
+  // RevenueCat sends the configured secret as a plain bearer in the
+  // Authorization header (not as an HMAC of the body). Constant-time compare:
+  //
+  //   crypto.timingSafeEqual(
+  //     Buffer.from(req.headers.authorization ?? ""),
+  //     Buffer.from(env.RC_WEBHOOK_SECRET),
+  //   )
+  //
+  // Mismatch → 401 "invalid_signature". Mounted before the per-IP limiter so
+  // forged traffic gets 401 without consuming RC's small IP-pool budget.
 
   // ── Step 2: Parse and validate envelope ─────────────────────────────────
   const payload = req.body as RcEventPayload;
@@ -123,22 +126,16 @@ app.post("/webhooks/revenuecat", rawBodyMiddleware, async (req, res) => {
 });
 ```
 
-### 2.1 `rawBodyMiddleware`
+### 2.1 Raw body capture
 
-Body-parser normally consumes the stream and exposes only the parsed object, but HMAC verification needs the exact raw bytes:
+Although the current bearer-secret check does not need the raw bytes, `express.json()` is configured with a `verify` callback that stashes `req.rawBody = buf` for every request. This keeps the raw body available if RC ever switches to true body-signature auth, and is reused by the audit-log path:
 
 ```typescript
-app.use("/webhooks/revenuecat", (req, _res, next) => {
-  let data = Buffer.alloc(0);
-  req.on("data", (chunk: Buffer) => { data = Buffer.concat([data, chunk]); });
-  req.on("end", () => {
-    (req as any).rawBody = data;
-    next();
-  });
-});
+app.use(express.json({
+  limit: "8mb",
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 ```
-
-This middleware runs **before** `express.json()` on this route.
 
 ### 2.2 RC event payload shape (relevant fields)
 
@@ -149,7 +146,7 @@ interface RcEvent {
   app_user_id: string;           // google_sub of the purchasing user
   aliases: string[];             // all RC user IDs for this customer
   original_app_user_id: string;
-  entitlement_ids: string[];     // ["gfm_premium"] when premium
+  entitlement_ids: string[];     // ["GFMPremium"] when premium
   product_id: string;
   purchased_at_ms: number;       // epoch ms of this purchase
   expiration_at_ms: number | null; // end of current billing period; null for lifetime
@@ -368,9 +365,9 @@ async function handleProductChange(tx: Tx, userId: number, event: RcEvent) {
   const newResetAt = msToTimestamp(event.expiration_at_ms);
 
   // entitlement_ids reflects the new product's entitlements.
-  // If gfm_premium is still in the list, user stays premium.
+  // If GFMPremium is still in the list, user stays premium.
   // (Product change to a non-premium product would appear as an EXPIRATION.)
-  const stillPremium = event.entitlement_ids.includes("gfm_premium");
+  const stillPremium = event.entitlement_ids.includes("GFMPremium");
 
   await tx.query(`
     UPDATE users SET
@@ -502,7 +499,9 @@ function msToTimestamp(ms: number | null | undefined): Date | null {
 }
 ```
 
-`expiration_at_ms` is null for lifetime purchases (not expected for `gfm_premium` which is a recurring subscription, but handled defensively). When null, `premium_reset_at` is left unchanged in the handlers — the GREATEST/guard expressions treat NULL as "less than any date", so a null argument is a no-op.
+`expiration_at_ms` is null for lifetime purchases (not expected for `GFMPremium` which is a recurring subscription, but handled defensively). When null, the affected timestamp column is left unchanged in the handlers — the GREATEST/guard expressions treat NULL as "less than any date", so a null argument is a no-op.
+
+> **Note on column names.** The pseudocode in §3 was written before migration `004_quota_system.sql`. Several columns it references (`is_premium`, `ai_free_used`, `ai_premium_used`, `premium_reset_at`) were dropped in that migration and replaced with the balance model: `quota_balance`, `free_quota_reset_at`, `subscription_product_id`. The pure handler now lives in `gfm_mw/src/application/rc-webhook/apply-event.ts`; the high-level event-by-event semantics described here remain accurate. Read the implementation file for current SQL.
 
 ---
 

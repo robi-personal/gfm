@@ -1,9 +1,10 @@
 # Observability — Structured Logging, Metrics & Alerting
 
-**Status:** Draft (Task 7 of Phase 2)
-**Owner:** Backend (Node + Express on Hostinger VPS)
-**Depends on:** `docs/api-contract.md` (endpoints, error codes), `docs/rate-limiting-abuse.md` (§13 required hooks), `docs/revenuecat-webhook-map.md`
+**Owner:** Backend (`gfm_mw` — Node + Express on Hostinger VPS)
+**Depends on:** `docs/api-contract.md` (endpoints, error codes), `docs/rate-limiting-abuse.md`, `docs/revenuecat-webhook-map.md`
 **Source of truth:** This document for all observability contracts. Signal names and field names are stable — change requires a version bump here.
+
+Implementation files: `gfm_mw/src/infrastructure/logger.ts`, `gfm_mw/src/infrastructure/metrics.ts`, `gfm_mw/src/presentation/middleware/logging.middleware.ts`, `gfm_mw/src/presentation/routes/health.routes.ts`.
 
 ---
 
