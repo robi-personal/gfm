@@ -103,9 +103,9 @@
           <p>GFM requests two OAuth scopes from the signed-in Google user:</p>
           <ul style="margin-top:0.75rem;">
             <li class="legal-bullet"><span class="lb-dot"></span><span><strong>drive.file</strong> — metadata and content of Google Drive files that the user creates inside GFM, or explicitly opens within GFM. Also used to upload images the user embeds in their forms. GFM cannot access any other files in the user's Drive.</span></li>
-            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms</strong> (broad scope) — full access to the structure and responses of the user's Google Forms. GFM requests this scope because it uses Google Apps Script to read and apply certain form settings (shuffle questions, limit one response per user, etc.) that the Forms REST API does not expose. Apps Script's <code>FormApp</code> service does not function correctly with the narrower <code>forms.body</code> or <code>forms.responses.readonly</code> scopes alone, so the broad scope is required. GFM only accesses forms the signed-in user has permission to access.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms</strong> — GFM requests this scope because it uses Google Apps Script to read and apply certain form settings (shuffle questions, limit one response per user, etc.) that the Forms REST API does not expose. Apps Script's <code>FormApp</code> service does not function correctly with the narrower <code>forms.body</code> or <code>forms.responses.readonly</code> scopes alone, so the broad scope is required. GFM only accesses forms the signed-in user has permission to access.</span></li>
           </ul>
-          <p style="margin-top:0.75rem;">Within the <strong>forms</strong> scope, GFM specifically uses:</p>
+          <p style="margin-top:0.75rem;">Within this scope, GFM specifically uses:</p>
           <ul style="margin-top:0.5rem;">
             <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.body</strong> equivalent — form titles, descriptions, questions, sections, settings, quiz configuration, and publish state for forms created or opened in GFM.</span></li>
             <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.responses.readonly</strong> equivalent — submitted responses to the user's forms, displayed in the in-app Responses view and available for CSV export. GFM never writes or modifies response data.</span></li>
@@ -177,7 +177,7 @@
           <p>Used to create new Google Forms in the user's Drive; open, modify, and delete forms the user creates within GFM or explicitly opens by pasting a link; and upload images that the user chooses to embed in their forms. This scope restricts GFM to files the app itself created or that the user explicitly opened — GFM cannot see other files in the user's Drive.</p>
         </div>
         <div class="legal-subsec">
-          <h3><code>forms</code> (broad scope)</h3>
+          <h3><code>forms</code></h3>
           <p>This is the umbrella scope that covers both <code>forms.body</code> and <code>forms.responses.readonly</code>. GFM requests it because it uses Google Apps Script to read and apply extended form settings — such as shuffling questions and limiting one response per user — that the Forms REST API does not expose. Apps Script's <code>FormApp</code> service does not function correctly with the narrower scopes alone, so the broad scope is required.</p>
           <p style="margin-top:0.75rem;">Within this scope, GFM uses only the following capabilities:</p>
           <ul style="margin-top:0.5rem;">
