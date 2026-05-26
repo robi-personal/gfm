@@ -10,8 +10,8 @@ import '../../../../core/widgets/error_modal.dart';
 import '../../../../core/widgets/simple_web_view_page.dart';
 import '../cubit/subscription_cubit.dart';
 
-const _privacyUrl = 'https://gformmanager.netlify.app/privacy';
-const _termsUrl   = 'https://gformmanager.netlify.app/terms';
+const _privacyUrl = 'https://gfm.alphaiit.com/privacy.html';
+const _termsUrl   = 'https://gfm.alphaiit.com/terms.html';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
