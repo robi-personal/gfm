@@ -24,7 +24,7 @@
       <nav>
         <ul class="nav-links">
           <li><a href="./index.html#features">Features</a></li>
-          <li><a href="./index.html#screenshots">Screenshots</a></li>
+          <li><a href="./index.html#ai-builder">AI Builder</a></li>
           <li><a href="./index.html#how-it-works">How it Works</a></li>
           <li><a href="./index.html#contact">Contact</a></li>
           <li><a href="./privacy.html">Privacy</a></li>
@@ -45,7 +45,7 @@
     </div>
     <div id="mobile-menu">
       <a href="./index.html#features">Features</a>
-      <a href="./index.html#screenshots">Screenshots</a>
+      <a href="./index.html#ai-builder">AI Builder</a>
       <a href="./index.html#how-it-works">How it Works</a>
       <a href="./index.html#contact">Contact</a>
       <a href="./privacy.html">Privacy</a>
@@ -100,11 +100,10 @@
 
         <div class="legal-subsec">
           <h3>Data Accessed</h3>
-          <p>GFM requests three OAuth scopes from the signed-in Google user:</p>
+          <p>GFM requests two OAuth scopes from the signed-in Google user:</p>
           <ul style="margin-top:0.75rem;">
             <li class="legal-bullet"><span class="lb-dot"></span><span><strong>drive.file</strong> — metadata and content of Google Drive files that the user creates inside GFM, or explicitly opens within GFM. Also used to upload images the user embeds in their forms. GFM cannot access any other files in the user's Drive.</span></li>
-            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.body</strong> — the structure of the user's Google Forms: titles, descriptions, questions, sections, settings, quiz configuration, and publish state for forms created or opened in GFM.</span></li>
-            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.responses.readonly</strong> — submitted responses to the user's forms, for display in the in-app Responses view and CSV export. Read-only; GFM never writes response data.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms</strong> — full access to the structure and responses of the user's Google Forms: titles, descriptions, questions, sections, settings, quiz configuration, publish state, and submitted responses. This scope is required to read, create, edit, and delete forms and to display response data within the app. GFM only accesses forms the signed-in user has permission to access.</span></li>
           </ul>
           <p style="margin-top:0.75rem;">No additional Google account data (contacts, email, calendar, profile beyond a sign-in identifier, etc.) is requested or accessed.</p>
         </div>
@@ -125,6 +124,7 @@
           <p>GFM does not share Google user data with any third party. The only data flows are:</p>
           <ul style="margin-top:0.75rem;">
             <li class="legal-bullet"><span class="lb-dot"></span><span>Between the app and Google's own APIs (Forms API, Drive API) — required for the app to function.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span>Text prompts submitted via the AI Builder feature are sent to GFM's backend middleware, which forwards them to Google Gemini to generate form content. No Google Forms data, response data, or OAuth tokens are sent to the middleware — only the user-written prompt text (and any PDF content the user explicitly uploads for AI processing). See §8a for details.</span></li>
             <li class="legal-bullet"><span class="lb-dot"></span><span>Aggregate, anonymous crash and usage telemetry to Firebase (a Google service), which contains no form content, no response data, and no personally identifying information. See §8 for details.</span></li>
             <li class="legal-bullet"><span class="lb-dot"></span><span>CSV exports that the user manually initiates and shares via the device's native share sheet — to a destination the user chooses.</span></li>
           </ul>
@@ -135,7 +135,7 @@
           <h3>Data Storage &amp; Protection</h3>
           <ul>
             <li class="legal-bullet"><span class="lb-dot"></span><span>GFM does not operate backend servers that store Google user data. All form data, questions, and responses remain in the user's Google account.</span></li>
-            <li class="legal-bullet"><span class="lb-dot"></span><span>OAuth refresh tokens are stored on-device using the operating system's secure enclave (Android Keystore / iOS Keychain). Access tokens are held in memory only for the duration of an active session.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span>OAuth refresh tokens are stored on-device using iOS Keychain. Access tokens are held in memory only for the duration of an active session.</span></li>
             <li class="legal-bullet"><span class="lb-dot"></span><span>Any temporary on-device cache of form content is private to the user's device, encrypted at rest where the OS supports it, and never transmitted externally.</span></li>
             <li class="legal-bullet"><span class="lb-dot"></span><span>All network communication uses HTTPS/TLS. GFM never sees the user's Google password — authentication is handled entirely by Google's OAuth 2.0 SDK.</span></li>
           </ul>
@@ -159,7 +159,7 @@
         <p>We do not store, log, or persist Google user data on our servers. To provide a responsive user experience, GFM may temporarily cache form content on the user's device. This local cache:</p>
         <ul style="margin-top:1rem;">
           <li class="legal-bullet"><span class="lb-dot"></span><span>is private to the user's device,</span></li>
-          <li class="legal-bullet"><span class="lb-dot"></span><span>is encrypted at rest where supported by the operating system (Android Keystore, iOS Keychain),</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>is encrypted at rest using iOS Keychain where supported by the operating system,</span></li>
           <li class="legal-bullet"><span class="lb-dot"></span><span>is cleared automatically on sign-out or app uninstall,</span></li>
           <li class="legal-bullet"><span class="lb-dot"></span><span>is never transmitted to external servers or to any third party other than Google APIs.</span></li>
         </ul>
@@ -172,12 +172,8 @@
           <p>Used to create new Google Forms in the user's Drive; open, modify, and delete forms the user creates within GFM or explicitly opens by pasting a link; and upload images that the user chooses to embed in their forms. This scope restricts GFM to files the app itself created or that the user explicitly opened — GFM cannot see other files in the user's Drive.</p>
         </div>
         <div class="legal-subsec">
-          <h3><code>forms.body</code></h3>
-          <p>Used to create form titles, descriptions, and settings; add, edit, reorder, and delete questions, sections, and media items; configure quiz settings, grading, and form publish state.</p>
-        </div>
-        <div class="legal-subsec">
-          <h3><code>forms.responses.readonly</code></h3>
-          <p>Used to display response counts and individual responses to the signed-in user, for forms they have access to, and to power the in-app "Responses" view and CSV export. Access occurs only during active user interaction. We do not perform background polling, bulk extraction, or external processing of response data.</p>
+          <h3><code>forms</code></h3>
+          <p>Used to create form titles, descriptions, and settings; add, edit, reorder, and delete questions, sections, and media items; configure quiz settings, grading, and form publish state; and display response counts and individual responses for the in-app Responses view and CSV export. Access occurs only during active user interaction. We do not perform background polling, bulk extraction, or external processing of form or response data.</p>
         </div>
       </div>
 
@@ -195,7 +191,7 @@
       <div class="legal-sec">
         <h2>7. Authentication and Tokens</h2>
         <ul>
-          <li class="legal-bullet"><span class="lb-dot"></span><span>Refresh tokens are stored encrypted on-device using the operating system's secure storage (Android Keystore, iOS Keychain).</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>Refresh tokens are stored encrypted on-device using iOS Keychain.</span></li>
           <li class="legal-bullet"><span class="lb-dot"></span><span>Access tokens are held in memory only during an active session.</span></li>
           <li class="legal-bullet"><span class="lb-dot"></span><span>All tokens are deleted from the device when the user signs out, uninstalls the app, or revokes access from their Google Account.</span></li>
           <li class="legal-bullet"><span class="lb-dot"></span><span>We never transmit OAuth tokens to external servers or to any third party other than Google.</span></li>
@@ -217,6 +213,19 @@
           <li class="legal-bullet"><span class="lb-dot"></span><span>Crash stack traces and the application state at the time of a crash.</span></li>
         </ul>
         <p style="margin-top:1rem;">No form content, question text, response data, or personal user identifiers (including email addresses) are sent to Firebase. Firebase data is used strictly to maintain app stability and improve the product — never for advertising, profiling, or sale to third parties. Firebase data handling is governed by <a href="https://firebase.google.com/support/privacy">Google's privacy policies</a>.</p>
+      </div>
+
+      <div class="legal-sec">
+        <h2>8a. AI Builder and Gemini</h2>
+        <p>GFM includes an AI Builder feature that generates Google Form content from a user-written text prompt. When you use this feature:</p>
+        <ul style="margin-top:1rem;">
+          <li class="legal-bullet"><span class="lb-dot"></span><span>Your prompt text (and any PDF document you explicitly upload for AI processing) is transmitted over HTTPS to GFM's backend middleware hosted at <code>gfm.robi-dev.tech</code>.</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>The middleware authenticates your request using a Google ID token (a signed JWT). The ID token is verified server-side and is not stored after the request completes.</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>The middleware forwards your prompt to the Google Gemini API to generate form content. No Google Forms data, response data, or Drive file content is sent to the middleware or to Gemini.</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>The generated form structure is returned to your device and written directly to your Google account via the Forms API. The middleware does not retain your prompt text or the generated form content after the response is delivered.</span></li>
+          <li class="legal-bullet"><span class="lb-dot"></span><span>AI Builder usage is subject to per-plan quotas. The middleware logs aggregate quota usage (counts only, no prompt content) for billing and abuse prevention purposes.</span></li>
+        </ul>
+        <p style="margin-top:1rem;">Gemini API data handling is governed by <a href="https://ai.google.dev/gemini-api/terms">Google's Gemini API Terms of Service</a>.</p>
       </div>
 
       <div class="legal-sec">
