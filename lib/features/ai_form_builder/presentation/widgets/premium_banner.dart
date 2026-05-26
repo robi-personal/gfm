@@ -16,9 +16,6 @@ class PremiumBanner extends StatefulWidget {
   final bool showBorderShimmer;
   final bool showRefreshButton;
   final BorderRadius? borderRadius;
-  final String? userName;
-  final String? userEmail;
-  final String? userPhotoUrl;
   final double topPadding;
 
   const PremiumBanner({
@@ -31,9 +28,6 @@ class PremiumBanner extends StatefulWidget {
     this.showBorderShimmer = true,
     this.showRefreshButton = true,
     this.borderRadius,
-    this.userName,
-    this.userEmail,
-    this.userPhotoUrl,
     this.topPadding = 0,
   });
 
@@ -155,47 +149,6 @@ class _PremiumBannerState extends State<PremiumBanner>
                       _RefreshButton(onPressed: _handleRefresh, isLoading: _isRefreshing),
                   ],
                 ),
-                if (widget.userName != null || widget.userEmail != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    spacing: 10,
-                    children: [
-                      _UserAvatar(
-                        photoUrl: widget.userPhotoUrl,
-                        displayName: widget.userName,
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (widget.userName != null)
-                              Text(
-                                widget.userName!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            if (widget.userEmail != null)
-                              Text(
-                                widget.userEmail!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 11,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
                 const SizedBox(height: 16),
                 // Row 2 — generation count
                 RichText(
@@ -359,41 +312,6 @@ class _PlanPill extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _UserAvatar extends StatelessWidget {
-  final String? photoUrl;
-  final String? displayName;
-
-  const _UserAvatar({this.photoUrl, this.displayName});
-
-  @override
-  Widget build(BuildContext context) {
-    final initial =
-        (displayName?.isNotEmpty == true ? displayName![0] : null) ?? '?';
-
-    if (photoUrl != null && photoUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundColor: Colors.white.withValues(alpha: 0.20),
-        backgroundImage: NetworkImage(photoUrl!),
-        onBackgroundImageError: (e, _) {},
-      );
-    }
-
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: Colors.white.withValues(alpha: 0.20),
-      child: Text(
-        initial.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }

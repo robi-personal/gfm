@@ -100,9 +100,6 @@ class _DrawerContent extends StatelessWidget {
                     showRefreshButton: false,
                     borderRadius: BorderRadius.circular(16),
                     topPadding: 0,
-                    userName: displayName,
-                    userEmail: email,
-                    userPhotoUrl: photoUrl,
                     onRefresh: () => service.refresh(),
                   )
                 : AiQuotaCounter(
