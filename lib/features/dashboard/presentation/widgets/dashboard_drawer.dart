@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math' as math;
 
 import '../../../../../core/design.dart';
 import '../../../../../core/di/injection.dart';
@@ -64,6 +65,7 @@ class _DrawerContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final bottomPad = MediaQuery.paddingOf(context).bottom;
     final service = getIt<UserStatusService>();
 
     return ListenableBuilder(
@@ -71,29 +73,13 @@ class _DrawerContent extends StatelessWidget {
       builder: (context, _) {
         final status = service.status;
 
-        if (status == null) {
-          return Column(
-            children: [
-              _DrawerHeader(topPad: topPad),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.paddingOf(context).bottom),
-                  children: [_buildSections(context)],
-                ),
-              ),
-            ],
-          );
-        }
-
         final signInState = context.read<SignInCubit>().state;
         final String? displayName;
         final String? email;
         final String? photoUrl;
         if (signInState is Authenticated) {
           displayName = signInState.user.displayName;
-          email = signInState.user.email.isNotEmpty
-              ? signInState.user.email
-              : null;
+          email = signInState.user.email.isNotEmpty ? signInState.user.email : null;
           photoUrl = signInState.user.photoUrl;
         } else {
           displayName = null;
@@ -101,37 +87,46 @@ class _DrawerContent extends StatelessWidget {
           photoUrl = null;
         }
 
-        final header = status.isPremium
-            ? PremiumBanner(
-                generationsLeft: status.quotaBalance,
-                currentPlan: _toPlanType(status.subscriptionProductId),
-                showAnimations: true,
-                showBorderShimmer: false,
-                showFooter: false,
-                showRefreshButton: false,
-                borderRadius: BorderRadius.zero,
-                topPadding: topPad,
-                userName: displayName,
-                userEmail: email,
-                userPhotoUrl: photoUrl,
-                onRefresh: () => service.refresh(),
-              )
-            : AiQuotaCounter(
-                status: status,
-                topPadding: topPad,
-                userName: displayName,
-                userEmail: email,
-                userPhotoUrl: photoUrl,
-                onUpgradeTap: onShowPaywall,
-              );
+        // Membership banner — shown in-list above CREATE
+        final Widget membershipBlock = status == null
+            ? _DrawerBannerLoading()
+            : status.isPremium
+                ? PremiumBanner(
+                    generationsLeft: status.quotaBalance,
+                    currentPlan: _toPlanType(status.subscriptionProductId),
+                    showAnimations: true,
+                    showBorderShimmer: false,
+                    showFooter: true,
+                    showRefreshButton: false,
+                    borderRadius: BorderRadius.circular(16),
+                    topPadding: 0,
+                    userName: displayName,
+                    userEmail: email,
+                    userPhotoUrl: photoUrl,
+                    onRefresh: () => service.refresh(),
+                  )
+                : AiQuotaCounter(
+                    status: status,
+                    topPadding: 0,
+                    userName: displayName,
+                    userEmail: email,
+                    userPhotoUrl: photoUrl,
+                    onUpgradeTap: onShowPaywall,
+                  );
 
         return Column(
           children: [
-            header,
+            // ── Simple user info header ──────────────────────────────
+            _DrawerUserHeader(topPad: topPad, displayName: displayName, email: email, photoUrl: photoUrl),
+            // ── Scrollable list ──────────────────────────────────────
             Expanded(
               child: ListView(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.paddingOf(context).bottom),
-                children: [_buildSections(context)],
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
+                children: [
+                  membershipBlock,
+                  const SizedBox(height: 16),
+                  _buildSections(context),
+                ],
               ),
             ),
           ],
@@ -270,12 +265,20 @@ class _DrawerContent extends StatelessWidget {
   }
 }
 
-// ── Drawer header ─────────────────────────────────────────────────────────────
+// ── Simple user info header ───────────────────────────────────────────────────
 
-class _DrawerHeader extends StatelessWidget {
+class _DrawerUserHeader extends StatelessWidget {
   final double topPad;
+  final String? displayName;
+  final String? email;
+  final String? photoUrl;
 
-  const _DrawerHeader({required this.topPad});
+  const _DrawerUserHeader({
+    required this.topPad,
+    this.displayName,
+    this.email,
+    this.photoUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -288,66 +291,136 @@ class _DrawerHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: EdgeInsets.only(top: topPad, bottom: 28, left: 20, right: 20),
-      child:
-          BlocSelector<
-            SignInCubit,
-            SignInState,
-            ({String? displayName, String? photoUrl, String email})
-          >(
-            selector: (state) => state is Authenticated
-                ? (
-                    displayName: state.user.displayName,
-                    photoUrl: state.user.photoUrl,
-                    email: state.user.email,
-                  )
-                : (displayName: null, photoUrl: null, email: ''),
-            builder: (context, user) => Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 12,
+      padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 12,
+        children: [
+          _UserAvatar(photoUrl: photoUrl, displayName: displayName),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _UserAvatar(
-                  photoUrl: user.photoUrl,
-                  displayName: user.displayName,
-                ),
-                Expanded(child: _buildUserInfo(user)),
+                if (displayName != null)
+                  Text(
+                    displayName!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (email != null)
+                  Text(
+                    email!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
+        ],
+      ),
     );
+  }
+}
+
+// ── Membership banner loading shimmer (in-list) ───────────────────────────────
+
+class _DrawerBannerLoading extends StatefulWidget {
+  const _DrawerBannerLoading();
+
+  @override
+  State<_DrawerBannerLoading> createState() => _DrawerBannerLoadingState();
+}
+
+class _DrawerBannerLoadingState extends State<_DrawerBannerLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
-  Widget _buildUserInfo(
-    ({String? displayName, String? photoUrl, String email}) user,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (user.displayName != null)
-          Text(
-            user.displayName!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _shimmer,
+      builder: (_, _) {
+        final pulse = (math.sin(_shimmer.value * math.pi * 2) + 1) / 2;
+        final base = 0.08 + pulse * 0.10;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: const Color(0xFF7B2CE0),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Badge skeleton
+                Container(
+                  width: 72,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: base + 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // Quota text skeleton
+                Container(
+                  width: 200,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: base + 0.06),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Plan footer skeleton
+                Container(
+                  width: 130,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: base + 0.04),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ],
             ),
           ),
-        if (user.email.isNotEmpty)
-          Text(
-            user.email,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.70),
-              fontSize: 12,
-            ),
-          ),
-      ],
+        );
+      },
     );
   }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+PlanType _toPlanType(String? productId) {
+  final id = productId?.toLowerCase() ?? '';
+  if (id.contains('week')) return PlanType.weekly;
+  if (id.contains('year')) return PlanType.yearly;
+  return PlanType.monthly;
 }
 
 class _UserAvatar extends StatelessWidget {
@@ -383,13 +456,6 @@ class _UserAvatar extends StatelessWidget {
       ),
     );
   }
-}
-
-PlanType _toPlanType(String? productId) {
-  final id = productId?.toLowerCase() ?? '';
-  if (id.contains('weekly')) return PlanType.weekly;
-  if (id.contains('yearly')) return PlanType.yearly;
-  return PlanType.monthly;
 }
 
 // ── Drawer section ────────────────────────────────────────────────────────────
