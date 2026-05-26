@@ -105,11 +105,15 @@ class _EditorViewState extends State<_EditorView>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    if (_tabController.index == 1) AnalyticsService.logResponsesViewed();
+    if (_tabController.index == 1) {
+      AnalyticsService.logResponsesViewed();
+      context.read<ResponsesCubit>().refreshResponses(widget.formId);
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[editor] lifecycle: $state');
     if (state == AppLifecycleState.resumed) {
       context.read<ResponsesCubit>().refreshResponses(widget.formId);
     }
