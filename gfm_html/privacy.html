@@ -103,7 +103,12 @@
           <p>GFM requests two OAuth scopes from the signed-in Google user:</p>
           <ul style="margin-top:0.75rem;">
             <li class="legal-bullet"><span class="lb-dot"></span><span><strong>drive.file</strong> — metadata and content of Google Drive files that the user creates inside GFM, or explicitly opens within GFM. Also used to upload images the user embeds in their forms. GFM cannot access any other files in the user's Drive.</span></li>
-            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms</strong> — full access to the structure and responses of the user's Google Forms: titles, descriptions, questions, sections, settings, quiz configuration, publish state, and submitted responses. This scope is required to read, create, edit, and delete forms and to display response data within the app. GFM only accesses forms the signed-in user has permission to access.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms</strong> (broad scope) — full access to the structure and responses of the user's Google Forms. This scope is the union of the narrower <code>forms.body</code> and <code>forms.responses.readonly</code> scopes, and is additionally required by Google Apps Script, which GFM uses to support certain form features (such as file-upload question handling) that are not available through the Forms REST API alone. GFM only accesses forms the signed-in user has permission to access.</span></li>
+          </ul>
+          <p style="margin-top:0.75rem;">Within the <strong>forms</strong> scope, GFM specifically uses:</p>
+          <ul style="margin-top:0.5rem;">
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.body</strong> equivalent — form titles, descriptions, questions, sections, settings, quiz configuration, and publish state for forms created or opened in GFM.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.responses.readonly</strong> equivalent — submitted responses to the user's forms, displayed in the in-app Responses view and available for CSV export. GFM never writes or modifies response data.</span></li>
           </ul>
           <p style="margin-top:0.75rem;">No additional Google account data (contacts, email, calendar, profile beyond a sign-in identifier, etc.) is requested or accessed.</p>
         </div>
@@ -172,8 +177,13 @@
           <p>Used to create new Google Forms in the user's Drive; open, modify, and delete forms the user creates within GFM or explicitly opens by pasting a link; and upload images that the user chooses to embed in their forms. This scope restricts GFM to files the app itself created or that the user explicitly opened — GFM cannot see other files in the user's Drive.</p>
         </div>
         <div class="legal-subsec">
-          <h3><code>forms</code></h3>
-          <p>Used to create form titles, descriptions, and settings; add, edit, reorder, and delete questions, sections, and media items; configure quiz settings, grading, and form publish state; and display response counts and individual responses for the in-app Responses view and CSV export. Access occurs only during active user interaction. We do not perform background polling, bulk extraction, or external processing of form or response data.</p>
+          <h3><code>forms</code> (broad scope)</h3>
+          <p>This is the umbrella scope that covers both <code>forms.body</code> and <code>forms.responses.readonly</code>. GFM requests it because certain features — specifically file-upload question handling — are implemented via Google Apps Script, which requires this broader permission and does not honour the narrower scopes alone.</p>
+          <p style="margin-top:0.75rem;">Within this scope, GFM uses only the following capabilities:</p>
+          <ul style="margin-top:0.5rem;">
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.body equivalent</strong> — create form titles, descriptions, and settings; add, edit, reorder, and delete questions, sections, and media items; configure quiz settings, grading, and publish state.</span></li>
+            <li class="legal-bullet"><span class="lb-dot"></span><span><strong>forms.responses.readonly equivalent</strong> — display response counts and individual responses for the signed-in user, power the in-app Responses view, and generate CSV exports. Access occurs only during active user interaction. GFM never writes, modifies, or bulk-extracts response data.</span></li>
+          </ul>
         </div>
       </div>
 
