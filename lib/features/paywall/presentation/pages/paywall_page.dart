@@ -128,141 +128,159 @@ class _PaywallViewState extends State<_PaywallView> {
 
         return Stack(
           children: [
-            CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Close button
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                color: AppColors.bg,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                CupertinoIcons.xmark,
-                                size: 14,
-                                color: AppColors.muted,
-                              ),
+            Column(
+              children: [
+                // ── Static top — NEVER scrolls ─────────────────────────────
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, topPad + 8, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Close button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: AppColors.bg,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.xmark,
+                              size: 14,
+                              color: AppColors.muted,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      // Header image
+                      Center(
+                        child: Image.asset(
+                          'assets/premium_banner.png',
+                          height: 78,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Title
+                      const Text(
+                        'Upgrade To Premium',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
+                          letterSpacing: -1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Unlock everything, Cancel anytime',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.muted,
+                          letterSpacing: -.3,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const _SectionLabel(text: "WHAT'S INCLUDED"),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
 
-                        // Header image
-                        Center(
-                          child: Image.asset(
-                            'assets/premium_banner.png',
-                            height: 150,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Title
-                        const Text(
-                          'Upgrade To Premium',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
-                            letterSpacing: -1.5,
-                          ),
-                        ),
-
-                        const Text(
-                          'Unlock everything, Cancel anytime',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.muted,
-                            letterSpacing: -.3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Plan tiles
-                        _PlanTile(
-                          plan: _Plan.weekly,
-                          label: 'Weekly',
-                          price: weeklyPrice,
-                          period: 'week',
-                          selected: _selected == _Plan.weekly,
-                          isCurrent: currentPlan == _Plan.weekly,
-                          onTap: () => setState(() => _selected = _Plan.weekly),
-                        ),
-                        const SizedBox(height: 10),
-                        _PlanTile(
-                          plan: _Plan.monthly,
-                          label: 'Monthly',
-                          price: monthlyPrice,
-                          period: 'month',
-                          saveText: 'Save 71% vs weekly',
-                          badge: 'MOST POPULAR',
-                          selected: _selected == _Plan.monthly,
-                          isCurrent: currentPlan == _Plan.monthly,
-                          onTap: () => setState(() => _selected = _Plan.monthly),
-                        ),
-                        const SizedBox(height: 10),
-                        _PlanTile(
-                          plan: _Plan.annual,
-                          label: 'Yearly',
-                          price: annualPrice,
-                          period: 'year',
-                          saveText: 'Best value · Save 25% vs monthly',
-                          selected: _selected == _Plan.annual,
-                          isCurrent: currentPlan == _Plan.annual,
-                          onTap: () => setState(() => _selected = _Plan.annual),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Continue button
-                        _ContinueButton(
-                          enabled: !isPurchasing && !isLoading && _selected != currentPlan,
-                          isLoading: isLoading || isPurchasing,
-                          isCurrent: _selected == currentPlan,
-                          onTap: () {
-                            final package = offering != null
-                                ? _packageFor(_selected, offering)
-                                : null;
-                            if (package == null) {
-                              ErrorModal.show(
-                                context,
-                                title: 'Products unavailable',
-                                body: 'Could not load subscription products. Please check your connection and try again.',
-                                primaryLabel: 'OK',
-                                onPrimary: () {},
-                              );
-                              return;
-                            }
-                            context.read<SubscriptionCubit>().purchase(package);
-                          },
-                        ),
-                        const SizedBox(height: 32),
-
-                        // What's included
-                        const _SectionLabel(text: "WHAT'S INCLUDED"),
-                        const SizedBox(height: 12),
-                        _FeaturesList(plan: _selected),
-                        const SizedBox(height: 24),
-
-                        // Footer
-                        _Footer(
-                          onRestore: () => context.read<SubscriptionCubit>().restore(),
-                        ),
-                        SizedBox(height: 24 + bottomPad),
-                      ],
+                // ── Features — ONLY this scrolls, takes all remaining space ─
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.hairline),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: _FeaturesList(plan: _selected),
+                      ),
                     ),
+                  ),
+                ),
+
+                // ── Fixed bottom panel ─────────────────────────────────────
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, 8 + bottomPad),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Plan tiles
+                      _PlanTile(
+                        label: 'Weekly',
+                        price: weeklyPrice,
+                        period: 'week',
+                        selected: _selected == _Plan.weekly,
+                        isCurrent: currentPlan == _Plan.weekly,
+                        onTap: () => setState(() => _selected = _Plan.weekly),
+                      ),
+                      const SizedBox(height: 8),
+                      _PlanTile(
+                        label: 'Monthly',
+                        price: monthlyPrice,
+                        period: 'month',
+                        saveText: 'Save 71% vs weekly',
+                        isPopular: true,
+                        selected: _selected == _Plan.monthly,
+                        isCurrent: currentPlan == _Plan.monthly,
+                        onTap: () => setState(() => _selected = _Plan.monthly),
+                      ),
+                      const SizedBox(height: 8),
+                      _PlanTile(
+                        label: 'Yearly',
+                        price: annualPrice,
+                        period: 'year',
+                        saveText: 'Best value · Save 25% vs monthly',
+                        selected: _selected == _Plan.annual,
+                        isCurrent: currentPlan == _Plan.annual,
+                        onTap: () => setState(() => _selected = _Plan.annual),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Continue button
+                      _ContinueButton(
+                        enabled: !isPurchasing && !isLoading && _selected != currentPlan,
+                        isLoading: isLoading || isPurchasing,
+                        isCurrent: _selected == currentPlan,
+                        onTap: () {
+                          final package = offering != null
+                              ? _packageFor(_selected, offering)
+                              : null;
+                          if (package == null) {
+                            ErrorModal.show(
+                              context,
+                              title: 'Products unavailable',
+                              body: 'Could not load subscription products. Please check your connection and try again.',
+                              primaryLabel: 'OK',
+                              onPrimary: () {},
+                            );
+                            return;
+                          }
+                          context.read<SubscriptionCubit>().purchase(package);
+                        },
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Links only — no disclaimer, keeps bottom panel compact
+                      _FooterLinks(
+                        onRestore: () => context.read<SubscriptionCubit>().restore(),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -301,23 +319,19 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── Plan tile (vertical stacked) ──────────────────────────────────────────────
+// ── Plan tile ─────────────────────────────────────────────────────────────────
 
-const _badgeH = 24.0;
-
-class _PlanTile extends StatefulWidget {
-  final _Plan plan;
+class _PlanTile extends StatelessWidget {
   final String label;
   final String price;
   final String period;
   final String? saveText;
-  final String? badge;
+  final bool isPopular;
   final bool selected;
   final bool isCurrent;
   final VoidCallback onTap;
 
   const _PlanTile({
-    required this.plan,
     required this.label,
     required this.price,
     required this.period,
@@ -325,209 +339,131 @@ class _PlanTile extends StatefulWidget {
     required this.isCurrent,
     required this.onTap,
     this.saveText,
-    this.badge,
+    this.isPopular = false,
   });
 
   @override
-  State<_PlanTile> createState() => _PlanTileState();
-}
-
-class _PlanTileState extends State<_PlanTile> with SingleTickerProviderStateMixin {
-  late final AnimationController _sparkle;
-
-  @override
-  void initState() {
-    super.initState();
-    _sparkle = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _sparkle.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hasBadge = widget.badge != null;
-
     return GestureDetector(
-      onTap: widget.isCurrent ? null : widget.onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            margin: EdgeInsets.only(top: hasBadge ? _badgeH / 2 : 0),
-            padding: EdgeInsets.fromLTRB(
-              16,
-              hasBadge ? _badgeH / 2 + 14 : 16,
-              16,
-              16,
-            ),
-            decoration: BoxDecoration(
-              color: widget.selected && !widget.isCurrent
-                  ? AppColors.purple50
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: widget.isCurrent
-                    ? AppColors.hairline
-                    : widget.selected
-                        ? AppColors.purple600
-                        : AppColors.hairline,
-                width: widget.selected && !widget.isCurrent ? 2 : 1.5,
-              ),
-              boxShadow: widget.selected && !widget.isCurrent
-                  ? [
-                      BoxShadow(
-                        color: AppColors.purple600.withValues(alpha: 0.15),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.isCurrent ? '${widget.label} (Current)' : widget.label,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: widget.isCurrent ? AppColors.muted : AppColors.ink,
+      onTap: isCurrent ? null : onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                color: selected && !isCurrent ? AppColors.purple50 : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isCurrent
+                      ? AppColors.hairline
+                      : selected
+                          ? AppColors.purple600
+                          : AppColors.hairline,
+                  width: selected && !isCurrent ? 2 : 1.5,
+                ),
+                boxShadow: selected && !isCurrent
+                    ? [
+                        BoxShadow(
+                          color: AppColors.purple600.withValues(alpha: 0.15),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            widget.price,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: widget.isCurrent
-                                  ? AppColors.muted
-                                  : widget.selected
-                                      ? AppColors.purple600
-                                      : AppColors.ink,
-                            ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isCurrent ? '$label (Current)' : label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isCurrent ? AppColors.muted : AppColors.ink,
                           ),
-                          const SizedBox(width: 3),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              price,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: isCurrent
+                                    ? AppColors.muted
+                                    : selected
+                                        ? AppColors.purple600
+                                        : AppColors.ink,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '/ $period',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isCurrent ? AppColors.muted2 : AppColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (saveText != null) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            '/ ${widget.period}',
+                            saveText!,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: widget.isCurrent ? AppColors.muted2 : AppColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: isCurrent ? AppColors.muted2 : AppColors.purple600,
                             ),
                           ),
                         ],
-                      ),
-                      if (widget.saveText != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.saveText!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: widget.isCurrent ? AppColors.muted2 : AppColors.purple600,
-                          ),
-                        ),
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _RadioIndicator(selected: widget.selected, isCurrent: widget.isCurrent),
-              ],
-            ),
-          ),
-          if (hasBadge) ...[
-            Container(
-              height: _badgeH,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.purple500, AppColors.purple700],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 5,
-                children: [
-                  const Icon(Icons.auto_awesome, color: Color(0xFFF5C842), size: 10),
-                  Text(
-                    widget.badge!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
                     ),
                   ),
-                  const Icon(Icons.auto_awesome, color: Color(0xFFF5C842), size: 10),
+                  const SizedBox(width: 12),
+                  _RadioIndicator(selected: selected, isCurrent: isCurrent),
                 ],
               ),
             ),
-            // Animated sparkles — each is a direct Positioned child of the outer Stack
-            Positioned(
-              top: -8,
-              left: 18,
-              child: AnimatedBuilder(
-                animation: _sparkle,
-                builder: (_, child) => Opacity(
-                  opacity: 0.3 + ((math.sin(((_sparkle.value + 0.0) % 1.0) * math.pi * 2) + 1) / 2) * 0.7,
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 9),
+            // 45° corner ribbon — ClipRRect above trims the corners cleanly
+            if (isPopular)
+              Positioned(
+                top: 4,
+                right: -20,
+                child: Transform.rotate(
+                  angle: math.pi / 4,
+                  child: Container(
+                    width: 90,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.purple500, AppColors.purple700],
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'MOST POPULAR',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 7,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              top: -6,
-              right: 20,
-              child: AnimatedBuilder(
-                animation: _sparkle,
-                builder: (_, child) => Opacity(
-                  opacity: 0.2 + ((math.sin(((_sparkle.value + 0.25) % 1.0) * math.pi * 2) + 1) / 2) * 0.7,
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 7),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 0,
-              left: 4,
-              child: AnimatedBuilder(
-                animation: _sparkle,
-                builder: (_, child) => Opacity(
-                  opacity: 0.2 + ((math.sin(((_sparkle.value + 0.5) % 1.0) * math.pi * 2) + 1) / 2) * 0.6,
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 6),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 0,
-              right: 6,
-              child: AnimatedBuilder(
-                animation: _sparkle,
-                builder: (_, child) => Opacity(
-                  opacity: 0.2 + ((math.sin(((_sparkle.value + 0.75) % 1.0) * math.pi * 2) + 1) / 2) * 0.7,
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 8),
-                ),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -546,6 +482,7 @@ class _RadioIndicator extends StatelessWidget {
         width: 24,
         height: 24,
         decoration: BoxDecoration(
+          color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.hairline, width: 2),
         ),
@@ -566,6 +503,7 @@ class _RadioIndicator extends StatelessWidget {
       width: 24,
       height: 24,
       decoration: BoxDecoration(
+        color: Colors.white,
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.muted2, width: 2),
       ),
@@ -692,25 +630,19 @@ class _FeaturesList extends StatelessWidget {
       ..._staticFeatures,
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.hairline, width: 1),
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < rows.length; i++) ...[
-            _FeatureRow(
-              icon: rows[i].icon,
-              title: rows[i].title,
-              subtitle: rows[i].subtitle,
-            ),
-            if (i < rows.length - 1)
-              const Divider(height: 1, thickness: 1, color: AppColors.hairline, indent: 56),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < rows.length; i++) ...[
+          _FeatureRow(
+            icon: rows[i].icon,
+            title: rows[i].title,
+            subtitle: rows[i].subtitle,
+          ),
+          if (i < rows.length - 1)
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline, indent: 56),
         ],
-      ),
+      ],
     );
   }
 }
@@ -773,12 +705,12 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-// ── Footer ────────────────────────────────────────────────────────────────────
+// ── Footer links only (compact, used in bottom panel) ────────────────────────
 
-class _Footer extends StatelessWidget {
+class _FooterLinks extends StatelessWidget {
   final VoidCallback onRestore;
 
-  const _Footer({required this.onRestore});
+  const _FooterLinks({required this.onRestore});
 
   void _open(BuildContext context, String url, String title) =>
       Navigator.of(context).push(MaterialPageRoute(
@@ -787,39 +719,26 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        const Text(
-          'Payment will be charged to your Apple ID account. Subscription automatically renews unless auto-renewal is turned off at least 24 hours before the end of the current period.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppColors.muted,
-            height: 1.5,
-          ),
+        _FooterLink(
+          label: 'Privacy Policy',
+          onTap: () => _open(context, _privacyUrl, 'Privacy Policy'),
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _FooterLink(
-              label: 'Privacy Policy',
-              onTap: () => _open(context, _privacyUrl, 'Privacy Policy'),
-            ),
-            const _FooterDot(),
-            _FooterLink(
-              label: 'Terms of Use',
-              onTap: () => _open(context, _termsUrl, 'Terms of Use'),
-            ),
-            const _FooterDot(),
-            _FooterLink(label: 'Restore Purchase', onTap: onRestore),
-          ],
+        const _FooterDot(),
+        _FooterLink(
+          label: 'Terms of Use',
+          onTap: () => _open(context, _termsUrl, 'Terms of Use'),
         ),
+        const _FooterDot(),
+        _FooterLink(label: 'Restore Purchase', onTap: onRestore),
       ],
     );
   }
 }
+
 
 class _FooterLink extends StatelessWidget {
   final String label;
