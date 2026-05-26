@@ -55,6 +55,7 @@ class _DashboardViewState extends State<_DashboardView> {
   final _fabKey = GlobalKey<ExpandableFabState>();
   late final PurchaseActivationService _activation;
   late final UserStatusService _statusService;
+  DateTime? _lastDrawerRefresh;
 
   @override
   void initState() {
@@ -353,6 +354,14 @@ class _DashboardViewState extends State<_DashboardView> {
           resizeToAvoidBottomInset: false,
           appBar: header,
           drawer: drawer,
+          onDrawerChanged: (isOpened) {
+            if (!isOpened) return;
+            final now = DateTime.now();
+            final last = _lastDrawerRefresh;
+            if (last != null && now.difference(last) < const Duration(seconds: 30)) return;
+            _lastDrawerRefresh = now;
+            _statusService.refresh();
+          },
           body: body,
           floatingActionButtonLocation: ExpandableFab.location,
           floatingActionButton: DashboardFab(
