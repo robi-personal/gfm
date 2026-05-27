@@ -823,7 +823,9 @@ const contactForm = document.getElementById('contact-form');
 const contactSuccess = document.getElementById('contact-success');
 const contactError = document.getElementById('contact-error');
 const contactSubmit = document.getElementById('contact-submit');
+const contactSubmitOrig = contactSubmit.innerHTML;
 document.getElementById('contact-reset').addEventListener('click', () => {
+  contactForm.reset();
   contactSuccess.style.display = 'none';
   contactForm.style.display = '';
 });
@@ -833,18 +835,18 @@ contactForm.addEventListener('submit', async (e) => {
   contactSubmit.textContent = 'Sending…';
   contactError.style.display = 'none';
   try {
-    const data = new FormData(contactForm);
-    await fetch('https://formsubmit.co/ajax/robi.officee@gmail.com', {
+    const res = await fetch('https://formspree.io/f/xrerygky', {
       method: 'POST',
       headers: { 'Accept': 'application/json' },
-      body: data
+      body: new FormData(contactForm)
     });
+    if (!res.ok) throw new Error();
     contactForm.style.display = 'none';
     contactSuccess.style.display = 'flex';
   } catch {
     contactError.style.display = 'block';
     contactSubmit.disabled = false;
-    contactSubmit.innerHTML = 'Send Message <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+    contactSubmit.innerHTML = contactSubmitOrig;
   }
 });
 
@@ -857,12 +859,12 @@ notifyForm.addEventListener('submit', async (e) => {
   notifyBtn.disabled = true;
   notifyBtn.textContent = 'Adding you…';
   try {
-    const data = new FormData(notifyForm);
-    await fetch('https://formsubmit.co/ajax/robi.officee@gmail.com', {
+    const res = await fetch('https://formspree.io/f/xrerygky', {
       method: 'POST',
       headers: { 'Accept': 'application/json' },
-      body: data
+      body: new FormData(notifyForm)
     });
+    if (!res.ok) throw new Error();
     notifyForm.style.display = 'none';
     notifySuccess.style.display = 'flex';
   } catch {
