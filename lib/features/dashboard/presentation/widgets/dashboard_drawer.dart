@@ -35,6 +35,7 @@ class DashboardDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(),
       child: _DrawerContent(
         onAiBuilder: onAiBuilder,
         onCreateForm: onCreateForm,
