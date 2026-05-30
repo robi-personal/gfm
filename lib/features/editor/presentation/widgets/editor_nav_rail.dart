@@ -43,6 +43,7 @@ class _EditorNavRailState extends State<EditorNavRail> {
       onDestinationSelected: (i) => widget.controller.animateTo(i),
       labelType: NavigationRailLabelType.all,
       backgroundColor: AppColors.purpleDark,
+      indicatorColor: Colors.white.withValues(alpha: 0.15),
       selectedIconTheme: const IconThemeData(color: Colors.white),
       unselectedIconTheme:
           IconThemeData(color: Colors.white.withValues(alpha: 0.50)),
