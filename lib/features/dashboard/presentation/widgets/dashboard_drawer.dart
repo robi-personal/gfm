@@ -35,7 +35,6 @@ class DashboardDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(),
       child: _DrawerContent(
         onAiBuilder: onAiBuilder,
         onCreateForm: onCreateForm,
@@ -150,7 +149,7 @@ class _DrawerContent extends StatelessWidget {
               icon: Icons.auto_awesome_rounded,
               title: 'AI Form Builder',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 onAiBuilder();
               },
             ),
@@ -158,7 +157,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.pencil,
               title: 'Create Form',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 onCreateForm();
               },
             ),
@@ -166,7 +165,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.arrow_down_circle,
               title: 'Import Form',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 onImportForm();
               },
             ),
@@ -180,7 +179,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.star_fill,
               title: 'Upgrade Plan',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 onShowPaywall();
               },
             ),
@@ -188,7 +187,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.arrow_clockwise,
               title: 'Restore Purchases',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 onRestorePurchases();
               },
             ),
@@ -202,7 +201,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.hand_thumbsup,
               title: 'Rate the app',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 launchUrl(
                   Uri.parse(_kAppStoreReviewUrl),
                   mode: LaunchMode.externalApplication,
@@ -219,7 +218,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.lock_shield,
               title: 'Privacy Policy',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const SimpleWebViewPage(
@@ -234,7 +233,7 @@ class _DrawerContent extends StatelessWidget {
               icon: CupertinoIcons.doc_text,
               title: 'Terms of Use',
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const SimpleWebViewPage(
@@ -258,7 +257,7 @@ class _DrawerContent extends StatelessWidget {
               iconBg: AppColors.error,
               textColor: AppColors.error,
               onTap: () {
-                Navigator.of(context).pop();
+                Scaffold.of(context).closeDrawer();
                 context.read<SignInCubit>().signOut();
               },
             ),
