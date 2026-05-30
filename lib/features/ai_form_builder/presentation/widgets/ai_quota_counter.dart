@@ -26,7 +26,7 @@ class AiQuotaCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: Stack(
         children: [
           Positioned.fill(
