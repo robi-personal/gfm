@@ -57,7 +57,7 @@ class DashboardFormList extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 0,
-        childAspectRatio: 4.5,
+        mainAxisExtent: 90,
       ),
       itemCount: forms.length,
       itemBuilder: (_, i) => DashboardFormCard(
