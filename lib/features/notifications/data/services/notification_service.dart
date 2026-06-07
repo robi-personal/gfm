@@ -181,13 +181,24 @@ class NotificationService {
     }
   }
 
+  /// Schedules permanent account deletion on the backend, then returns so the
+  /// caller can sign out. Throws on failure — caller handles the error.
+  Future<void> deleteAccount() => _api.deleteAccount();
+
   /// Call on sign-out. Unregisters the current device's token from the backend
   /// (other devices' tokens stay registered) and stops listeners.
-  Future<void> unregisterForUser() async {
+  ///
+  /// Pass `skipBackend: true` to skip the HTTP unregister call. Used on the
+  /// account-deletion sign-out path: the backend unregister request would
+  /// otherwise trigger the auth middleware's cancel-pending-deletion side
+  /// effect and silently undo the deletion request that was just inserted.
+  Future<void> unregisterForUser({bool skipBackend = false}) async {
     try {
-      final token = _lastRegisteredToken ?? await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await _api.unregisterDevice(token);
+      if (!skipBackend) {
+        final token = _lastRegisteredToken ?? await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          await _api.unregisterDevice(token);
+        }
       }
       await FirebaseMessaging.instance.deleteToken();
     } catch (e) {

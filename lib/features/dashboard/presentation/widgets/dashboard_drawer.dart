@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/design.dart';
 import '../../../../../core/di/injection.dart';
+import '../../../../../core/widgets/error_modal.dart';
 import '../../../../../core/widgets/simple_web_view_page.dart';
 import '../../../sign_in/presentation/cubit/sign_in_cubit.dart';
 import '../../../ai_form_builder/data/services/user_status_service.dart';
@@ -261,6 +262,16 @@ class _DrawerContent extends StatelessWidget {
                 context.read<SignInCubit>().signOut();
               },
             ),
+            _DrawerItem(
+              icon: CupertinoIcons.trash,
+              title: 'Delete Account',
+              iconBg: AppColors.error,
+              textColor: AppColors.error,
+              onTap: () {
+                Scaffold.of(context).closeDrawer();
+                _showDeleteAccountSheet(context);
+              },
+            ),
           ],
         ),
       ],
@@ -437,6 +448,228 @@ class _DrawerSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Delete account sheet ──────────────────────────────────────────────────────
+
+void _showDeleteAccountSheet(BuildContext ctx) {
+  final cubit = ctx.read<SignInCubit>();
+  // Capture the root navigator state — its context survives drawer/sheet
+  // teardown and the auth-gate page swap on sign-out.
+  final rootNav = Navigator.of(ctx, rootNavigator: true);
+  showModalBottomSheet<void>(
+    context: ctx,
+    isScrollControlled: true,
+    isDismissible: false,
+    enableDrag: false,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DeleteAccountSheet(
+      onConfirm: cubit.deleteAccount,
+      onError: () {
+        if (!rootNav.mounted) return;
+        ErrorModal.show(
+          rootNav.context,
+          title: 'Something went wrong',
+          body: 'Could not schedule account deletion. Please try again.',
+          primaryLabel: 'OK',
+          onPrimary: () {},
+        );
+      },
+    ),
+  );
+}
+
+class _DeleteAccountSheet extends StatefulWidget {
+  final Future<void> Function() onConfirm;
+  final VoidCallback onError;
+
+  const _DeleteAccountSheet({required this.onConfirm, required this.onError});
+
+  @override
+  State<_DeleteAccountSheet> createState() => _DeleteAccountSheetState();
+}
+
+class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
+  final _controller = TextEditingController();
+  bool _confirmed = false;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final match = _controller.text == 'DELETE';
+      if (match != _confirmed) setState(() => _confirmed = match);
+    });
+  }
+
+  Future<void> _handleConfirm() async {
+    setState(() => _loading = true);
+    try {
+      // Run the API call alongside a minimum-display delay so the spinner
+      // is always visible long enough to register, even on a fast network.
+      await Future.wait<void>([
+        widget.onConfirm(),
+        Future<void>.delayed(const Duration(milliseconds: 700)),
+      ]);
+      // Sign-out swaps the home page but the modal sheet route stays on
+      // the navigator stack — pop it explicitly so it does not hover over
+      // the sign-in screen.
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      widget.onError();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.hairline,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(CupertinoIcons.trash, color: AppColors.error, size: 24),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Delete Account',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Your account and all data will be permanently deleted after 30 days. Sign in again any time within 30 days to cancel.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: AppColors.muted,
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.ink,
+              letterSpacing: 1.5,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Type DELETE to confirm',
+              hintStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: AppColors.muted2,
+                letterSpacing: 0,
+              ),
+              filled: true,
+              fillColor: AppColors.bg,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.hairline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.hairline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            spacing: 12,
+            children: [
+              Expanded(
+                child: CupertinoButton(
+                  onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  minimumSize: Size.zero,
+                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.bg,
+                  pressedOpacity: 0.7,
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: CupertinoButton(
+                  onPressed: (_confirmed && !_loading) ? _handleConfirm : null,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  minimumSize: Size.zero,
+                  borderRadius: BorderRadius.circular(12),
+                  color: _confirmed ? AppColors.error : AppColors.error.withValues(alpha: 0.35),
+                  pressedOpacity: 0.8,
+                  child: _loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.purple),
+                          ),
+                        )
+                      : const Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -11,11 +11,14 @@ class SignInHero extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SvgPicture.asset(
-          'assets/login_banner.svg',
-          width: 260,
-          height: 260,
-          fit: BoxFit.contain,
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260, maxHeight: 260),
+            child: SvgPicture.asset(
+              'assets/login_banner.svg',
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
         const SizedBox(height: 36),
         const Text(

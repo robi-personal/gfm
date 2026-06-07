@@ -111,6 +111,18 @@ class NotificationsApi {
     throw Exception('checkAppleSubscription failed: ${res.statusCode}');
   }
 
+  /// Request permanent account deletion. The server schedules deletion after
+  /// 30 days; any subsequent sign-in cancels it automatically.
+  Future<void> deleteAccount() async {
+    final res = await _httpClient.delete(
+      Uri.parse('$_kBaseUrl/user/account'),
+      headers: await _authHeaders(),
+    );
+    if (res.statusCode != 204) {
+      throw Exception('deleteAccount failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
   /// Remove the mapping after the app deletes the watch on Google's side.
   Future<void> unregisterWatch(String watchId) async {
     final res = await _httpClient.delete(

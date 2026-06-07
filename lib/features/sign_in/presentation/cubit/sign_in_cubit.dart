@@ -111,9 +111,20 @@ class SignInCubit extends Cubit<SignInState> {
     );
   }
 
-  Future<void> signOut() async {
+  /// Schedules account deletion on the backend, then signs out locally.
+  /// The device-unregister HTTP call is skipped so the auth middleware does
+  /// not silently cancel the deletion request that was just inserted.
+  /// Throws on API failure — call site is responsible for showing the error.
+  Future<void> deleteAccount() async {
+    await _notificationService.deleteAccount();
+    await _performSignOut(skipDeviceBackend: true);
+  }
+
+  Future<void> signOut() => _performSignOut();
+
+  Future<void> _performSignOut({bool skipDeviceBackend = false}) async {
     emit(const SigningOut());
-    await _notificationService.unregisterForUser();
+    await _notificationService.unregisterForUser(skipBackend: skipDeviceBackend);
     await _signOut();
     _formsClient.reset();
     _driveClient.reset();
