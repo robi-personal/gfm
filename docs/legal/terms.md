@@ -1,7 +1,7 @@
 # Terms and Conditions
 
 **Effective date:** 2026-05-27
-**Last updated:** 2026-05-27
+**Last updated:** 2026-06-07
 
 > This document is the canonical Terms of Service for GFM. The HTML version published at `gfm.alphaiit.com/terms.html` is rendered from this source. **Not legal advice — review with counsel before launch.**
 
@@ -210,7 +210,7 @@ We may suspend or terminate your access to GFM (in whole or in part) at any time
 - A required third-party service (Google, RevenueCat, Apple, Firebase) restricts our ability to provide GFM to you.
 - We discontinue GFM or any part of it (see §17).
 
-You may stop using GFM at any time by uninstalling the app and, optionally, by revoking GFM's access in your Google Account settings. To delete your middleware-side account data, follow the deletion process in the [Privacy Policy](./privacy.md) §9.
+You may stop using GFM at any time by uninstalling the app and, optionally, by revoking GFM's access in your Google Account settings. To permanently delete your middleware-side account data, open the app drawer and select **Delete Account**; the request is scheduled for 30 days later, and signing back in within that window cancels it automatically. See the [Privacy Policy](./privacy.md) §9 for the full scope of what is removed.
 
 Termination of your account does not entitle you to a refund of any prepaid subscription fees, except where required by law or by Apple's policy.
 

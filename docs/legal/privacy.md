@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Effective date:** 2026-05-27
-**Last updated:** 2026-05-27
+**Last updated:** 2026-06-07
 
 > This document is the canonical privacy policy for GFM. The HTML version published at `gfm.alphaiit.com/privacy.html` is rendered from this source. **Not legal advice — review with counsel before launch.**
 
@@ -211,7 +211,7 @@ To exercise any of these rights, email [formmanager000@gmail.com](mailto:formman
 
 ## 9. Account deletion
 
-To delete your GFM account and all middleware-side data tied to it, email [formmanager000@gmail.com](mailto:formmanager000@gmail.com) from the address associated with your Google account. We process deletion requests within **30 days**.
+To delete your GFM account and all middleware-side data tied to it, open the app drawer and select **Delete Account**, then confirm by typing `DELETE`. Your account is scheduled for permanent erasure **30 days** after the request. Signing back in to the app at any point during that 30-day window cancels the deletion automatically — no separate action required. If you can no longer access the app, email [formmanager000@gmail.com](mailto:formmanager000@gmail.com) from the address associated with your Google account and we will process the request manually.
 
 Deletion covers:
 
