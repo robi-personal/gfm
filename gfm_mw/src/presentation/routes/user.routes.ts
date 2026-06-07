@@ -59,6 +59,21 @@ userRouter.get(
   },
 );
 
+// DELETE /user/account
+userRouter.delete(
+  "/account",
+  authMiddleware,
+  async (req, res, next) => {
+    try {
+      const userRepo = new PgUserRepository(pool);
+      await userRepo.requestDeletion(req.user!.id);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // POST /user/apple/check
 // Pre-purchase check. The app fetches the Apple originalTransactionId from
 // StoreKit (via native channel) and sends it here. If that transaction is

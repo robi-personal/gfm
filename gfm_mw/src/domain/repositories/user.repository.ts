@@ -73,4 +73,8 @@ export interface UserRepository {
     productId: string | null,
     eventTimestampMs: number | null,
   ): Promise<void>;
+
+  // Account deletion
+  requestDeletion(userId: number): Promise<void>;
+  cancelDeletionIfPending(userId: number): Promise<void>;
 }

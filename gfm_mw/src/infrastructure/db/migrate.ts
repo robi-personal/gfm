@@ -17,6 +17,7 @@ const MIGRATIONS = [
   // never falsely marks it applied.
   { id: "007", filename: "007_event_watermark_and_dedupe.sql", seededTable: "_never_007" },
   { id: "008", filename: "008_apple_subscription_bindings.sql", seededTable: "apple_subscription_bindings" },
+  { id: "009", filename: "009_account_deletion_requests.sql",  seededTable: "account_deletion_requests" },
 ];
 
 export async function runMigrations(): Promise<void> {

@@ -52,6 +52,12 @@ export async function authMiddleware(
       tier: (user.isPremium || isWhitelisted) ? "premium" : "free",
     };
 
+    // Cancel any pending deletion — signing in means the user is still active.
+    // Fire-and-forget so it never adds latency to the auth path.
+    userRepo.cancelDeletionIfPending(user.id).catch((err) => {
+      logger.error({ err, user_id: user.id }, "cancel_deletion_failed");
+    });
+
     // Re-bind the request logger to include user_id on all subsequent log calls.
     req.log = req.log.child({ user_id: user.id });
 

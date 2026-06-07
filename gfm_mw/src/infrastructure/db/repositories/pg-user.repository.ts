@@ -314,6 +314,22 @@ export class PgUserRepository implements UserRepository {
     );
   }
 
+  async cancelDeletionIfPending(userId: number): Promise<void> {
+    await this.db.query(
+      "DELETE FROM account_deletion_requests WHERE user_id = $1",
+      [userId],
+    );
+  }
+
+  async requestDeletion(userId: number): Promise<void> {
+    await this.db.query(
+      `INSERT INTO account_deletion_requests (user_id)
+       VALUES ($1)
+       ON CONFLICT (user_id) DO NOTHING`,
+      [userId],
+    );
+  }
+
   async transferTo(
     googleSubs: string[],
     productId: string | null,
