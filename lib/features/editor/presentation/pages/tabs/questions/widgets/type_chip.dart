@@ -59,12 +59,15 @@ class TypeChip extends StatelessWidget {
         FileUploadQuestion() => 'File upload',
       };
 
+  // App-native chip palette — deliberately distinct from Google's brand
+  // blue/red/yellow/green so question types read as part of our own design
+  // language rather than Google Forms.
   static Color _color(QuestionKind kind) => switch (kind) {
-        TextQuestion() => const Color(0xFF1A73E8),
-        ChoiceQuestion() => AppColors.success,
-        ScaleQuestion() => const Color(0xFFFBBC04),
-        DateQuestion() || TimeQuestion() => const Color(0xFFEA4335),
-        RatingQuestion() => const Color(0xFFFA7B17),
-        RowQuestion() || FileUploadQuestion() => Colors.grey,
+        TextQuestion() => AppColors.purple600,
+        ChoiceQuestion() => const Color(0xFF0E9F8E), // teal
+        ScaleQuestion() => const Color(0xFFD97706), // amber
+        DateQuestion() || TimeQuestion() => const Color(0xFFDB2777), // rose
+        RatingQuestion() => const Color(0xFFE0552E), // coral
+        RowQuestion() || FileUploadQuestion() => const Color(0xFF64748B), // slate
       };
 }

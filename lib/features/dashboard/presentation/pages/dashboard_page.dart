@@ -421,7 +421,12 @@ class _DashboardViewState extends State<_DashboardView> {
         ),
         Expanded(
           child: forms.isEmpty
-              ? DashboardRefreshableEmptyState(query: query)
+              ? DashboardRefreshableEmptyState(
+                  query: query,
+                  onAiBuilder: () => _openAiBuilder(context),
+                  onCreateForm: () => _onNewForm(context),
+                  onImport: () => _openImport(context),
+                )
               : DashboardFormList(
                   forms: forms,
                   query: query,

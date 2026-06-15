@@ -22,15 +22,15 @@ class SignInHero extends StatelessWidget {
         ),
         const SizedBox(height: 36),
         const Text(
-          'Build Google Forms,\npowered by AI.',
+          'Turn anything into\na form or quiz.',
           textAlign: TextAlign.center,
           style: AppTextStyles.title,
         ),
         const SizedBox(height: 12),
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300),
+          constraints: const BoxConstraints(maxWidth: 320),
           child: Text(
-            'Generate, import, and manage forms in seconds — without leaving your phone.',
+            'Generate forms and quizzes with AI from a YouTube video, PDF, web page, or a photo of printed pages — right from your phone.',
             textAlign: TextAlign.center,
             style: AppTextStyles.body.copyWith(color: AppColors.muted),
           ),

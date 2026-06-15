@@ -51,14 +51,18 @@ class QuestionCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left purple accent bar — full card height including drag handle
+            // Left accent rail — gradient, full card height including drag handle
             Container(
-              width: 4,
+              width: 5,
               decoration: const BoxDecoration(
-                color: AppColors.purple,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.purple400, AppColors.purple700],
+                ),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
                 ),
               ),
             ),
@@ -223,12 +227,16 @@ class QuestionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              width: 4,
+              width: 5,
               decoration: const BoxDecoration(
-                color: AppColors.purple,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.purple400, AppColors.purple700],
+                ),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
                 ),
               ),
             ),
@@ -306,7 +314,7 @@ class _CardShell extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),

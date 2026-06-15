@@ -11,7 +11,16 @@ import '../cubit/dashboard_cubit.dart';
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class DashboardEmptyState extends StatelessWidget {
-  const DashboardEmptyState({super.key});
+  final VoidCallback? onAiBuilder;
+  final VoidCallback? onCreateForm;
+  final VoidCallback? onImport;
+
+  const DashboardEmptyState({
+    super.key,
+    this.onAiBuilder,
+    this.onCreateForm,
+    this.onImport,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,26 +30,80 @@ class DashboardEmptyState extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SvgPicture.asset(
                   'assets/dashboard_no_form_banner.svg',
-                  width: 180,
+                  width: 160,
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 26),
                 const Text(
-                  'No forms yet',
+                  'Create your first form with AI',
+                  textAlign: TextAlign.center,
                   style: AppTextStyles.screenHeader,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tap + to create or import your first form.',
+                  'Generate a form or quiz from a YouTube video, PDF, web page, or a photo of printed pages.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.body.copyWith(color: AppColors.muted),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
+                // ── Primary CTA: AI generation ──────────────────────────────
+                GestureDetector(
+                  onTap: onAiBuilder,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 26, vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.purple500, AppColors.purple700],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: AppShapes.primaryButtonShadow,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 9,
+                      children: [
+                        Icon(Icons.auto_awesome_rounded,
+                            size: 18, color: Colors.white),
+                        Text(
+                          'Generate with AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // ── Secondary actions ───────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _EmptyTextAction(
+                      icon: Icons.edit_note_rounded,
+                      label: 'Create manually',
+                      onTap: onCreateForm,
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                        width: 1, height: 14, color: AppColors.hairline),
+                    const SizedBox(width: 8),
+                    _EmptyTextAction(
+                      icon: CupertinoIcons.link,
+                      label: 'Import',
+                      onTap: onImport,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -69,6 +132,43 @@ class DashboardEmptyState extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyTextAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _EmptyTextAction({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.purple600),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: AppTextStyles.meta.copyWith(
+                color: AppColors.purple600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -330,8 +430,17 @@ class DashboardImportingOverlay extends StatelessWidget {
 
 class DashboardRefreshableEmptyState extends StatelessWidget {
   final String query;
+  final VoidCallback? onAiBuilder;
+  final VoidCallback? onCreateForm;
+  final VoidCallback? onImport;
 
-  const DashboardRefreshableEmptyState({super.key, required this.query});
+  const DashboardRefreshableEmptyState({
+    super.key,
+    required this.query,
+    this.onAiBuilder,
+    this.onCreateForm,
+    this.onImport,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +449,11 @@ class DashboardRefreshableEmptyState extends StatelessWidget {
       onRefresh: () => context.read<DashboardCubit>().refresh(),
       child: query.isNotEmpty
           ? DashboardSearchEmptyState(query: query)
-          : const DashboardEmptyState(),
+          : DashboardEmptyState(
+              onAiBuilder: onAiBuilder,
+              onCreateForm: onCreateForm,
+              onImport: onImport,
+            ),
     );
   }
 }
