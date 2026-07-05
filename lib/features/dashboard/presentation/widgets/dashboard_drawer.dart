@@ -16,6 +16,51 @@ const _kAppStoreId = '6479591930';
 const _kAppStoreReviewUrl =
     'itms-apps://itunes.apple.com/app/id$_kAppStoreId?action=write-review';
 
+/// Our other apps — shown as a horizontal row of tiles in the drawer.
+/// Icons are loaded from the App Store CDN so there are no bundled assets.
+const _kMoreApps = <_MoreApp>[
+  _MoreApp(
+    name: 'Dopamin Detox',
+    iconUrl:
+        'https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/0c/18/de/0c18de7f-edd1-edc1-6a32-e0916e1b333f/AppIcon-0-0-1x_U007ephone-0-1-85-220.png/256x256bb.jpg',
+    storeUrl:
+        'https://apps.apple.com/us/app/dopamin-detox-block-focus/id6780148393',
+  ),
+  _MoreApp(
+    name: 'WASticker',
+    iconUrl:
+        'https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/a0/45/97/a04597da-c940-a931-a940-9b85ee02ed57/AppIcon-0-0-1x_U007epad-0-11-0-0-85-220.png/256x256bb.jpg',
+    storeUrl:
+        'https://apps.apple.com/us/app/wasticker-ai-sticker-maker/id6754502041',
+  ),
+  _MoreApp(
+    name: 'Aquarium',
+    iconUrl:
+        'https://is1-ssl.mzstatic.com/image/thumb/Purple128/v4/03/a0/d4/03a0d41f-19f5-8ecf-4f78-baf7dabe4b4c/AppIcon-1x_U007emarketing-85-220-0-4.png/256x256bb.jpg',
+    storeUrl:
+        'https://apps.apple.com/us/app/aquarium-live-wallpapers-lite/id1194959293',
+  ),
+  _MoreApp(
+    name: 'Lipers',
+    iconUrl:
+        'https://is1-ssl.mzstatic.com/image/thumb/Purple118/v4/22/f5/4f/22f54f9d-8bda-0960-09e0-5713fc3b9c99/AppIcon-1x_U007emarketing-85-220-0-4.png/256x256bb.jpg',
+    storeUrl:
+        'https://apps.apple.com/us/app/lipers-lite-live-wallpapers/id1181075088',
+  ),
+];
+
+class _MoreApp {
+  final String name;
+  final String iconUrl;
+  final String storeUrl;
+
+  const _MoreApp({
+    required this.name,
+    required this.iconUrl,
+    required this.storeUrl,
+  });
+}
+
 class DashboardDrawer extends StatelessWidget {
   final VoidCallback onAiBuilder;
   final VoidCallback onCreateForm;
@@ -248,6 +293,8 @@ class _DrawerContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        const _MoreAppsSection(),
+        const SizedBox(height: 12),
         _DrawerSection(
           label: 'ACCOUNT',
           labelColor: AppColors.error,
@@ -448,6 +495,103 @@ class _DrawerSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Our more apps ─────────────────────────────────────────────────────────────
+
+class _MoreAppsSection extends StatelessWidget {
+  const _MoreAppsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'OUR MORE APPS',
+            style: AppTextStyles.sectionLabel.copyWith(color: AppColors.muted),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppShapes.cardRadius2,
+            boxShadow: AppShapes.cardShadow,
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            child: Row(
+              children: [
+                for (final app in _kMoreApps) _MoreAppTile(app: app),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoreAppTile extends StatelessWidget {
+  final _MoreApp app;
+
+  const _MoreAppTile({required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => launchUrl(
+        Uri.parse(app.storeUrl),
+        mode: LaunchMode.externalApplication,
+      ),
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: SizedBox(
+          width: 60,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  app.iconUrl,
+                  width: 52,
+                  height: 52,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.purple600.withValues(alpha: 0.12),
+                    child: Icon(
+                      CupertinoIcons.app_fill,
+                      size: 22,
+                      color: AppColors.purple600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                app.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
